@@ -1,12 +1,27 @@
-from typing import Optional
-from sqlalchemy.orm import Session
-from app.repositories.base import BaseRepository
+from typing import Any, List, Optional
+from app.repositories.base import AbstractRepository
 
 
-class OrderRepository(BaseRepository):
-    """Repository skeleton for Order persistence and state recovery."""
+class OrderRepository(AbstractRepository[Any]):
+    """
+    Repository contract for Order persistence and state recovery.
+    Inherits from AbstractRepository without instantiating premature domain models.
+    """
 
-    def __init__(self, session: Optional[Session] = None) -> None:
-        # Model class will be injected in Phase 2 / Phase 3 once domain models are defined
-        super().__init__(model_class=None, session=session)  # type: ignore
+    def get_by_id(self, entity_id: int) -> Optional[Any]:
+        raise NotImplementedError("Order domain model and persistence deferred to Order Engine phase.")
 
+    def list_all(self, limit: int = 100, offset: int = 0) -> List[Any]:
+        raise NotImplementedError("Order domain model and persistence deferred to Order Engine phase.")
+
+    def add(self, entity: Any) -> Any:
+        raise NotImplementedError("Order domain model and persistence deferred to Order Engine phase.")
+
+    def update(self, entity: Any) -> Any:
+        raise NotImplementedError("Order domain model and persistence deferred to Order Engine phase.")
+
+    def delete(self, entity: Any) -> None:
+        raise NotImplementedError("Order domain model and persistence deferred to Order Engine phase.")
+
+    def count(self) -> int:
+        raise NotImplementedError("Order domain model and persistence deferred to Order Engine phase.")

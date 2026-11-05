@@ -4,6 +4,7 @@ from enum import Enum
 import uuid
 from typing import Any, Dict, Optional
 
+from app.core.request_context import get_current_context
 from app.logging.logger import get_logger
 
 logger = get_logger("app.core.audit")
@@ -19,13 +20,24 @@ class AuditCategory(str, Enum):
     SYSTEM = "SYSTEM"
 
 
+# Phase 2 Expanded Audit Actions
+LOGIN_SUCCESS = "LOGIN_SUCCESS"
+LOGIN_FAILED = "LOGIN_FAILED"
+LOGOUT = "LOGOUT"
+SESSION_CREATED = "SESSION_CREATED"
+SESSION_EXPIRED = "SESSION_EXPIRED"
+PASSWORD_CHANGED = "PASSWORD_CHANGED"
+
+
 @dataclass(frozen=True)
 class AuditRecord:
-    """Immutable audit record structure."""
+    """Immutable audit record structure with correlation & request tracking."""
 
     category: AuditCategory
     action: str
     actor: str = "system"
+    correlation_id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    request_id: Optional[str] = None
     details: Dict[str, Any] = field(default_factory=dict)
     event_id: str = field(default_factory=lambda: str(uuid.uuid4()))
     timestamp: str = field(
@@ -36,7 +48,8 @@ class AuditRecord:
 class AuditLogger:
     """
     Central Audit Framework.
-    Guarantees every critical business action has an immutable log trace.
+    Guarantees every critical business action has an immutable log trace
+    tied to a correlation_id and request_id.
     """
 
     def record(
@@ -44,16 +57,26 @@ class AuditLogger:
         category: AuditCategory | str,
         action: str,
         actor: str = "system",
+        correlation_id: Optional[str] = None,
+        request_id: Optional[str] = None,
         details: Optional[Dict[str, Any]] = None,
     ) -> AuditRecord:
-        """Record an audit trail event."""
+        """Record an audit trail event linking correlation context."""
         cat_enum = (
             category if isinstance(category, AuditCategory) else AuditCategory(str(category).upper())
         )
+
+        # Populate context if absent
+        ctx = get_current_context()
+        active_corr_id = correlation_id or ctx.correlation_id
+        active_req_id = request_id or ctx.request_id
+
         record = AuditRecord(
             category=cat_enum,
             action=action,
             actor=actor,
+            correlation_id=active_corr_id,
+            request_id=active_req_id,
             details=details or {},
         )
 
@@ -63,6 +86,8 @@ class AuditLogger:
             audit_category=cat_enum.value,
             audit_action=action,
             actor=actor,
+            correlation_id=active_corr_id,
+            request_id=active_req_id,
             audit_id=record.event_id,
             details=record.details,
         )
@@ -71,4 +96,3 @@ class AuditLogger:
 
 # Global Audit Logger Singleton
 audit_logger = AuditLogger()
-

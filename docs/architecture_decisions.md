@@ -11,4 +11,5 @@
 - [ADR-001: SQLite as Initial Local Persistence Layer](adr/ADR-001-SQLite.md)
 - [ADR-002: Broker Adapter Abstraction Pattern](adr/ADR-002-Broker-Adapter.md)
 - [ADR-003: Unified Architecture for Paper and Live Trading](adr/ADR-003-Paper-Trading.md)
-
+- [ADR-004: Token-Based Session Management & Sliding Expiration](adr/ADR-004-Session-Management.md)
+- [ADR-005: Request Tracing, Correlation IDs, and Secret Encryption](adr/ADR-005-Security-Request-Tracing.md)

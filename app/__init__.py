@@ -3,7 +3,7 @@ from flask import Flask
 
 from config import BaseConfig, get_config
 from app.logging.logger import setup_logging, get_logger
-from app.models.db import init_db
+from app.models.db import init_db, create_all_tables
 from app.core.feature_flags import feature_flags
 from app.core.audit import audit_logger, AuditCategory
 from app.events.event_bus import event_bus, publish
@@ -69,6 +69,8 @@ def create_app(
 
     # 5. Initialize Database Framework
     init_db(app)
+    if app.config.get("DEBUG") or app.config.get("TESTING"):
+        create_all_tables()
 
     # 6. Initialize WebSocket Framework
     socket_manager.init_app(app)

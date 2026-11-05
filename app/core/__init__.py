@@ -6,7 +6,26 @@ from app.core.exceptions import (
 )
 from app.core.response import api_response, api_error
 from app.core.feature_flags import FeatureFlags, feature_flags
-from app.core.audit import AuditCategory, AuditRecord, AuditLogger, audit_logger
+from app.core.audit import (
+    AuditCategory,
+    AuditRecord,
+    AuditLogger,
+    audit_logger,
+    LOGIN_SUCCESS,
+    LOGIN_FAILED,
+    LOGOUT,
+    SESSION_CREATED,
+    SESSION_EXPIRED,
+    PASSWORD_CHANGED,
+)
+from app.core.request_context import (
+    RequestContext,
+    get_current_context,
+    set_current_context,
+    get_correlation_id,
+    get_request_id,
+)
+from app.core.encryption import EncryptionService, encryption_service
 
 __all__ = [
     "ApplicationException",
@@ -21,5 +40,17 @@ __all__ = [
     "AuditRecord",
     "AuditLogger",
     "audit_logger",
+    "LOGIN_SUCCESS",
+    "LOGIN_FAILED",
+    "LOGOUT",
+    "SESSION_CREATED",
+    "SESSION_EXPIRED",
+    "PASSWORD_CHANGED",
+    "RequestContext",
+    "get_current_context",
+    "set_current_context",
+    "get_correlation_id",
+    "get_request_id",
+    "EncryptionService",
+    "encryption_service",
 ]
-

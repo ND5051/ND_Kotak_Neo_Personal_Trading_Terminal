@@ -20,6 +20,13 @@ def get_engine():
     return engine
 
 
+def get_session() -> Session:
+    """Retrieve the active scoped database session."""
+    if db_session is None:
+        raise RuntimeError("Database session not initialized. Call init_db() first.")
+    return db_session()
+
+
 def init_db(app: Optional[Flask] = None, database_url: Optional[str] = None) -> None:
     """Initialize the database engine and scoped session."""
     global engine, SessionFactory, db_session
@@ -39,14 +46,18 @@ def init_db(app: Optional[Flask] = None, database_url: Optional[str] = None) -> 
         db_path.parent.mkdir(parents=True, exist_ok=True)
 
     connect_args = {}
+    engine_kwargs = {"future": True, "echo": False}
+
     if db_uri.startswith("sqlite"):
         connect_args["check_same_thread"] = False
+        if db_uri == "sqlite:///:memory:":
+            from sqlalchemy.pool import StaticPool
+            engine_kwargs["poolclass"] = StaticPool
 
     engine = create_engine(
         db_uri,
         connect_args=connect_args,
-        echo=False,
-        future=True,
+        **engine_kwargs,
     )
 
     SessionFactory = sessionmaker(

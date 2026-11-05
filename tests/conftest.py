@@ -5,7 +5,7 @@ from flask.testing import FlaskClient
 
 from app import create_app
 from config.testing import TestingConfig
-from app.models.db import init_db, create_all_tables, drop_all_tables, db_session
+from app.models.db import init_db, create_all_tables, drop_all_tables
 from app.events.event_bus import event_bus
 
 
@@ -21,7 +21,9 @@ def app() -> Generator[Flask, None, None]:
 
 @pytest.fixture
 def client(app: Flask) -> FlaskClient:
-    """Provide Flask test client for HTTP requests."""
+    """Provide Flask test client for HTTP requests with assured schema."""
+    with app.app_context():
+        create_all_tables()
     return app.test_client()
 
 
@@ -31,4 +33,3 @@ def clean_event_bus():
     event_bus.clear()
     yield
     event_bus.clear()
-
