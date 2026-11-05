@@ -81,3 +81,4 @@ class BrokerSessionRepository(BaseRepository[BrokerSession]):
         result = self.session.execute(stmt)
         self.session.commit()
         return result.rowcount
+

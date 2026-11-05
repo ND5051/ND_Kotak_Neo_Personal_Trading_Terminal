@@ -25,3 +25,4 @@ Integrating the Kotak Neo broker API (`kotakneoapi`) requires strict governance 
 ## Compliance with Project Constitution
 - **Rule 1 (No Direct Broker SDK Calls)**: All broker communication is confined to `KotakBrokerAdapter`.
 - **Reliability > Speed**: Predictable health evaluation prevents sending transactions to dead sessions.
+

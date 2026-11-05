@@ -50,3 +50,4 @@ def test_health_check_diagnostic_payload():
     assert "latency_ms" in health
     assert "connected" in health
     assert "timestamp" in health
+

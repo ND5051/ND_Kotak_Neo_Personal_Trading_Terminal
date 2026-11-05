@@ -27,3 +27,4 @@ We introduce a dedicated **Broker Session Management Framework**:
 - **Rule 3 (Audit Everything)**: Every broker session lifecycle transition is recorded in the audit trail.
 - **Rule 8 (State Recovery Mandatory)**: Broker connectivity is restored autonomously from persistence.
 - **Rule 9 (Trading Safety Overrides Convenience)**: Failed token decryption or expired tokens immediately halt broker operations.
+

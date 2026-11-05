@@ -102,3 +102,4 @@ def test_adapter_capabilities_and_health_check():
     assert "status" in health
     assert "latency_ms" in health
     assert health["connected"] is False
+

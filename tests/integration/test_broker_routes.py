@@ -71,3 +71,4 @@ def test_broker_api_endpoints_flow(client):
     )
     assert b_logout_resp.status_code == 200
     assert b_logout_resp.get_json()["data"]["status"] == "DISCONNECTED"
+

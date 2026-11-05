@@ -251,3 +251,4 @@ class KotakBrokerAdapter(BrokerInterface):
         capabilities = dict(self.DEFAULT_CAPABILITIES)
         broker_cache.set_capabilities(capabilities)
         return capabilities
+

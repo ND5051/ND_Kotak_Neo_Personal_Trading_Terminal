@@ -125,3 +125,4 @@ def test_broker_session_destroy():
         assert destroyed is True
         assert adapter.is_connected() is False
         assert repo.get_active_session(user_id=user.id) is None
+

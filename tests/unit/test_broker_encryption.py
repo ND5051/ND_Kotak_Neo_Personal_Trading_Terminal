@@ -41,3 +41,4 @@ def test_key_rotation_handling():
     new_ciphertext = new_enc.encrypt(plain)
 
     assert new_enc.decrypt(new_ciphertext) == secret
+

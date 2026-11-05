@@ -98,3 +98,4 @@ class BrokerHealthService:
 
 # Global Singleton
 broker_health_service = BrokerHealthService()
+

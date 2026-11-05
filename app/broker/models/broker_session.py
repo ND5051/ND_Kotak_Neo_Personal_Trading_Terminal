@@ -61,3 +61,4 @@ class BrokerSession(BaseModel):
             f"<BrokerSession(id={self.id}, user_id={self.user_id}, "
             f"broker='{self.broker_name}', active={self.is_active})>"
         )
+
