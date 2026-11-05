@@ -23,6 +23,7 @@ from app.holdings import holdings_bp
 from app.option_chain import option_chain_bp
 from app.settings import settings_bp
 from app.paper_trading import paper_trading_bp
+from app.broker.routes import broker_bp
 
 logger = get_logger("app.factory")
 
@@ -112,6 +113,7 @@ def _register_blueprints(app: Flask) -> None:
         option_chain_bp,
         settings_bp,
         paper_trading_bp,
+        broker_bp,
     ]
     for bp in blueprints:
         app.register_blueprint(bp)

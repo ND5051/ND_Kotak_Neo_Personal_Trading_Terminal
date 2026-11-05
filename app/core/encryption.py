@@ -48,3 +48,4 @@ class EncryptionService:
 
 # Global Singleton instance
 encryption_service = EncryptionService()
+

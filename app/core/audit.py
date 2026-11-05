@@ -18,15 +18,25 @@ class AuditCategory(str, Enum):
     SESSION = "SESSION"
     BASKET = "BASKET"
     SYSTEM = "SYSTEM"
+    BROKER = "BROKER"
 
 
-# Phase 2 Expanded Audit Actions
+# Phase 2 Audit Actions
 LOGIN_SUCCESS = "LOGIN_SUCCESS"
 LOGIN_FAILED = "LOGIN_FAILED"
 LOGOUT = "LOGOUT"
 SESSION_CREATED = "SESSION_CREATED"
 SESSION_EXPIRED = "SESSION_EXPIRED"
 PASSWORD_CHANGED = "PASSWORD_CHANGED"
+
+# Phase 3 Broker Connectivity Audit Actions
+BROKER_LOGIN_SUCCESS = "BROKER_LOGIN_SUCCESS"
+BROKER_LOGIN_FAILED = "BROKER_LOGIN_FAILED"
+BROKER_SESSION_CREATED = "BROKER_SESSION_CREATED"
+BROKER_SESSION_RESTORED = "BROKER_SESSION_RESTORED"
+BROKER_SESSION_EXPIRED = "BROKER_SESSION_EXPIRED"
+BROKER_LOGOUT = "BROKER_LOGOUT"
+BROKER_HEALTH_CHECK = "BROKER_HEALTH_CHECK"
 
 
 @dataclass(frozen=True)
@@ -66,7 +76,6 @@ class AuditLogger:
             category if isinstance(category, AuditCategory) else AuditCategory(str(category).upper())
         )
 
-        # Populate context if absent
         ctx = get_current_context()
         active_corr_id = correlation_id or ctx.correlation_id
         active_req_id = request_id or ctx.request_id

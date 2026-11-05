@@ -12,3 +12,9 @@
 - **Correlation ID Lineage**: Capturing incoming `X-Correlation-ID` (or minting a new one) at the earliest middleware gate and injecting it into `RequestContext` ensures unbroken operational tracing across authentication, audit records, and downstream trading engines.
 - **Defense-in-Depth Session Invalidation**: Password changes or account disabling must immediately cascade to terminate all active sessions in the persistence layer (`deactivate_user_sessions`), preventing compromised tokens from continuing to execute requests.
 - **Secure Secret Storage Readiness**: Using Fernet (AES-128-CBC + HMAC-SHA256) keyed via deterministic hash of `SECRET_KEY`/`ENCRYPTION_KEY` establishes an encryption engine ready to protect broker tokens and session keys at rest without premature SDK coupling.
+
+## Phase 3: Kotak Session Management & Broker Connectivity Foundation
+- **Separation of Operator Identity and Broker Sessions**: Operator sessions (`sessions` table) and broker connectivity (`broker_sessions` table) must remain strictly decoupled. Operators can log in and manage terminal settings without a broker session, while broker connections can be revived or rotated without disrupting UI operators.
+- **Dynamic TOTP Synchronization**: Computing 2FA tokens directly inside the adapter via `pyotp` from configured base32 secrets eliminates human delays during morning pre-market authentication routines.
+- **Fault-Tolerant Session Recovery**: Restoring broker sessions upon application startup requires a three-way defensive check: 1) local database record must be unexpired, 2) token decryption must authenticate with zero tampering, and 3) broker adapter must validate the token before declaring recovery successful.
+- **Zero-Order Governance**: Enforcing a strict prohibition against order methods in `BrokerInterface` guarantees that connectivity and health checks are battle-tested and auditable before financial execution logic is exposed.

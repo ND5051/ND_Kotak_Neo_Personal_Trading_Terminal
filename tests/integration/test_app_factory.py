@@ -22,6 +22,7 @@ def test_app_factory_creation():
         "option_chain",
         "settings",
         "paper_trading",
+        "broker",
     ]
     for bp in expected_blueprints:
         assert bp in app.blueprints, f"Blueprint '{bp}' should be registered"

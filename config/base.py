@@ -38,6 +38,11 @@ class BaseConfig:
         "NOTIFICATIONS": os.getenv("FEATURE_NOTIFICATIONS", "false").lower() in ("true", "1", "yes"),
     }
 
+    # Broker Configuration (Phase 3)
+    KOTAK_BROKER_ENABLED = os.getenv("KOTAK_BROKER_ENABLED", "false").lower() in ("true", "1", "yes")
+    BROKER_SESSION_TIMEOUT = int(os.getenv("BROKER_SESSION_TIMEOUT", "28800"))  # 8 hours default
+    BROKER_HEALTH_INTERVAL = int(os.getenv("BROKER_HEALTH_INTERVAL", "60"))     # 60 seconds
+
     # Security & Server defaults
     TESTING = False
     DEBUG = False

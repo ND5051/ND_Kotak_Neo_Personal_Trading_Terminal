@@ -13,3 +13,5 @@
 - [ADR-003: Unified Architecture for Paper and Live Trading](adr/ADR-003-Paper-Trading.md)
 - [ADR-004: Token-Based Session Management & Sliding Expiration](adr/ADR-004-Session-Management.md)
 - [ADR-005: Request Tracing, Correlation IDs, and Secret Encryption](adr/ADR-005-Security-Request-Tracing.md)
+- [ADR-006: Dedicated Broker Session Management & State Restoration](adr/ADR-006-Broker-Session-Management.md)
+- [ADR-007: Kotak Neo Broker Integration & Health Monitoring Strategy](adr/ADR-007-Kotak-Integration-Strategy.md)

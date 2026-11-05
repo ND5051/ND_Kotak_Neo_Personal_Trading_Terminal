@@ -8,8 +8,9 @@ from app.models.db import (
     create_all_tables,
     drop_all_tables,
 )
-# Ensure Phase 2 auth entities are attached to metadata
+# Ensure Phase 2 and Phase 3 entities are attached to metadata
 from app.auth.models import User, Session
+from app.broker.models import BrokerSession
 
 __all__ = [
     "Base",
@@ -23,4 +24,5 @@ __all__ = [
     "drop_all_tables",
     "User",
     "Session",
+    "BrokerSession",
 ]

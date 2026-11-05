@@ -1,4 +1,3 @@
-from app.broker.interfaces.broker_interface import IBrokerAdapter
+from app.broker.interfaces.broker_interface import BrokerInterface
 
-__all__ = ["IBrokerAdapter"]
-
+__all__ = ["BrokerInterface"]

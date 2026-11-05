@@ -58,3 +58,4 @@ def get_correlation_id() -> str:
 def get_request_id() -> str:
     """Quick accessor for active request ID."""
     return get_current_context().request_id
+
