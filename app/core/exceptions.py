@@ -1,0 +1,79 @@
+from typing import Any, Dict, Optional
+
+
+class ApplicationException(Exception):
+    """Base application exception for all domain and operational errors."""
+
+    def __init__(
+        self,
+        message: str,
+        error_code: str = "APPLICATION_ERROR",
+        status_code: int = 500,
+        details: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        super().__init__(message)
+        self.message = message
+        self.error_code = error_code
+        self.status_code = status_code
+        self.details = details or {}
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "status": "error",
+            "error_code": self.error_code,
+            "message": self.message,
+            "details": self.details,
+        }
+
+
+class ValidationException(ApplicationException):
+    """Raised when data validation fails before domain processing."""
+
+    def __init__(
+        self,
+        message: str,
+        details: Optional[Dict[str, Any]] = None,
+        error_code: str = "VALIDATION_ERROR",
+    ) -> None:
+        super().__init__(
+            message=message,
+            error_code=error_code,
+            status_code=400,
+            details=details,
+        )
+
+
+class BrokerException(ApplicationException):
+    """Raised when an error occurs in downstream broker communications or execution."""
+
+    def __init__(
+        self,
+        message: str,
+        details: Optional[Dict[str, Any]] = None,
+        error_code: str = "BROKER_ERROR",
+        status_code: int = 502,
+    ) -> None:
+        super().__init__(
+            message=message,
+            error_code=error_code,
+            status_code=status_code,
+            details=details,
+        )
+
+
+class ConfigurationException(ApplicationException):
+    """Raised when configuration values are missing, invalid, or inconsistent."""
+
+    def __init__(
+        self,
+        message: str,
+        details: Optional[Dict[str, Any]] = None,
+        error_code: str = "CONFIGURATION_ERROR",
+    ) -> None:
+        super().__init__(
+            message=message,
+            error_code=error_code,
+            status_code=500,
+            details=details,
+        )
+

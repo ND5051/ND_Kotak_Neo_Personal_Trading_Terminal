@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Kotak Neo Personal Trading Terminal{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block head %}{% endblock %}
+</head>
+<body class="theme-dark">
+    <header class="app-header">
+        <div class="header-container">
+            <div class="logo">
+                <span class="logo-badge">KOTAK NEO</span>
+                <span class="logo-title">Personal Trading Terminal</span>
+            </div>
+            <div class="system-status">
+                <span class="status-indicator online" id="ws-status"></span>
+                <span class="status-text" id="status-label">Phase 1 Foundation</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="app-main">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="app-footer">
+        <div class="footer-container">
+            <span>Enterprise Trading System Foundation &bull; Phase 1</span>
+            <span>Correctness &gt; Features | Reliability &gt; Speed</span>
+        </div>
+    </footer>
+
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>
+
