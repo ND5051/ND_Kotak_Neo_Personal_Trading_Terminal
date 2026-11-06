@@ -17,7 +17,7 @@ from app.dashboard import dashboard_bp
 from app.auth import auth_bp
 from app.market_watch import market_watch_bp
 from app.orders import orders_bp
-from app.basket import basket_bp
+from app.baskets import basket_bp, baskets_bp
 from app.positions import positions_bp
 from app.holdings import holdings_bp
 from app.option_chain import option_chain_bp
@@ -109,6 +109,7 @@ def _register_blueprints(app: Flask) -> None:
         market_watch_bp,
         orders_bp,
         basket_bp,
+        baskets_bp,
         positions_bp,
         holdings_bp,
         option_chain_bp,

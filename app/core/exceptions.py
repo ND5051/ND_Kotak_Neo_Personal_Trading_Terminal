@@ -173,3 +173,50 @@ class ExecutionModeException(ApplicationException):
         )
 
 
+class BasketValidationException(ValidationException):
+    """Raised when multi-leg option strategy or basket structure validation fails."""
+
+    def __init__(
+        self,
+        message: str,
+        details: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        super().__init__(
+            message=message,
+            error_code="BASKET_VALIDATION_ERROR",
+            details=details,
+        )
+
+
+class BasketRiskException(ApplicationException):
+    """Raised when a basket violates multi-leg capital or risk limits."""
+
+    def __init__(
+        self,
+        message: str,
+        details: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        super().__init__(
+            message=message,
+            error_code="BASKET_RISK_VIOLATION",
+            status_code=400,
+            details=details,
+        )
+
+
+class IllegalBasketStateTransitionException(ApplicationException):
+    """Raised when an illegal transition is attempted on the Basket FSM."""
+
+    def __init__(
+        self,
+        message: str,
+        details: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        super().__init__(
+            message=message,
+            error_code="ILLEGAL_BASKET_STATE_TRANSITION",
+            status_code=409,
+            details=details,
+        )
+
+

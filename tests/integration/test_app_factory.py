@@ -17,6 +17,7 @@ def test_app_factory_creation():
         "market_watch",
         "orders",
         "basket",
+        "baskets",
         "positions",
         "holdings",
         "option_chain",

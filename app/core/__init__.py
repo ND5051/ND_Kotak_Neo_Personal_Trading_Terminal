@@ -6,6 +6,9 @@ from app.core.exceptions import (
     BrokerCircuitBreakerOpenException,
     SubscriptionQuotaExceededException,
     ExecutionModeException,
+    BasketValidationException,
+    BasketRiskException,
+    IllegalBasketStateTransitionException,
 )
 from app.core.response import api_response, api_error
 from app.core.feature_flags import FeatureFlags, feature_flags
@@ -55,6 +58,13 @@ from app.core.audit import (
     AUDIT_EMERGENCY_CANCEL_ALL,
     AUDIT_ORDER_EXECUTION_FAILURE,
     AUDIT_EXECUTION_MODE_CHANGED,
+    AUDIT_BASKET_CREATED,
+    AUDIT_BASKET_VALIDATED,
+    AUDIT_BASKET_EXECUTION_STARTED,
+    AUDIT_BASKET_LEG_FILLED,
+    AUDIT_BASKET_RECONCILIATION,
+    AUDIT_BASKET_FAILED,
+    AUDIT_BASKET_CANCELLED,
 )
 from app.core.request_context import (
     RequestContext,
@@ -73,6 +83,9 @@ __all__ = [
     "BrokerCircuitBreakerOpenException",
     "SubscriptionQuotaExceededException",
     "ExecutionModeException",
+    "BasketValidationException",
+    "BasketRiskException",
+    "IllegalBasketStateTransitionException",
     "api_response",
     "api_error",
     "FeatureFlags",
@@ -122,6 +135,13 @@ __all__ = [
     "AUDIT_EMERGENCY_CANCEL_ALL",
     "AUDIT_ORDER_EXECUTION_FAILURE",
     "AUDIT_EXECUTION_MODE_CHANGED",
+    "AUDIT_BASKET_CREATED",
+    "AUDIT_BASKET_VALIDATED",
+    "AUDIT_BASKET_EXECUTION_STARTED",
+    "AUDIT_BASKET_LEG_FILLED",
+    "AUDIT_BASKET_RECONCILIATION",
+    "AUDIT_BASKET_FAILED",
+    "AUDIT_BASKET_CANCELLED",
     "RequestContext",
     "get_current_context",
     "set_current_context",
