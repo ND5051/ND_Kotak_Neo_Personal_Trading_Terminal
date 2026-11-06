@@ -126,17 +126,18 @@ class WebSocketSupervisor:
             # Spawn dedicated daemon thread running asyncio loop
             if self._thread is None or not self._thread.is_alive():
                 self._ready_event.clear()
+                self._loop = asyncio.new_event_loop()
                 self._thread = threading.Thread(
                     target=self._run_event_loop,
                     name="KotakWebSocketSupervisorThread",
                     daemon=True,
                 )
                 self._thread.start()
-                self._ready_event.wait(timeout=2.0)
+                self._ready_event.wait(timeout=3.0)
                 logger.info("Spawned WebSocket supervisor daemon thread", event="WS_THREAD_SPAWNED")
 
             # Schedule connection task on loop
-            if self._loop and self._loop.is_running():
+            if self._loop:
                 asyncio.run_coroutine_threadsafe(self._initiate_connection(), self._loop)
 
             return True
@@ -180,7 +181,8 @@ class WebSocketSupervisor:
     # Internal Async Execution
     def _run_event_loop(self) -> None:
         """Worker thread entrypoint establishing dedicated asyncio loop."""
-        self._loop = asyncio.new_event_loop()
+        if self._loop is None:
+            self._loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self._loop)
         self._loop.call_soon(self._ready_event.set)
 
