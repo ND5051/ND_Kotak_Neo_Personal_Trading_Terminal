@@ -40,3 +40,4 @@ Phase 9 establishes the architectural foundation for multi-leg basket orders and
 - Default `SEQUENTIAL` execution and `ABORT_REMAINING` policy prevent catastrophic runaway execution.
 - Two-tier idempotency protects operators from duplicate multi-leg strategy submissions.
 - Strict `ExecutionMode` inheritance prevents accidental broker order placement.
+
