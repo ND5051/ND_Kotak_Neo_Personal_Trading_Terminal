@@ -41,6 +41,7 @@ class OrderStateMachine:
     LEGAL_TRANSITIONS: Dict[OrderStatus, Set[OrderStatus]] = {
         OrderStatus.PENDING_VALIDATION: {
             OrderStatus.VALIDATED,
+            OrderStatus.REJECTED,
             OrderStatus.FAILED,
         },
         OrderStatus.VALIDATED: {
@@ -209,6 +210,9 @@ class OrderStateMachine:
                 publish(ORDER_CANCELLED, {"client_order_id": order.client_order_id, "reason": reason})
 
             return saved_order
+
+    # Alias for transition
+    transition_to = transition
 
 
 # Global Singleton Order State Machine

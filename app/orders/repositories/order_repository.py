@@ -49,8 +49,8 @@ class OrderRepositoryInterface(ABC):
     @abstractmethod
     def find_orders(
         self,
-        user_id: int,
-        status: Optional[str] = None,
+        user_id: Optional[int] = None,
+        status: Optional[Any] = None,
         symbol: Optional[str] = None,
         segment: Optional[str] = None,
         limit: int = 100,
@@ -172,18 +172,20 @@ class OrderRepository(BaseRepository[OrderModel], OrderRepositoryInterface):
 
     def find_orders(
         self,
-        user_id: int,
-        status: Optional[str] = None,
+        user_id: Optional[int] = None,
+        status: Optional[Any] = None,
         symbol: Optional[str] = None,
         segment: Optional[str] = None,
         limit: int = 100,
         offset: int = 0,
     ) -> List[Order]:
         """Query orders with comprehensive filter parameters."""
-        stmt = select(OrderModel).where(OrderModel.user_id == user_id)
+        stmt = select(OrderModel)
+        if user_id is not None:
+            stmt = stmt.where(OrderModel.user_id == user_id)
 
         if status:
-            status_clean = status.strip().upper()
+            status_clean = (status.value if hasattr(status, "value") else str(status)).strip().upper()
             if status_clean == "OPEN":
                 stmt = stmt.where(
                     OrderModel.status.in_(

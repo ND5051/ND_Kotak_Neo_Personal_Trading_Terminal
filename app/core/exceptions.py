@@ -156,3 +156,20 @@ class OrderRiskException(ApplicationException):
             details=details,
         )
 
+
+class ExecutionModeException(ApplicationException):
+    """Raised when order execution is attempted while execution mode is DISABLED."""
+
+    def __init__(
+        self,
+        message: str = "Order execution is DISABLED. Wire submissions are refused.",
+        details: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        super().__init__(
+            message=message,
+            error_code="EXECUTION_MODE_DISABLED",
+            status_code=403,
+            details=details,
+        )
+
+

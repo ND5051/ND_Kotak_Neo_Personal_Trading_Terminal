@@ -213,6 +213,8 @@ class OrderValidationService:
         scaled_tick = round(tick_size * 10000)
         return (scaled_price % scaled_tick) == 0
 
+    validate_tick_size = _is_valid_tick
+
 
 # Global Singleton Order Validation Service
 order_validation_service = OrderValidationService()

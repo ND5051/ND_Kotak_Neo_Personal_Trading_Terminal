@@ -27,7 +27,24 @@ In compliance with the **PROJECT_CONSTITUTION** and explicit user directives, th
 
 > [!IMPORTANT]
 > **Core Architectural Objective of Phase 8:**  
-> Phase 8 transitions the terminal from an **order-aware** system (Phase 7) into an **order-executing** system. It safely connects Phase 7's deterministic Order FSM, validation engine, risk controls, and repository to the live Kotak Neo Broker API (`kotakneoapi>=3.0.13`), enabling defensive order placement, modification, cancellation, execution fill polling, and state reconciliation while enforcing strict idempotency and circuit breaker protection.
+> Phase 8 transitions the terminal from an **order-aware** system (Phase 7) into an **order-executing** system. It safely connects Phase 7's deterministic Order FSM, validation engine, risk controls, and repository to the live Kotak Neo Broker API (`kotakneoapi>=3.0.13`), enabling defensive order placement, modification, cancellation, execution fill polling, and state reconciliation while enforcing strict idempotency, circuit breaker protection, and execution mode gating.
+
+### Mandatory Execution Mode Architecture (`ExecutionMode`)
+To prevent accidental capital exposure or unintended order placement during system initialization, staging, or automated testing, all execution services are governed by an authoritative `ExecutionMode` gate:
+
+- **`ExecutionMode.DISABLED` (Default)**:
+  - Strict system-wide prohibition of order execution.
+  - All calls to `place_order()`, `modify_order()`, `cancel_order()`, and `cancel_all()` are **immediately rejected** with `ExecutionModeException` (HTTP 403 Forbidden).
+  - No wire transmission is permitted. The terminal starts in `DISABLED` mode by default.
+- **`ExecutionMode.PAPER`**:
+  - Simulated paper trading execution.
+  - Generates realistic mock broker order IDs, simulates network latency (20ms–50ms), logs transitions to the database, records simulated trade fills, and drives downstream positions and MTM updates without transmitting packets to the live broker gateway.
+- **`ExecutionMode.LIVE`**:
+  - Authoritative live execution connecting directly to the Kotak Neo Broker API gateway.
+  - Requires explicit runtime activation or environment configuration (`EXECUTION_MODE=LIVE`).
+  - Dispatches signed order requests to the live exchange matching engine.
+
+> **Execution Invariant**: Every execution service, route handler, and wire adapter **must refuse** wire submission unless the active execution mode explicitly permits it (`ExecutionMode.LIVE` or `ExecutionMode.PAPER`). Under `ExecutionMode.DISABLED`, zero wire calls can ever be made.
 
 ---
 
@@ -530,3 +547,4 @@ Upon implementation approval, Phase 8 will deliver:
 ---
 
 **End of Phase 8 Architectural Design Specification**
+

@@ -12,6 +12,11 @@ from app.orders.models.order import (
     TradeExecution,
     Validity,
 )
+from app.orders.models.execution_mode import (
+    ExecutionMode,
+    ExecutionModeManager,
+    execution_mode_manager,
+)
 from app.orders.models.order_entity import (
     OrderEventModel,
     OrderModel,
@@ -26,6 +31,9 @@ __all__ = [
     "ProductType",
     "Validity",
     "TradeExecution",
+    "ExecutionMode",
+    "ExecutionModeManager",
+    "execution_mode_manager",
     "OrderModel",
     "OrderEventModel",
     "TradeExecutionModel",

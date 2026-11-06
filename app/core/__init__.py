@@ -5,6 +5,7 @@ from app.core.exceptions import (
     ConfigurationException,
     BrokerCircuitBreakerOpenException,
     SubscriptionQuotaExceededException,
+    ExecutionModeException,
 )
 from app.core.response import api_response, api_error
 from app.core.feature_flags import FeatureFlags, feature_flags
@@ -47,6 +48,13 @@ from app.core.audit import (
     AUDIT_ORDER_STATE_TRANSITION,
     AUDIT_ORDER_RECONCILIATION,
     AUDIT_ORDER_DISCREPANCY,
+    AUDIT_ORDER_PLACE,
+    AUDIT_ORDER_MODIFY,
+    AUDIT_ORDER_CANCEL,
+    AUDIT_ORDER_EXECUTION_FILL,
+    AUDIT_EMERGENCY_CANCEL_ALL,
+    AUDIT_ORDER_EXECUTION_FAILURE,
+    AUDIT_EXECUTION_MODE_CHANGED,
 )
 from app.core.request_context import (
     RequestContext,
@@ -64,6 +72,7 @@ __all__ = [
     "ConfigurationException",
     "BrokerCircuitBreakerOpenException",
     "SubscriptionQuotaExceededException",
+    "ExecutionModeException",
     "api_response",
     "api_error",
     "FeatureFlags",
@@ -106,6 +115,13 @@ __all__ = [
     "AUDIT_ORDER_STATE_TRANSITION",
     "AUDIT_ORDER_RECONCILIATION",
     "AUDIT_ORDER_DISCREPANCY",
+    "AUDIT_ORDER_PLACE",
+    "AUDIT_ORDER_MODIFY",
+    "AUDIT_ORDER_CANCEL",
+    "AUDIT_ORDER_EXECUTION_FILL",
+    "AUDIT_EMERGENCY_CANCEL_ALL",
+    "AUDIT_ORDER_EXECUTION_FAILURE",
+    "AUDIT_EXECUTION_MODE_CHANGED",
     "RequestContext",
     "get_current_context",
     "set_current_context",
