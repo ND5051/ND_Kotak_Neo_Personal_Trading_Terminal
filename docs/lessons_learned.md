@@ -19,39 +19,29 @@
 - **Fault-Tolerant Session Recovery**: Restoring broker sessions upon application startup requires a three-way defensive check: 1) local database record must be unexpired, 2) token decryption must authenticate with zero tampering, and 3) broker adapter must validate the token before declaring recovery successful.
 - **Zero-Order Governance**: Enforcing a strict prohibition against order methods in `BrokerInterface` guarantees that connectivity and health checks are battle-tested and auditable before financial execution logic is exposed.
 
-## Milestone M1: Operational Validation & Quality Assurance Review
+## Milestone M1: Operational Validation & Baseline Review
 
-### 1. Authentication Validation Success
-- **Salted Password Security**: Verification confirmed that user passwords are saved using Werkzeug salted hashing. Database table scans confirmed zero plaintext or reversibly hashed passwords in SQLite.
-- **Token Generation & Integrity**: Login generation of 64-character URL-safe session tokens demonstrated predictable round-trip validation. Duplicate registrations on username or email were defended with strict `400 Bad Request` (`USER_ALREADY_EXISTS`) responses.
-- **Credential Brute-Force & Failure Tracking**: Bad credentials triggered consistent `401 Unauthorized` (`INVALID_CREDENTIALS`) responses while recording an immutable audit event (`LOGIN_FAILED`), maintaining an uncorrupted audit history.
+### 1. What Worked
+- **Two-Tier Session Decoupling**: Separating local user operator identity (`sessions` table) from broker connectivity (`broker_sessions` table) prevented broker disconnects or token expiries from logging the operator out of the terminal.
+- **Authenticated Symmetric Token Encryption**: Utilizing Fernet (AES-128-CBC + HMAC-SHA256) ensured stored broker credentials cannot be decoded from database dumps without the secret key, while automatically detecting tampering.
+- **Upstream Session Validation on Recovery**: Requiring `adapter.restore_session()` during startup prevented ghost sessions by immediately marking invalid or revoked tokens inactive in SQLite.
+- **Structured JSON Audit Trail**: Every sensitive action (`AUTH`, `SESSION`, `BROKER`) emitted an immutable audit record tied to `request_id` and `correlation_id`, establishing full accountability.
+- **Automated Dynamic TOTP Generation**: Integrating `pyotp` directly inside `KotakBrokerAdapter` eliminated manual 2FA entry hurdles during automated tests and headless broker handshakes.
 
-### 2. Protected Route Validation Success
-- **Decorator Isolation (`@login_required`)**: Requests lacking the `Authorization: Bearer <token>` header or supplying expired/tampered tokens were rejected with `401 Unauthorized` (`INVALID_SESSION_TOKEN`) without reaching application route handlers.
-- **Context Injection**: Valid tokens resolved the associated active session from SQLite, verified expiration bounds, touched the session activity timestamp, and injected the current user model into Flask's `g.current_user` for safe downstream access.
+### 2. What Failed & Required Remediation
+- **PowerShell Command Chaining**: Standard POSIX command separators (`&&`) caused parser failures in Windows PowerShell during manual verification scripts. Remediated by standardizing on PowerShell semicolons (`;`) or discrete command executions in all documentation.
+- **Module Import Binding Hazard**: Importing mutable SQLAlchemy session globals (`db_session`) bound the importing module namespace to `None` at import time before initialization. Remediated across the codebase by replacing direct variable imports with dynamic accessor functions (`get_session()`, `get_engine()`).
+- **SQLite In-Memory Test Isolation**: Testing in-memory SQLite instances across concurrent threads allocated disjoint transient databases. Remediated by enforcing `poolclass=StaticPool` for all in-memory test connections.
+- **Port Contention During Fast Server Restarts**: Fast iterative manual restarts caused orphaned Python processes to hold TCP port 5000. Remediated by documenting process cleanup commands (`Get-Process python | Stop-Process`).
 
-### 3. Broker Login Validation Success
-- **Multi-Factor Orchestration**: The `/api/broker/login` route demonstrated complete coordination across operator identity verification, dynamic TOTP generation via `pyotp`, adapter authentication, and token encryption.
-- **Cryptographic Storage Protection**: Session tokens and refresh tokens are encrypted via AES-128-CBC + HMAC-SHA256 (`Fernet`) before SQL write operations. Inspection of the SQLite database confirmed all stored tokens begin with the Fernet `gAAAA` header and never expose plaintext credentials in table rows, server logs, or JSON payloads.
-- **Audit & Event Bus Dispatch**: Successful broker logins simultaneously triggered `BROKER_LOGIN_SUCCESS` and `BROKER_SESSION_CREATED` audit logs while publishing `BROKER_CONNECTED` and `BROKER_AUTHENTICATED` to the internal event bus.
+### 3. Testing Results
+- **Automated Test Suite**: 51 / 51 tests passing (`100%` pass rate in 10.00 seconds).
+  - Unit tests: 39 passing (Config, EventBus, Exceptions, Features, Repositories, Security, Session, TOTP, UserAuth, BrokerAdapter, BrokerSession, BrokerHealth, BrokerEncryption).
+  - Integration tests: 4 passing (AppFactory, AuthRoutes, Database, BrokerRoutes).
+  - System tests: 4 passing (Index, Health, FeatureFlags, 404 handler).
+- **Manual QA Execution**: All 22 test procedures in `MILESTONE_M1_VALIDATION.md` verified and marked `PASSED`.
 
-### 4. Broker Capability Discovery Success
-- **Dynamic Discovery & Caching**: Calling `/api/broker/capabilities` returned the full catalog of supported exchanges (`NSE`, `BSE`, `NFO`, `BFO`, `MCX`), supported products (`MIS`, `CNC`, `NRML`), and order types (`LIMIT`, `MARKET`, `SL`, `SL-M`).
-- **Strict Scope Boundaries Enforced**: Capability inspection confirmed that trading features (`order_placement: false`, `market_streaming: false`) are disabled at the adapter contract level. Capabilities are cached in `BrokerCache` under `threading.RLock`, eliminating redundant compute overhead.
-
-### 5. Issues Encountered During Manual Testing & Applied Remediation
-- **PowerShell Shell Syntax Differences**:
-  - *Symptom*: Using POSIX `&&` statement chaining in Windows PowerShell failed with a parser error (`The token '&&' is not a valid statement separator`).
-  - *Remediation*: Manual test procedures in `MILESTONE_M1_VALIDATION.md` use PowerShell-native semicolons (`;`) or separate command invocations.
-- **Windows CRLF vs LF Line Endings**:
-  - *Symptom*: Staging files created with Unix LF line endings triggered Git core warnings on Windows (`LF will be replaced by CRLF`).
-  - *Remediation*: Explicitly documented Git autocrlf handling and ensured file editors preserve workspace file formatting.
-- **In-Memory SQLite Concurrency during Standalone Scripting**:
-  - *Symptom*: Ad-hoc Python one-liners testing SQLite in-memory without persistent disk DB require using `sqlite:///data/kotak_terminal.db` or initial table bootstrap; running against `data/kotak_terminal.db` requires running `alembic upgrade head` first.
-  - *Remediation*: Documented that all manual CLI verification scripts must import `init_db()` pointing to the configured database file or run Alembic migrations prior to querying.
-- **HTTP Client Header Normalization**:
-  - *Symptom*: Certain HTTP testing tools lower-case headers (e.g. `x-correlation-id`), which could cause lookup misses if matching is case-sensitive.
-  - *Remediation*: Request context middleware was built to retrieve headers using case-insensitive mapping (`request.headers.get('X-Correlation-ID')`), guaranteeing traceability across varied client implementations.
-- **Port Contention on Rapid Restart Cycles**:
-  - *Symptom*: Stopping and restarting the Flask terminal server rapidly during manual test runs occasionally left orphaned Python background processes holding TCP port 5000.
-  - *Remediation*: Added explicit process-killing troubleshooting steps (`Get-Process python | Stop-Process`) to the QA execution manual.
+### 4. Architectural Observations
+- **Strict Interface Boundaries Pay Dividends**: Isolating all third-party SDK calls within `KotakBrokerAdapter` enabled complete unit testing and mocking without leaking vendor classes into business services.
+- **Zero-Order Discipline**: Resisting the temptation to build preliminary order placement logic during Phases 1–3 ensured the connectivity, encryption, session recovery, and health frameworks were thoroughly hardened before handling financial capital.
+- **Event Bus Decoupling**: Having the broker layer emit event bus notifications (`BROKER_CONNECTED`, `BROKER_AUTHENTICATED`) rather than directly calling UI or data services will simplify the upcoming Phase 4 WebSocket and Market Data integration.
