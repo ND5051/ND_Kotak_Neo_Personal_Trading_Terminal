@@ -530,3 +530,4 @@ Expected console output:
 | `HTTP 401 Unauthorized` on `/api/broker/login` | Missing or invalid local operator session | Log in via `/api/auth/login` and pass `Authorization: Bearer <token>`. |
 | `HTTP 400 BROKER_RESTORE_FAILED` | No active session or token expired | Re-authenticate with broker credentials via POST `/api/broker/login`. |
 | Port 5000 in use | Orphaned development server running | Run `Get-Process python \| Stop-Process` in PowerShell and restart. |
+
