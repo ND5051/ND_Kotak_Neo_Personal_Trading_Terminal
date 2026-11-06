@@ -106,6 +106,27 @@ class Order:
     def __post_init__(self) -> None:
         if self.pending_quantity == 0 and self.quantity > 0 and self.filled_quantity == 0:
             self.pending_quantity = self.quantity - self.filled_quantity
+        self.assert_quantity_invariants()
+
+    def assert_quantity_invariants(self) -> None:
+        """
+        Verify mathematical invariants on quantities:
+        1. filled_quantity >= 0 and pending_quantity >= 0
+        2. filled_quantity <= quantity
+        3. filled_quantity + pending_quantity <= quantity
+        """
+        if self.filled_quantity < 0:
+            raise ValueError(f"Invariant violation: filled_quantity ({self.filled_quantity}) cannot be negative")
+        if self.pending_quantity < 0:
+            raise ValueError(f"Invariant violation: pending_quantity ({self.pending_quantity}) cannot be negative")
+        if self.filled_quantity > self.quantity:
+            raise ValueError(
+                f"Invariant violation: filled_quantity ({self.filled_quantity}) cannot exceed total quantity ({self.quantity})"
+            )
+        if self.filled_quantity + self.pending_quantity > self.quantity:
+            raise ValueError(
+                f"Invariant violation: filled ({self.filled_quantity}) + pending ({self.pending_quantity}) exceeds total quantity ({self.quantity})"
+            )
 
     def is_terminal(self) -> bool:
         """Return True if order has reached an irreversible end state."""

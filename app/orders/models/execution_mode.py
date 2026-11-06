@@ -127,3 +127,4 @@ class ExecutionModeManager:
 
 # Global singleton manager
 execution_mode_manager = ExecutionModeManager()
+

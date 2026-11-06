@@ -78,7 +78,11 @@ class OrderPollerService:
         delay = initial_delay_sec
 
         for attempt in range(1, max_attempts + 1):
+            if order.is_terminal():
+                return order
             time.sleep(delay)
+            if order.is_terminal():
+                return order
             try:
                 records = self.adapter.get_order_report(broker_id)
                 if not records:
@@ -91,27 +95,105 @@ class OrderPollerService:
                     avg_prc = float(record.get("avgPrc") or record.get("price") or 0.0)
                     fld_qty = int(float(record.get("fldQty") or record.get("filledQuantity") or 0))
 
-                    # 1. Filled Status
-                    if any(s in raw_st for s in ["complete", "traded", "filled"]):
-                        order.filled_quantity = fld_qty or order.quantity
+                    # 1. Check Partially Filled Status FIRST to avoid substring overlap (e.g. 'partially_filled')
+                    if any(s in raw_st for s in ["partial", "partially"]):
+                        target_fld_qty = min(fld_qty, order.quantity)
+                        if fld_qty > order.quantity:
+                            logger.warning(
+                                f"Broker reported partial fldQty {fld_qty} exceeds order.quantity {order.quantity} "
+                                f"for {order.client_order_id}. Clamping to {order.quantity}."
+                            )
+                            audit_logger.record(
+                                category=AuditCategory.ORDER,
+                                action=AUDIT_ORDER_DISCREPANCY,
+                                actor="order_poller",
+                                correlation_id=get_correlation_id(),
+                                request_id=get_request_id(),
+                                details={
+                                    "client_order_id": order.client_order_id,
+                                    "broker_order_id": order.broker_order_id,
+                                    "reported_fld_qty": fld_qty,
+                                    "requested_quantity": order.quantity,
+                                    "action": "clamped_to_requested_quantity",
+                                },
+                            )
+
+                        incremental_fill = max(0, target_fld_qty - order.filled_quantity)
+                        order.filled_quantity = target_fld_qty
                         order.pending_quantity = max(0, order.quantity - order.filled_quantity)
                         order.average_price = avg_prc or order.price
                         order.source_timestamp = datetime.now(timezone.utc).isoformat()
                         order.retrieved_timestamp = datetime.now(timezone.utc).isoformat()
+                        order.assert_quantity_invariants()
 
-                        # Record TradeExecution Fill
-                        trade = TradeExecution(
-                            trade_id=str(uuid.uuid4()),
-                            client_order_id=order.client_order_id,
-                            broker_order_id=order.broker_order_id,
-                            trading_symbol=order.trading_symbol,
-                            exchange_segment=order.exchange_segment,
-                            fill_quantity=order.filled_quantity,
-                            fill_price=order.average_price,
-                            exchange_timestamp=datetime.now(timezone.utc).isoformat(),
-                            retrieved_timestamp=order.retrieved_timestamp,
+                        if incremental_fill > 0:
+                            trade = TradeExecution(
+                                trade_id=str(uuid.uuid4()),
+                                client_order_id=order.client_order_id,
+                                broker_order_id=order.broker_order_id,
+                                trading_symbol=order.trading_symbol,
+                                exchange_segment=order.exchange_segment,
+                                fill_quantity=incremental_fill,
+                                fill_price=order.average_price,
+                                exchange_timestamp=datetime.now(timezone.utc).isoformat(),
+                                retrieved_timestamp=order.retrieved_timestamp,
+                            )
+                            self.repository.record_trade_execution(trade)
+
+                        self.state_machine.transition_to(
+                            order, OrderStatus.PARTIALLY_FILLED, reason="Partial Execution Fill"
                         )
-                        self.repository.record_trade_execution(trade)
+                        self.repository.save_order(order)
+                        publish(ORDER_PARTIALLY_FILLED, {"order": order.to_dict()})
+                        return order
+
+                    # 2. Filled Status (Fully Traded / Complete)
+                    elif any(s in raw_st for s in ["complete", "traded", "filled", "executed"]):
+                        # Invariant: fill cannot exceed requested quantity
+                        target_fld_qty = order.quantity if fld_qty == 0 else min(fld_qty, order.quantity)
+                        if fld_qty > order.quantity:
+                            logger.warning(
+                                f"Broker reported fldQty {fld_qty} exceeds order.quantity {order.quantity} "
+                                f"for {order.client_order_id}. Clamping to {order.quantity}."
+                            )
+                            audit_logger.record(
+                                category=AuditCategory.ORDER,
+                                action=AUDIT_ORDER_DISCREPANCY,
+                                actor="order_poller",
+                                correlation_id=get_correlation_id(),
+                                request_id=get_request_id(),
+                                details={
+                                    "client_order_id": order.client_order_id,
+                                    "broker_order_id": order.broker_order_id,
+                                    "reported_fld_qty": fld_qty,
+                                    "requested_quantity": order.quantity,
+                                    "action": "clamped_to_requested_quantity",
+                                },
+                            )
+
+                        incremental_fill = max(0, target_fld_qty - order.filled_quantity)
+                        order.filled_quantity = target_fld_qty
+                        order.pending_quantity = max(0, order.quantity - order.filled_quantity)
+                        order.average_price = avg_prc or order.price
+                        order.source_timestamp = datetime.now(timezone.utc).isoformat()
+                        order.retrieved_timestamp = datetime.now(timezone.utc).isoformat()
+                        order.assert_quantity_invariants()
+
+                        # Record TradeExecution Fill for incremental amount
+                        trade = None
+                        if incremental_fill > 0:
+                            trade = TradeExecution(
+                                trade_id=str(uuid.uuid4()),
+                                client_order_id=order.client_order_id,
+                                broker_order_id=order.broker_order_id,
+                                trading_symbol=order.trading_symbol,
+                                exchange_segment=order.exchange_segment,
+                                fill_quantity=incremental_fill,
+                                fill_price=order.average_price,
+                                exchange_timestamp=datetime.now(timezone.utc).isoformat(),
+                                retrieved_timestamp=order.retrieved_timestamp,
+                            )
+                            self.repository.record_trade_execution(trade)
 
                         # Transition FSM to FILLED
                         self.state_machine.transition_to(order, OrderStatus.FILLED, reason="Exchange Execution Complete")
@@ -127,26 +209,11 @@ class OrderPollerService:
                             details={
                                 "client_order_id": order.client_order_id,
                                 "broker_order_id": order.broker_order_id,
-                                "fill_quantity": trade.fill_quantity,
-                                "fill_price": trade.fill_price,
+                                "fill_quantity": incremental_fill or order.filled_quantity,
+                                "fill_price": order.average_price,
                             },
                         )
-                        publish(ORDER_FILLED, {"order": order.to_dict(), "trade": trade.to_dict()})
-                        return order
-
-                    # 2. Partially Filled Status
-                    elif any(s in raw_st for s in ["partial", "partially"]):
-                        order.filled_quantity = fld_qty
-                        order.pending_quantity = max(0, order.quantity - fld_qty)
-                        order.average_price = avg_prc or order.price
-                        order.source_timestamp = datetime.now(timezone.utc).isoformat()
-                        order.retrieved_timestamp = datetime.now(timezone.utc).isoformat()
-
-                        self.state_machine.transition_to(
-                            order, OrderStatus.PARTIALLY_FILLED, reason="Partial Execution Fill"
-                        )
-                        self.repository.save_order(order)
-                        publish(ORDER_PARTIALLY_FILLED, {"order": order.to_dict()})
+                        publish(ORDER_FILLED, {"order": order.to_dict(), "trade": trade.to_dict() if trade else {}})
                         return order
 
                     # 3. Rejected Status

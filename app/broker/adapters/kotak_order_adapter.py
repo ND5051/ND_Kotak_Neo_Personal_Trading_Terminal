@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 import random
+import threading
 import time
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
@@ -61,6 +62,12 @@ class KotakOrderAdapterInterface(ABC):
         """Retrieve daily trade book (executed fills) from Kotak Neo."""
         pass
 
+    def register_simulated_order(
+        self, broker_order_id: str, quantity: int, price: float, status: str = "complete"
+    ) -> None:
+        """Register a simulated or paper order for execution report tracking."""
+        pass
+
 
 class KotakOrderAdapter(KotakOrderAdapterInterface):
     """
@@ -71,6 +78,21 @@ class KotakOrderAdapter(KotakOrderAdapterInterface):
 
     def __init__(self, client: Optional[Any] = None) -> None:
         self.client = client
+        self._simulated_orders: Dict[str, Dict[str, Any]] = {}
+        self._lock = threading.RLock()
+
+    def register_simulated_order(
+        self, broker_order_id: str, quantity: int, price: float, status: str = "complete"
+    ) -> None:
+        """Register a simulated or paper order for execution report tracking."""
+        with self._lock:
+            self._simulated_orders[str(broker_order_id)] = {
+                "nOrdNo": str(broker_order_id),
+                "ordSt": status,
+                "avgPrc": str(price if price > 0 else 100.0),
+                "fldQty": str(quantity),
+                "rejRsn": "",
+            }
 
     def _is_mock(self) -> bool:
         if self.client is None:
@@ -126,6 +148,12 @@ class KotakOrderAdapter(KotakOrderAdapterInterface):
         if self._is_mock():
             time.sleep(0.03)  # Simulate brief network round-trip
             mock_order_no = f"26{datetime.now().strftime('%m%d%H%M%S')}{random.randint(100, 999)}"
+            self.register_simulated_order(
+                mock_order_no,
+                quantity=int(order.quantity),
+                price=float(order.price or 2450.05),
+                status="complete",
+            )
             logger.info(f"Simulated order placement: {mock_order_no}", event="WIRE_ORDER_MOCK_SUCCESS")
             return {
                 "stat": "Ok",
@@ -240,14 +268,18 @@ class KotakOrderAdapter(KotakOrderAdapterInterface):
         self, broker_order_id: str, credentials: Optional[Dict[str, Any]] = None
     ) -> List[Dict[str, Any]]:
         """Query execution report for a specific broker order number."""
+        with self._lock:
+            if str(broker_order_id) in self._simulated_orders:
+                return [dict(self._simulated_orders[str(broker_order_id)])]
+
         if self._is_mock():
-            # Simulated report reflecting an executed fill
+            # Default simulated report for unregistered mock lookups
             return [
                 {
-                    "nOrdNo": broker_order_id,
+                    "nOrdNo": str(broker_order_id),
                     "ordSt": "complete",
                     "avgPrc": "2450.05",
-                    "fldQty": "10",
+                    "fldQty": "1",
                     "rejRsn": "",
                 }
             ]

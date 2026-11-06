@@ -69,3 +69,4 @@ def test_kotak_order_adapter_order_report():
     assert len(reports) >= 1
     assert reports[0]["nOrdNo"] == "260930000169351"
     assert reports[0]["ordSt"] == "complete"
+

@@ -462,6 +462,15 @@ class OrderExecutionService:
         paper_order_id = f"PAPER_{datetime.now().strftime('%m%d%H%M%S')}{random.randint(100, 999)}"
         order.broker_order_id = paper_order_id
 
+        # Register simulated paper execution with adapter strictly matching requested quantity
+        if hasattr(self.adapter, "register_simulated_order"):
+            self.adapter.register_simulated_order(
+                paper_order_id,
+                quantity=int(order.quantity),
+                price=float(order.price or 100.0),
+                status="complete",
+            )
+
         self.state_machine.transition_to(order, OrderStatus.ACKNOWLEDGED, reason="Paper Gateway Ingestion")
         self.repository.save_order(order)
 

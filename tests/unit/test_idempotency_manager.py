@@ -30,3 +30,4 @@ def test_idempotency_manager_release_and_clear():
     assert mgr.check_and_acquire(key) is True
     mgr.clear()
     assert mgr.is_duplicate(key) is False
+

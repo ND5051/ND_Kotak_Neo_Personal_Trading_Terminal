@@ -52,6 +52,8 @@ class OrderStateMachine:
         OrderStatus.SUBMITTED: {
             OrderStatus.ACKNOWLEDGED,
             OrderStatus.TRIGGER_PENDING,
+            OrderStatus.PARTIALLY_FILLED,
+            OrderStatus.FILLED,
             OrderStatus.REJECTED,
             OrderStatus.FAILED,
             OrderStatus.RECONCILING,
