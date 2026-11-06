@@ -37,6 +37,11 @@ from app.core.audit import (
     WATCHLIST_ITEM_ADDED,
     WATCHLIST_ITEM_REMOVED,
     SCRIP_MASTER_DOWNLOAD,
+    PORTFOLIO_SYNC,
+    HOLDINGS_RECONCILED,
+    POSITIONS_RECONCILED,
+    MARGIN_SYNC,
+    POSITION_DISCREPANCY,
 )
 from app.core.request_context import (
     RequestContext,
@@ -86,6 +91,11 @@ __all__ = [
     "WATCHLIST_ITEM_ADDED",
     "WATCHLIST_ITEM_REMOVED",
     "SCRIP_MASTER_DOWNLOAD",
+    "PORTFOLIO_SYNC",
+    "HOLDINGS_RECONCILED",
+    "POSITIONS_RECONCILED",
+    "MARGIN_SYNC",
+    "POSITION_DISCREPANCY",
     "RequestContext",
     "get_current_context",
     "set_current_context",
