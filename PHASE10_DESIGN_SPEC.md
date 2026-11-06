@@ -124,7 +124,34 @@ class UnderlyingSpecification:
     strike_step: float                        # Minimum strike interval (e.g. 50.0, 100.0)
     lot_size: int                             # Exchange lot size (e.g. 25, 15)
     tick_size: float = 0.05                   # Exchange tick size (₹0.05)
+    is_favourite: bool = False                # User favourite flag
+
+
+class StrikeFilterPreset(str, Enum):
+    """Standardized strike window presets for option chain ladder filtering."""
+    ATM_5 = "ATM_5"       # ATM ±5 strikes (11 strikes total)
+    ATM_10 = "ATM_10"     # ATM ±10 strikes (21 strikes total) - Default
+    ATM_15 = "ATM_15"     # ATM ±15 strikes (31 strikes total)
+    ATM_20 = "ATM_20"     # ATM ±20 strikes (41 strikes total)
+
+    @property
+    def window_size(self) -> int:
+        mapping = {
+            StrikeFilterPreset.ATM_5: 5,
+            StrikeFilterPreset.ATM_10: 10,
+            StrikeFilterPreset.ATM_15: 15,
+            StrikeFilterPreset.ATM_20: 20,
+        }
+        return mapping[self]
 ```
+
+### 2.3. Favourite Underlyings Architecture
+Traders routinely focus on specific core assets (e.g., NIFTY, BANKNIFTY) and prefer pinned quick-access toggles on the workbench interface.
+* **Storage & Persistence:** Pinned underlyings are managed in the user's session preferences or database (`user_favourite_underlyings`), defaulted to `["NIFTY", "BANKNIFTY"]`.
+* **Dynamic Status:** The `OptionChainService` enriches `UnderlyingSpecification` with `is_favourite: bool`.
+* **REST Endpoints:**
+  * `GET /api/option-chain/favourites`: Returns active pinned underlyings with live Spot LTP and touchline deltas.
+  * `POST /api/option-chain/favourites`: Pins or unpins an underlying symbol for the authenticated operator.
 
 ### 2.3. Spot Price Ingestion Pipeline
 To classify strikes into In-The-Money (ITM) or Out-Of-The-Money (OTM) and locate the At-The-Money (ATM) anchor in real time:
@@ -223,6 +250,7 @@ class OptionContractQuote:
     percent_change_in_oi: float = 0.0         # % dOI
     volume: int = 0                           # Total traded contracts today
     total_traded_value: float = 0.0           # Turnover (INR)
+    oi_source_timestamp: Optional[str] = None # Upstream exchange OI broadcast timestamp
     
     # Structural Attributes
     moneyness: str = "OTM"                    # "ITM", "ATM", "OTM"
@@ -256,6 +284,7 @@ class OptionChainSnapshot:
     atm_strike: float = 24500.0
     strike_step: float = 50.0
     lot_size: int = 25
+    preset: StrikeFilterPreset = StrikeFilterPreset.ATM_10
     
     # Aggregated Chain Analytics
     total_call_oi: int = 0
@@ -273,6 +302,7 @@ class OptionChainSnapshot:
     
     # Regulatory Dual Timestamps (Mandated across Portfolios and Orders)
     source_timestamp: Optional[str] = None    # Upstream broker tick time
+    oi_source_timestamp: Optional[str] = None # Upstream exchange OI broadcast timestamp
     retrieved_timestamp: str = field(
         default_factory=lambda: datetime.now(timezone.utc).isoformat()
     )
@@ -663,3 +693,4 @@ Phase 10 provides the complete architectural design specification for the Option
 - [x] Strict scope exclusions enforced (Greeks, Volatility Analytics, Delta Hedging, Auto Trading excluded)
 
 **Status:** Ready for human operator review and approval.
+
