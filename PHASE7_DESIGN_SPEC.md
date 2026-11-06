@@ -150,6 +150,7 @@ class OrderStatus(str, Enum):
     CANCELLED = "CANCELLED"                    # Operator or system cancelled (Terminal)
     EXPIRED = "EXPIRED"                        # Unfilled at session close (Terminal)
     FAILED = "FAILED"                          # Technical gateway or validation failure (Terminal)
+    RECONCILING = "RECONCILING"                # Golden Rule: Awaiting authoritative reconciliation
 ```
 
 ### 3.2. Order Domain Dataclass
@@ -217,6 +218,7 @@ class Order:
             OrderStatus.ACKNOWLEDGED,
             OrderStatus.TRIGGER_PENDING,
             OrderStatus.PARTIALLY_FILLED,
+            OrderStatus.RECONCILING,
         )
 ```
 
@@ -290,9 +292,10 @@ stateDiagram-v2
 | `PENDING_VALIDATION` | `VALIDATED`, `FAILED` | Validates tick size, lot size, price bounds, required fields. |
 | `VALIDATED` | `SUBMITTED`, `REJECTED` | Validates pre-trade margins, account drawdown, open order quotas. |
 | `SUBMITTED` | `ACKNOWLEDGED`, `TRIGGER_PENDING`, `REJECTED`, `FAILED` | Receives broker `200 OK` + `nOrdNo` or RMS rejection payload. |
-| `TRIGGER_PENDING` | `ACKNOWLEDGED`, `CANCELLED`, `REJECTED` | Transitions to `ACKNOWLEDGED` when LTP breaches trigger price. |
-| `ACKNOWLEDGED` | `PARTIALLY_FILLED`, `FILLED`, `CANCELLED`, `EXPIRED`, `REJECTED` | Working limit order resting on exchange book. |
-| `PARTIALLY_FILLED` | `PARTIALLY_FILLED`, `FILLED`, `CANCELLED` | Remaining quantity is working; cannot reject once fills occur. |
+| `TRIGGER_PENDING` | `ACKNOWLEDGED`, `CANCELLED`, `REJECTED`, `RECONCILING` | Transitions to `ACKNOWLEDGED` when LTP breaches trigger price. |
+| `ACKNOWLEDGED` | `PARTIALLY_FILLED`, `FILLED`, `CANCELLED`, `EXPIRED`, `REJECTED`, `RECONCILING` | Working limit order resting on exchange book. |
+| `PARTIALLY_FILLED` | `PARTIALLY_FILLED`, `FILLED`, `CANCELLED`, `RECONCILING` | Remaining quantity is working; cannot reject once fills occur. |
+| `RECONCILING` | `ACKNOWLEDGED`, `TRIGGER_PENDING`, `PARTIALLY_FILLED`, `FILLED`, `CANCELLED`, `REJECTED`, `EXPIRED`, `FAILED` | Golden Rule state: Holds order safely while awaiting authoritative broker reconciliation. |
 | `FILLED` | *None (Terminal)* | Irreversible; no further transitions allowed. |
 | `REJECTED` | *None (Terminal)* | Irreversible; dead on arrival. |
 | `CANCELLED` | *None (Terminal)* | Irreversible; working balance withdrawn. |
@@ -850,3 +853,4 @@ Phase 7 requires a comprehensive unit and integration test suite verifying that 
 ---
 
 *This specification establishes the authoritative blueprint for Phase 7 implementation upon operator approval.*
+

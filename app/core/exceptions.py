@@ -109,3 +109,50 @@ class SubscriptionQuotaExceededException(BrokerException):
             status_code=429,
         )
 
+
+class IllegalOrderStateTransitionException(ApplicationException):
+    """Raised when an illegal order state transition is attempted."""
+
+    def __init__(
+        self,
+        message: str,
+        details: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        super().__init__(
+            message=message,
+            error_code="ILLEGAL_ORDER_STATE_TRANSITION",
+            status_code=400,
+            details=details,
+        )
+
+
+class OrderValidationException(ValidationException):
+    """Raised when pre-flight order syntax or parameter validation fails."""
+
+    def __init__(
+        self,
+        message: str,
+        details: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        super().__init__(
+            message=message,
+            error_code="ORDER_VALIDATION_ERROR",
+            details=details,
+        )
+
+
+class OrderRiskException(ApplicationException):
+    """Raised when an order violates pre-trade risk controls."""
+
+    def __init__(
+        self,
+        message: str,
+        details: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        super().__init__(
+            message=message,
+            error_code="ORDER_RISK_VIOLATION",
+            status_code=400,
+            details=details,
+        )
+

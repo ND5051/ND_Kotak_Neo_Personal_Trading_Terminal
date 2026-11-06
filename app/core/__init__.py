@@ -42,6 +42,11 @@ from app.core.audit import (
     POSITIONS_RECONCILED,
     MARGIN_SYNC,
     POSITION_DISCREPANCY,
+    AUDIT_ORDER_VALIDATION,
+    AUDIT_ORDER_RISK_CHECK,
+    AUDIT_ORDER_STATE_TRANSITION,
+    AUDIT_ORDER_RECONCILIATION,
+    AUDIT_ORDER_DISCREPANCY,
 )
 from app.core.request_context import (
     RequestContext,
@@ -96,6 +101,11 @@ __all__ = [
     "POSITIONS_RECONCILED",
     "MARGIN_SYNC",
     "POSITION_DISCREPANCY",
+    "AUDIT_ORDER_VALIDATION",
+    "AUDIT_ORDER_RISK_CHECK",
+    "AUDIT_ORDER_STATE_TRANSITION",
+    "AUDIT_ORDER_RECONCILIATION",
+    "AUDIT_ORDER_DISCREPANCY",
     "RequestContext",
     "get_current_context",
     "set_current_context",

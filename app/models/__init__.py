@@ -8,10 +8,11 @@ from app.models.db import (
     create_all_tables,
     drop_all_tables,
 )
-# Ensure Phase 2, Phase 3, and Phase 5 entities are attached to metadata
+# Ensure Phase 2, Phase 3, Phase 5, and Phase 7 entities are attached to metadata
 from app.auth.models import User, Session
 from app.broker.models import BrokerSession
 from app.market_watch.models import Watchlist, WatchlistItem
+from app.orders.models import OrderModel, OrderEventModel, TradeExecutionModel
 
 __all__ = [
     "Base",
@@ -28,4 +29,7 @@ __all__ = [
     "BrokerSession",
     "Watchlist",
     "WatchlistItem",
+    "OrderModel",
+    "OrderEventModel",
+    "TradeExecutionModel",
 ]
