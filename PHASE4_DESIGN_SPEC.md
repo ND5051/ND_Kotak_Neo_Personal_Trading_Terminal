@@ -1,7 +1,7 @@
 # Phase 4 Architectural Design Specification
 ## WebSocket Supervisor & Real-Time Connectivity Foundation
 
-**Document Version:** 1.0.0  
+**Document Version:** 1.1.0  
 **Phase:** Phase 4 — WebSocket Supervisor & Real-Time Connectivity Foundation  
 **Target Milestone:** Milestone M2  
 **Baseline Dependency:** Milestone M1 Baseline Locked & Tagged (`M1_BASELINE`, commit `4d9341a`)  
@@ -19,7 +19,7 @@ In compliance with the **Project Constitution**, the following trading and domai
 - ❌ **No Derivatives Analytics**: No option chain matrix, strike resolution, or Greek computations.
 - ❌ **No Tick Display / UI Visualization**: No web ticker components, charts, or browser socket rooms.
 
-Phase 4 is dedicated exclusively to the **WebSocket Supervisor, Connection State Machine, Heartbeat Watchdog, Subscription Registry, Broker Circuit Breaker, and Cache TTL Engine**.
+Phase 4 is dedicated exclusively to the **WebSocket Supervisor, Connection State Machine, Heartbeat Watchdog, Telemetry Metrics Tracking, Subscription Registry, Broker Circuit Breaker, and Cache TTL Engine**.
 
 ---
 
@@ -46,7 +46,7 @@ The WebSocket Supervisor acts as the autonomous lifecycle guardian for real-time
 |  +--------------------------------------------+--------------------------------------------+  |
 |                                               |                                               |
 |         +-------------------------------------+-------------------------------------+         |
-|         v                                                                           v         |
+|         v                                     v                                     v         |
 |  +--------------------------------+   +--------------------------------+   +---------------+  |
 |  |       KotakStreamAdapter       |   |       SubscriptionManager      |   | CircuitBreaker|  |
 |  | - Encapsulates SFeed WebSocket |   | - In-memory Scrip Token Index  |   | - 3-State     |  |
@@ -55,13 +55,16 @@ The WebSocket Supervisor acts as the autonomous lifecycle guardian for real-time
 |  | - Exponential Backoff Loop     |   | - Auto-Resubscribe on Reconnect|   |   Trip Guard  |  |
 |  +----------------+---------------+   +--------------------------------+   +---------------+  |
 |                   |                                                                           |
-|                   v                                                                           |
-|  +--------------------------------+                                                           |
-|  |        HeartbeatWatchdog       |                                                           |
-|  | - Ping / Pong transmission     |                                                           |
-|  | - Liveness Watchdog (15s dead) |                                                           |
-|  | - Forceful Socket Teardown     |                                                           |
-|  +--------------------------------+                                                           |
+|         +---------+---------+                                                                 |
+|         v                   v                                                                 |
+|  +----------------+  +--------------------------------+                                       |
+|  |HeartbeatWatchdog| |  WebSocketTelemetryTracker     |                                       |
+|  | - Ping / Pong  |  |  - Connection Count            |                                       |
+|  | - 15s Timeout  |  |  - Reconnect Count             |                                       |
+|  | - Hard Reset   |  |  - Heartbeat Miss Count        |                                       |
+|  +----------------+  |  - Average Reconnect Time      |                                       |
+|                      |  - Last Connected Time         |                                       |
+|                      +--------------------------------+                                       |
 +-----------------------------------------------------------------------------------------------+
                                                 |
                                                 v
@@ -80,17 +83,22 @@ The WebSocket Supervisor acts as the autonomous lifecycle guardian for real-time
    - Manages raw WebSocket connection to Kotak Neo's `SFeed` server using credentials passed from `BrokerSessionManager`.
    - Implements recursion-free, infinite-loop reconnection with randomized exponential backoff jitter.
 
-3. **`SubscriptionManager`**:
+3. **`WebSocketTelemetryTracker` (Explicit Metrics)**:
+   - Tracks operational health metrics: **Connection Count**, **Reconnect Count**, **Heartbeat Miss Count**, **Average Reconnect Time**, and **Last Successful Connection Time**.
+   - Maintains rolling window moving averages without memory accumulation.
+   - Exposes diagnostic snapshots via thread-safe accessors for `/api/broker/status`.
+
+4. **`SubscriptionManager`**:
    - Serves as the authoritative in-memory registry of all instrument tokens requested by the system.
    - Enforces Kotak Neo's platform limit of **3,000 concurrent scrip tokens**.
    - Maintains reference counting: tokens are only subscribed on the wire when their reference count increases from $0 \to 1$, and unsubscribed when count drops to $0$.
    - Automatically replays all active subscriptions upon socket reconnection.
 
-4. **`BrokerCircuitBreaker` (Phase 3 Audit Item)**:
+5. **`BrokerCircuitBreaker` (Phase 3 Audit Item)**:
    - Tracks network and API failure rates over a sliding 30-second window.
    - Trips to `OPEN` after repeated consecutive connection failures, preventing connection storms and API rate-limiting penalties (HTTP 429).
 
-5. **`HeartbeatWatchdog`**:
+6. **`HeartbeatWatchdog`**:
    - Schedules periodic ping frames and measures pong return latency.
    - Detects "silent-dead" half-open TCP connections and triggers forceful teardown and reconnection.
 
@@ -127,8 +135,8 @@ stateDiagram-v2
 |---|---|---|
 | `DISCONNECTED` | Socket is closed; background thread idle or stopped. | No network traffic; no active heartbeat timers; subscriptions remain registered in memory but unstreamed. |
 | `CONNECTING` | TCP handshake and authentication framing in progress. | Timeout enforced at 10 seconds. Circuit breaker failure counter armed. |
-| `CONNECTED` | WebSocket authenticated and streaming. | Heartbeat watchdog active; subscription replay completed; circuit breaker failure counter reset to 0. |
-| `RECONNECTING` | Connection severed; scheduled for retry. | Non-blocking sleep with exponential backoff and jitter ($1\text{s}, 2\text{s}, 4\text{s}, \dots, 30\text{s}$). Subscriptions preserved. |
+| `CONNECTED` | WebSocket authenticated and streaming. | Heartbeat watchdog active; subscription replay completed; circuit breaker failure counter reset to 0; `connection_count` incremented. |
+| `RECONNECTING` | Connection severed; scheduled for retry. | Non-blocking sleep with exponential backoff and jitter ($1\text{s}, 2\text{s}, 4\text{s}, \dots, 30\text{s}$). Subscriptions preserved; `reconnect_count` incremented. |
 | `FAILED` | Unrecoverable failure or circuit breaker tripped. | Auto-retry suspended; terminal error logged to audit sink; requires operator intervention or session refresh. |
 
 ### 2.2 State Transition Matrix
@@ -136,11 +144,11 @@ stateDiagram-v2
 | Current State | Event / Trigger | Target State | Action / Side Effect |
 |---|---|---|---|
 | `DISCONNECTED` | `SUPERVISOR_START` | `CONNECTING` | Verify broker session; check Circuit Breaker; spawn async worker. |
-| `CONNECTING` | `AUTH_SUCCESS` | `CONNECTED` | Emit `WS_CONNECTED`; start HeartbeatWatchdog; trigger `resubscribe_all()`. |
-| `CONNECTING` | `HANDSHAKE_TIMEOUT` | `RECONNECTING` | Record failure in Circuit Breaker; compute backoff delay; emit `WS_RECONNECTING`. |
+| `CONNECTING` | `AUTH_SUCCESS` | `CONNECTED` | Emit `WS_CONNECTED`; start HeartbeatWatchdog; record `last_connected_time`; increment `connection_count`; compute reconnect duration if recovering. |
+| `CONNECTING` | `HANDSHAKE_TIMEOUT` | `RECONNECTING` | Record failure in Circuit Breaker; start reconnect stopwatch; emit `WS_RECONNECTING`. |
 | `CONNECTING` | `AUTH_REJECTED_401` | `FAILED` | Publish `BROKER_SESSION_EXPIRED`; trip Circuit Breaker; emit `WS_FAILED`. |
-| `CONNECTED` | `SOCKET_CLOSED` | `RECONNECTING` | Record disconnect; cancel heartbeat timer; schedule reconnect. |
-| `CONNECTED` | `HEARTBEAT_TIMEOUT` | `RECONNECTING` | Force close TCP socket; emit `WS_HEARTBEAT_MISSED`; schedule reconnect. |
+| `CONNECTED` | `SOCKET_CLOSED` | `RECONNECTING` | Increment `reconnect_count`; start reconnect stopwatch; cancel heartbeat timer; schedule reconnect. |
+| `CONNECTED` | `HEARTBEAT_TIMEOUT` | `RECONNECTING` | Increment `heartbeat_miss_count`; force close TCP socket; emit `WS_HEARTBEAT_MISSED`; schedule reconnect. |
 | `CONNECTED` | `SUPERVISOR_STOP` | `DISCONNECTED` | Clean WS close (code 1000); cancel tasks; emit `WS_DISCONNECTED`. |
 | `RECONNECTING` | `BACKOFF_EXPIRED` | `CONNECTING` | Increment attempt counter; initiate fresh socket handshake. |
 | `RECONNECTING` | `MAX_ATTEMPTS_EXCEEDED`| `FAILED` | Trip Circuit Breaker to `OPEN`; emit `WS_FAILED`; audit failure. |
@@ -164,18 +172,78 @@ Real-time trading connections frequently suffer from **half-open TCP sockets**�
    $$\Delta t = t_{\text{current}} - t_{\text{last\_rx}}$$
 3. If $\Delta t > 5\text{s}$, the supervisor transmits an explicit application ping frame to Kotak SFeed.
 4. If $\Delta t \ge 15\text{s}$, the watchdog declares the connection dead:
-   - Emits audit log: `[AUDIT:BROKER] WS_HEARTBEAT_TIMEOUT`
+   - Increments `heartbeat_miss_count` on `WebSocketTelemetryTracker`.
+   - Emits audit log: `[AUDIT:BROKER] WS_HEARTBEAT_TIMEOUT`.
    - Forcibly calls `socket.close()` with abortive TCP reset.
    - Transitions state machine to `RECONNECTING`.
 
 ---
 
-## 4. Subscription Manager
+## 4. WebSocket Telemetry & Explicit Metrics Tracking
 
-### 4.1 Quota & Concurrency Governance
+To guarantee complete visibility into socket stability, connection health, and carrier latency during live market sessions, the supervisor integrates a dedicated telemetry tracker.
+
+### 4.1 Tracked Metrics Specification
+
+| Metric Name | Identifier | Data Type | Initialization | Calculation & Update Trigger |
+|---|---|---|---|---|
+| **Connection Count** | `connection_count` | `Integer` | `0` | Incremented by 1 every time the socket successfully transitions to `CONNECTED` (both initial connection and recoveries). |
+| **Reconnect Count** | `reconnect_count` | `Integer` | `0` | Incremented by 1 every time the socket transitions from `CONNECTED` to `RECONNECTING` due to dropped sockets, network drops, or timeouts. |
+| **Heartbeat Miss Count** | `heartbeat_miss_count` | `Integer` | `0` | Incremented by 1 each time the 15-second heartbeat silence threshold is breached without receiving a data tick or pong. |
+| **Average Reconnect Time** | `avg_reconnect_time_ms` | `Float` | `0.0` | Cumulative Moving Average (CMA) of time elapsed between entering `RECONNECTING` and successfully re-entering `CONNECTED`. |
+| **Last Successful Connection Time** | `last_connected_time` | `ISO-8601 String / UTC datetime` | `None` | Stored upon every successful transition to `CONNECTED`. |
+
+### 4.2 Mathematical Model for Average Reconnect Time
+To avoid unbounded memory growth from storing individual reconnect duration arrays, the tracker calculates a **Cumulative Moving Average (CMA)**:
+
+$$\bar{T}_{k} = \bar{T}_{k-1} + \frac{T_{k} - \bar{T}_{k-1}}{k}$$
+
+Where:
+- $k$ is the current successful reconnection index.
+- $T_{k}$ is the duration (in milliseconds) of the $k$-th reconnection attempt:
+  $$T_{k} = (t_{\text{connected}} - t_{\text{reconnect\_start}}) \times 1000$$
+- $\bar{T}_{k}$ is the updated `avg_reconnect_time_ms`.
+
+### 4.3 Data Structure & Encapsulation
+```python
+@dataclass
+class WebSocketMetrics:
+    connection_count: int = 0
+    reconnect_count: int = 0
+    heartbeat_miss_count: int = 0
+    avg_reconnect_time_ms: float = 0.0
+    last_connected_time: Optional[str] = None
+    total_reconnect_samples: int = 0
+    current_reconnect_start: Optional[float] = None
+```
+
+### 4.4 Diagnostic Payload Exposure
+The telemetry snapshot is exposed via `BrokerHealthService` and the diagnostic route `GET /api/broker/status`:
+
+```json
+{
+  "status": "AUTHENTICATED",
+  "streaming": {
+    "state": "CONNECTED",
+    "metrics": {
+      "connection_count": 4,
+      "reconnect_count": 3,
+      "heartbeat_miss_count": 1,
+      "avg_reconnect_time_ms": 1420.50,
+      "last_connected_time": "2026-11-06T05:14:32.105420+00:00"
+    }
+  }
+}
+```
+
+---
+
+## 5. Subscription Manager
+
+### 5.1 Quota & Concurrency Governance
 Kotak Neo strictly enforces a **maximum quota of 3,000 concurrent scrip tokens per WebSocket connection**. Violating this limit results in broker-side socket termination.
 
-### 4.2 Reference Counting Model
+### 5.2 Reference Counting Model
 Multiple future terminal modules (e.g. Market Watch, Strategy Engine, Risk Monitor) may independently request streaming for identical instruments (e.g. `NSE:RELIANCE` or `NFO:NIFTY26OCT24000CE`).
 - `SubscriptionManager` maintains:
   ```python
@@ -187,7 +255,7 @@ Multiple future terminal modules (e.g. Market Watch, Strategy Engine, Risk Monit
   - `ref_count`: Number of active system components subscribing to this scrip.
   - `subscribed_at`: UTC timestamp of initial wire subscription.
 
-### 4.3 Subscription Logic & Quota Enforcement
+### 5.3 Subscription Logic & Quota Enforcement
 ```
 Component Requests Token T
             |
@@ -206,7 +274,7 @@ Ref Count += 1   Current Total < 3000?
              Send ws.subscribe()
 ```
 
-### 4.4 Automated Resubscription on Reconnection
+### 5.4 Automated Resubscription on Reconnection
 When the WebSocket connection drops and recovers (`RECONNECTING` $\to$ `CONNECTED`), the `SubscriptionManager`:
 1. Collects all registered tokens where `ref_count > 0`.
 2. Batches tokens into chunks of 500 scrips to prevent packet fragmentation.
@@ -215,12 +283,12 @@ When the WebSocket connection drops and recovers (`RECONNECTING` $\to$ `CONNECTE
 
 ---
 
-## 5. Broker Circuit Breaker (Phase 3 Carry-Forward)
+## 6. Broker Circuit Breaker (Phase 3 Carry-Forward)
 
-### 5.1 Motivation & Rationale
+### 6.1 Motivation & Rationale
 During severe broker maintenance windows or exchange matching engine outages, naive algorithmic trading terminals repeatedly hammer broker endpoints with reconnect attempts, resulting in IP bans, API rate-limiting (HTTP 429), and CPU saturation.
 
-### 5.2 Circuit Breaker Specification
+### 6.2 Circuit Breaker Specification
 
 ```
 +-------------------------------------------------------------------------+
@@ -250,7 +318,7 @@ During severe broker maintenance windows or exchange matching engine outages, na
 +-------------------------------------------------------------------------+
 ```
 
-### 5.3 Configuration Parameters
+### 6.3 Configuration Parameters
 - `CIRCUIT_FAILURE_THRESHOLD = 3` (consecutive failures to trip).
 - `CIRCUIT_WINDOW_SECONDS = 30` (rolling evaluation window).
 - `CIRCUIT_COOLDOWN_SECONDS = 30` (quarantine duration).
@@ -258,12 +326,12 @@ During severe broker maintenance windows or exchange matching engine outages, na
 
 ---
 
-## 6. Cache TTL Design (Phase 3 Carry-Forward)
+## 7. Cache TTL Design (Phase 3 Carry-Forward)
 
-### 6.1 Motivation & Rationale
+### 7.1 Motivation & Rationale
 Phase 3 introduced `BrokerCache` with thread-safe `threading.RLock`, but cached entries (capabilities, session metadata) lacked automated time-to-live expiration policies, requiring manual purging.
 
-### 6.2 TTL Architecture & Policy Matrix
+### 7.2 TTL Architecture & Policy Matrix
 
 `BrokerCache` will be upgraded with segmented, timestamped entries:
 
@@ -273,7 +341,7 @@ Phase 3 introduced `BrokerCache` with thread-safe `threading.RLock`, but cached 
 | `session_meta` | **8 Hours** (`28,800s`) | Sliding TTL + Session sync | Matches Kotak Neo token lifespan. |
 | `health_stats` | **5 Seconds** (`5s`) | Aggressive eviction | Latency and diagnostic states must reflect near-real-time reality. |
 
-### 6.3 Mechanics
+### 7.3 Mechanics
 1. **Entry Envelope**: Each cached item is stored as:
    ```python
    CacheEntry(value=Any, expires_at=datetime, created_at=datetime)
@@ -285,7 +353,7 @@ Phase 3 introduced `BrokerCache` with thread-safe `threading.RLock`, but cached 
 
 ---
 
-## 7. Event Bus Integration
+## 8. Event Bus Integration
 
 Phase 4 defines and integrates the following asynchronous events into `app/events/event_types.py`:
 
@@ -301,14 +369,15 @@ CIRCUIT_BREAKER_TRIPPED = "CIRCUIT_BREAKER_TRIPPED"
 CIRCUIT_BREAKER_RESET = "CIRCUIT_BREAKER_RESET"
 ```
 
-### 7.1 Event Payloads & Decoupling Contracts
+### 8.1 Event Payloads & Decoupling Contracts
 - `WS_STATE_CHANGED`:
   ```json
   {
     "previous_state": "CONNECTING",
     "current_state": "CONNECTED",
     "timestamp": "2026-11-06T05:00:00.000000+00:00",
-    "details": "Handshake 200 OK"
+    "details": "Handshake 200 OK",
+    "connection_count": 1
   }
   ```
 - `CIRCUIT_BREAKER_TRIPPED`:
@@ -324,9 +393,9 @@ CIRCUIT_BREAKER_RESET = "CIRCUIT_BREAKER_RESET"
 
 ---
 
-## 8. Session Recovery Integration
+## 9. Session Recovery Integration
 
-### 8.1 Seamless Handshake with Phase 3 Session Lifecycle
+### 9.1 Seamless Handshake with Phase 3 Session Lifecycle
 The `WebSocketSupervisor` hooks directly into the Phase 3 `BrokerSessionManager`:
 
 1. **Terminal Cold-Start / Recovery**:
@@ -339,9 +408,9 @@ The `WebSocketSupervisor` hooks directly into the Phase 3 `BrokerSessionManager`
 
 ---
 
-## 9. Database Changes
+## 10. Database Changes
 
-### 9.1 Zero Database Alterations Required
+### 10.1 Zero Database Alterations Required
 In strict alignment with the **Project Constitution**:
 - Real-time streaming states (`CONNECTING`, `CONNECTED`, `RECONNECTING`) are **volatile and transient**.
 - Active subscription counts and reference counts exist strictly in memory.
@@ -353,35 +422,42 @@ In strict alignment with the **Project Constitution**:
 
 ---
 
-## 10. Test Strategy
+## 11. Test Strategy
 
-To guarantee enterprise-grade reliability, Phase 4 will employ a comprehensive three-tier testing strategy:
+To guarantee enterprise-grade reliability, Phase 4 will employ a comprehensive four-tier testing strategy:
 
-### 10.1 Unit Testing Suite (`tests/unit/test_websocket_supervisor.py`)
+### 11.1 Unit Testing Suite (`tests/unit/test_websocket_supervisor.py`)
 - **State Machine Verification**: Test all valid and invalid transitions (e.g. verifying `CONNECTED` cannot jump directly to `DISCONNECTED` without clean shutdown).
-- **Heartbeat Expiration**: Fast-forward mock timestamps to simulate 15-second silence; verify watchdog triggers abortive socket closure.
+- **Heartbeat Expiration**: Fast-forward mock timestamps to simulate 15-second silence; verify watchdog triggers abortive socket closure and increments `heartbeat_miss_count`.
 - **Subscription Registry & Reference Counting**:
   - Test adding token $T_1$ twice; verify `ref_count == 2` and wire call invoked exactly once.
   - Test decrementing to 0; verify unsubscribe invoked.
   - Test quota violation (>3,000 tokens); verify `QuotaExceededException` raised.
 
-### 10.2 Circuit Breaker Suite (`tests/unit/test_circuit_breaker.py`)
+### 11.2 Telemetry Metrics Suite (`tests/unit/test_websocket_telemetry.py`)
+- **Metric Increment Verification**: Verify `connection_count` increments on initial connect and every reconnect.
+- **Reconnect Counting**: Verify `reconnect_count` increments on unexpected disconnects.
+- **Heartbeat Miss Increment**: Verify `heartbeat_miss_count` increments on watchdog timeouts.
+- **CMA Calculation Accuracy**: Simulate 3 reconnect cycles with known durations (e.g. 1000ms, 2000ms, 1500ms); verify `avg_reconnect_time_ms == 1500.0`.
+- **Timestamp Integrity**: Verify `last_connected_time` matches UTC ISO-8601 format and updates on each successful connection.
+
+### 11.3 Circuit Breaker Suite (`tests/unit/test_circuit_breaker.py`)
 - Test consecutive failure accumulation.
 - Verify transition from `CLOSED` to `OPEN` after 3 failures.
 - Verify fail-fast behavior in `OPEN` state (zero network calls executed).
 - Test cooldown expiry transition to `HALF-OPEN` and subsequent recovery on successful canary attempt.
 
-### 10.3 Cache TTL Suite (`tests/unit/test_cache_ttl.py`)
+### 11.4 Cache TTL Suite (`tests/unit/test_cache_ttl.py`)
 - Test lazy eviction of expired items on read.
 - Test concurrency and thread safety under simultaneous multi-threaded reads and writes using `threading.RLock`.
 
-### 10.4 Mock Asynchronous Integration Suite (`tests/integration/test_stream_integration.py`)
+### 11.5 Mock Asynchronous Integration Suite (`tests/integration/test_stream_integration.py`)
 - Implement a mock asynchronous WebSocket server using `pytest-asyncio` and `websockets`.
-- Simulate complete session restoration $\to$ socket handshake $\to$ subscription replay $\to$ disconnect $\to$ exponential backoff reconnect.
+- Simulate complete session restoration $\to$ socket handshake $\to$ subscription replay $\to$ disconnect $\to$ exponential backoff reconnect $\to$ metrics verification.
 
 ---
 
-## 11. Rollback Strategy
+## 12. Rollback Strategy
 
 Because Phase 4 introduces **zero database schema changes**, rollback is instantaneous, deterministic, and safe:
 
@@ -402,7 +478,7 @@ Because Phase 4 introduces **zero database schema changes**, rollback is instant
 
 ---
 
-## 12. Architectural Compliance & Sign-Off Checklist
+## 13. Architectural Compliance & Sign-Off Checklist
 
 | Requirement | Implementation Strategy in Phase 4 Design | Compliance |
 |---|---|---|
@@ -411,6 +487,7 @@ Because Phase 4 introduces **zero database schema changes**, rollback is instant
 | **State Recovery** | Auto-resubscribes active token registry upon reconnect | **YES** (Rule 3) |
 | **Circuit Breaker** | 3-state sliding-window breaker prevents API storming | **YES** (Audit Carry-Forward) |
 | **Cache TTL** | Dual-layer TTL with lazy expiration in `BrokerCache` | **YES** (Audit Carry-Forward) |
+| **Explicit Telemetry** | Connection Count, Reconnect Count, Heartbeat Miss Count, Avg Reconnect Time, Last Connected Time | **YES** (Section 4) |
 | **Zero Orders** | No order endpoints or methods designed | **STRICT COMPLIANCE** |
 | **Zero Market Watch** | No scrip master sync or live display rooms designed | **STRICT COMPLIANCE** |
 | **Zero Holdings/Positions** | No portfolio retrieval designed | **STRICT COMPLIANCE** |
@@ -418,4 +495,4 @@ Because Phase 4 introduces **zero database schema changes**, rollback is instant
 
 ---
 
-*Phase 4 Design Specification complete. Awaiting user review and authorization before generating implementation tasks.*
+*Phase 4 Design Specification v1.1.0 complete. Awaiting user review and authorization before generating implementation tasks.*
