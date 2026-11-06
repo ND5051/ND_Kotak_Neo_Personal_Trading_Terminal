@@ -81,6 +81,21 @@ class BrokerHealthService:
                 "last_validation": self.cache.get_last_validation(),
             }
 
+        # Lazy import of streaming components to avoid cyclic dependencies
+        try:
+            from app.broker.services.websocket_supervisor import ws_supervisor
+            from app.broker.services.broker_circuit_breaker import broker_circuit_breaker
+            from app.broker.services.websocket_telemetry import ws_telemetry_tracker
+
+            result["streaming"] = {
+                "state": ws_supervisor.state.value,
+                "is_connected": ws_supervisor.is_connected(),
+                "metrics": ws_telemetry_tracker.get_metrics(),
+                "circuit_breaker": broker_circuit_breaker.get_metrics(),
+            }
+        except ImportError:
+            pass
+
         # Sync cache status
         self.cache.set_status(result["status"])
 

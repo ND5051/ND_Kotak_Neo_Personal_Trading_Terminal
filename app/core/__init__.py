@@ -3,6 +3,8 @@ from app.core.exceptions import (
     ValidationException,
     BrokerException,
     ConfigurationException,
+    BrokerCircuitBreakerOpenException,
+    SubscriptionQuotaExceededException,
 )
 from app.core.response import api_response, api_error
 from app.core.feature_flags import FeatureFlags, feature_flags
@@ -24,6 +26,12 @@ from app.core.audit import (
     BROKER_SESSION_EXPIRED,
     BROKER_LOGOUT,
     BROKER_HEALTH_CHECK,
+    WS_STATE_CHANGE,
+    WS_CONNECTED,
+    WS_DISCONNECTED,
+    WS_HEARTBEAT_TIMEOUT,
+    CIRCUIT_BREAKER_TRIP,
+    CIRCUIT_BREAKER_RESET,
 )
 from app.core.request_context import (
     RequestContext,
@@ -39,6 +47,8 @@ __all__ = [
     "ValidationException",
     "BrokerException",
     "ConfigurationException",
+    "BrokerCircuitBreakerOpenException",
+    "SubscriptionQuotaExceededException",
     "api_response",
     "api_error",
     "FeatureFlags",
@@ -60,6 +70,12 @@ __all__ = [
     "BROKER_SESSION_EXPIRED",
     "BROKER_LOGOUT",
     "BROKER_HEALTH_CHECK",
+    "WS_STATE_CHANGE",
+    "WS_CONNECTED",
+    "WS_DISCONNECTED",
+    "WS_HEARTBEAT_TIMEOUT",
+    "CIRCUIT_BREAKER_TRIP",
+    "CIRCUIT_BREAKER_RESET",
     "RequestContext",
     "get_current_context",
     "set_current_context",

@@ -5,6 +5,9 @@ from app.auth.decorators import login_required
 from app.broker.adapters.kotak_adapter import KotakBrokerAdapter
 from app.broker.services.broker_session_manager import broker_session_manager
 from app.broker.services.broker_health_service import broker_health_service
+from app.broker.services.websocket_supervisor import ws_supervisor
+from app.broker.services.websocket_telemetry import ws_telemetry_tracker
+from app.broker.services.broker_circuit_breaker import broker_circuit_breaker
 from app.core.audit import audit_logger, AuditCategory, BROKER_LOGIN_SUCCESS, BROKER_LOGIN_FAILED
 from app.core.exceptions import BrokerException, ValidationException
 from app.core.request_context import get_correlation_id, get_request_id
@@ -132,6 +135,9 @@ def broker_logout():
     user_id = g.current_user.id
     username = g.current_user.username
 
+    # Gracefully stop streaming if active
+    ws_supervisor.stop()
+
     broker_session_manager.destroy_session(
         user_id=user_id,
         adapter=kotak_adapter,
@@ -141,5 +147,50 @@ def broker_logout():
     return api_response(
         data={"status": "DISCONNECTED"},
         message="Broker logged out successfully",
+    )
+
+
+@broker_bp.route("/stream/metrics", methods=["GET"])
+def stream_metrics():
+    """Retrieve explicit WebSocket telemetry metrics and circuit breaker state."""
+    diagnostics = ws_supervisor.get_diagnostics()
+    return api_response(data=diagnostics)
+
+
+@broker_bp.route("/stream/start", methods=["POST"])
+@login_required
+def stream_start():
+    """Manually initiate streaming supervisor for authenticated broker session."""
+    user_id = g.current_user.id
+    active_sess = broker_session_manager.repo.get_active_session(user_id=user_id)
+    if not active_sess or active_sess.is_expired():
+        return api_error(
+            error_code="BROKER_SESSION_REQUIRED",
+            message="Active broker session required to start streaming supervisor.",
+            status_code=400,
+        )
+
+    token = broker_session_manager.encryption.decrypt(active_sess.session_token_encrypted)
+    started = ws_supervisor.start(session_token=token)
+    if started:
+        return api_response(
+            data={"state": ws_supervisor.state.value, "started": True},
+            message="WebSocket streaming supervisor started",
+        )
+    return api_error(
+        error_code="STREAM_START_FAILED",
+        message="Failed to start streaming supervisor (check circuit breaker status).",
+        status_code=503,
+    )
+
+
+@broker_bp.route("/stream/stop", methods=["POST"])
+@login_required
+def stream_stop():
+    """Stop the WebSocket streaming supervisor."""
+    ws_supervisor.stop()
+    return api_response(
+        data={"state": ws_supervisor.state.value, "stopped": True},
+        message="WebSocket streaming supervisor stopped",
     )
 

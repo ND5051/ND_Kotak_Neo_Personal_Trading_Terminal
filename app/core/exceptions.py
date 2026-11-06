@@ -77,3 +77,35 @@ class ConfigurationException(ApplicationException):
             details=details,
         )
 
+
+class BrokerCircuitBreakerOpenException(BrokerException):
+    """Raised when broker circuit breaker is OPEN, failing fast to prevent outage cascade."""
+
+    def __init__(
+        self,
+        message: str = "Broker circuit breaker is OPEN; request rejected to prevent cascade.",
+        details: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        super().__init__(
+            message=message,
+            details=details,
+            error_code="CIRCUIT_BREAKER_OPEN",
+            status_code=503,
+        )
+
+
+class SubscriptionQuotaExceededException(BrokerException):
+    """Raised when subscription count exceeds broker quota limit (e.g. 3,000 scrips)."""
+
+    def __init__(
+        self,
+        message: str = "Broker subscription quota exceeded (limit: 3,000 scrips).",
+        details: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        super().__init__(
+            message=message,
+            details=details,
+            error_code="SUBSCRIPTION_QUOTA_EXCEEDED",
+            status_code=429,
+        )
+
