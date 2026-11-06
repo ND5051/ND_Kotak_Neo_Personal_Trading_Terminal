@@ -32,6 +32,11 @@ from app.core.audit import (
     WS_HEARTBEAT_TIMEOUT,
     CIRCUIT_BREAKER_TRIP,
     CIRCUIT_BREAKER_RESET,
+    WATCHLIST_CREATED,
+    WATCHLIST_DELETED,
+    WATCHLIST_ITEM_ADDED,
+    WATCHLIST_ITEM_REMOVED,
+    SCRIP_MASTER_DOWNLOAD,
 )
 from app.core.request_context import (
     RequestContext,
@@ -76,6 +81,11 @@ __all__ = [
     "WS_HEARTBEAT_TIMEOUT",
     "CIRCUIT_BREAKER_TRIP",
     "CIRCUIT_BREAKER_RESET",
+    "WATCHLIST_CREATED",
+    "WATCHLIST_DELETED",
+    "WATCHLIST_ITEM_ADDED",
+    "WATCHLIST_ITEM_REMOVED",
+    "SCRIP_MASTER_DOWNLOAD",
     "RequestContext",
     "get_current_context",
     "set_current_context",

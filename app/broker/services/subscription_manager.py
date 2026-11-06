@@ -97,7 +97,7 @@ class SubscriptionManager:
             )
             return True
 
-    def unsubscribe(self, token_id: str) -> bool:
+    def unsubscribe(self, token_id: str, exchange_segment: Optional[str] = None) -> bool:
         """
         Deregister interest in an instrument.
         Returns True if a live socket wire call is required (ref_count: 1 -> 0, removed).
