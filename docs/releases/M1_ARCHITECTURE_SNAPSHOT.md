@@ -267,3 +267,4 @@ ND_Kotak_Neo_Personal_Trading_Terminal/
 | `BROKER` | `BROKER_SESSION_EXPIRED` | Broker token expired or rejected during restore. |
 | `BROKER` | `BROKER_LOGOUT` | Broker session terminated and marked inactive. |
 | `BROKER` | `BROKER_HEALTH_CHECK` | Diagnostic health check executed and recorded. |
+

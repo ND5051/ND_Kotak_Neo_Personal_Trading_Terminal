@@ -59,3 +59,4 @@ Milestone M1 has been validated and accepted for production baseline creation. A
   The terminal routes in `app/broker/routes.py` instantiate a global `KotakBrokerAdapter()` instance. While `broker_sessions` supports multi-broker records conceptually, only Kotak Neo is registered.
 * **Remediation Plan (Future Milestone):**  
   A broker adapter factory will be introduced when multi-broker routing or backup broker failover is scheduled.
+

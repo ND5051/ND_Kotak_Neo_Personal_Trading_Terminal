@@ -89,3 +89,4 @@ In compliance with the **Project Constitution**, the following features are inte
 4. **No Positions**: No open position tracking, day positions, or MTM calculations.
 5. **No Option Chain**: No strike matrix, option Greeks, or derivatives lookup.
 6. **No Streaming**: WebSocket tick feeds (`SFeed`) are not initialized; quotes are not cached.
+
