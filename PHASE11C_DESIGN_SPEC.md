@@ -137,11 +137,15 @@ The Positions screen tracks active derivative and intraday positions, calculatin
    - Closed Position ($\text{Net Qty} = 0$): $\text{MTM} = 0.00$; displays $\text{Realized P&L} = (\text{Sell Avg} - \text{Buy Avg}) \times \text{Traded Qty}$.
 3. **The Golden Rule Handling:**
    - If a live tick is absent from the price engine, MTM P&L renders as `NONE` or `—` rather than calculating from stale or zero values.
-4. **Action Triggers:**
+4. **Position Quick Actions & Triggers:**
+   - `[Add]`: Launches Order Ticket with same side and default 1 lot/quantity to scale or average into position.
    - `[Exit]`: Single-click liquidation launches Order Ticket pre-filled with opposite side:
      - Long $+50 \implies \text{Order Ticket pre-fills } \text{SELL}, \text{Qty}=50, \text{NRML}$.
      - Short $-50 \implies \text{Order Ticket pre-fills } \text{BUY}, \text{Qty}=50, \text{NRML}$.
-   - `[Add]`: Launches Order Ticket with same side to average or scale position.
+   - `[Reverse]`: Position flipping workflow. Automatically generates an order with $2 \times |\text{Net Qty}|$ in the opposite direction (e.g. Long $+50 \implies \text{SELL } 100 \implies \text{New Net Qty } -50$). Launches Order Ticket with a prominent `"REVERSE POSITION"` warning badge.
+5. **Portfolio Snapshot Timestamp & Header Refresh:**
+   - Header prominently displays `"Last Refreshed: HH:mm:ss"` parsed from the backend `retrieved_timestamp`.
+   - Incorporates a dedicated `[🔄 Refresh]` button dispatching `POST /api/portfolio/refresh` to force-sync holdings, positions, and margins with the broker.
 
 ---
 
@@ -276,14 +280,23 @@ The Funds screen provides an exhaustive, multi-tier accounting ledger expanding 
 
 ### 2.8. Position Exit Actions & Emergency Square Off All
 
-#### 2.8.1. Single Position Exit Workflow:
-1. Operator clicks `[Exit]` on an active row in the Positions table.
-2. The UI automatically generates an exit payload with:
-   - Opposite side: If $\text{Net Qty} > 0 \implies \text{SELL}$; if $\text{Net Qty} < 0 \implies \text{BUY}$.
-   - Exact net open quantity: $\text{Qty} = |\text{Net Qty}|$.
-   - Same product type (`MIS` or `NRML`).
-   - Order type initialized to `LIMIT` pre-filled with current Best Bid (for exit sell) or Best Ask (for exit buy).
-3. The Phase 11B Order Ticket opens with an explicit badge: `[EXIT POSITION: SYMBOL]`.
+#### 2.8.1. Single Position Exit & Reverse Workflows:
+1. **Single Exit Workflow:**
+   - Operator clicks `[Exit]` on an active row in the Positions table.
+   - Generates an exit payload:
+     - Opposite side: If $\text{Net Qty} > 0 \implies \text{SELL}$; if $\text{Net Qty} < 0 \implies \text{BUY}$.
+     - Exact net open quantity: $\text{Qty} = |\text{Net Qty}|$.
+     - Same product type (`MIS` or `NRML`).
+     - Order type initialized to `LIMIT` pre-filled with current Best Bid (for exit sell) or Best Ask (for exit buy).
+   - Phase 11B Order Ticket opens with badge: `[EXIT POSITION: SYMBOL]`.
+
+2. **Position Reverse Workflow:**
+   - Operator clicks `[Reverse]` on an active open position.
+   - Calculates reversal size: $\text{Reverse Qty} = 2 \times |\text{Net Qty}|$.
+   - Direction: Opposite to current net exposure (e.g. Long $+50 \implies \text{SELL } 100$).
+   - Launches Order Ticket pre-filled with reverse parameters and prompts modal confirmation:
+     *"Are you sure you want to REVERSE position from LONG (+50) to SHORT (-50)?"*
+   - Pre-flight margin preview verifies sufficiency for the new position.
 
 #### 2.8.2. Emergency "Square Off All Positions" Workflow:
 
@@ -475,3 +488,4 @@ Upon approval of this specification, implementation of Phase 11C will deliver:
 9. `static/js/order_book.js`: Order filtering, modification/cancellation handlers, and timeline visualization.
 10. `tests/integration/test_portfolio_order_book_ui_routes.py`: Comprehensive test suite verifying all Phase 11C components.
 11. `PHASE11C_ARCHITECTURE_REVIEW.md`: Post-implementation architectural audit.
+

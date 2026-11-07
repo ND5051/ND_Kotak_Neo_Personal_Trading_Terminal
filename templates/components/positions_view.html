@@ -1,0 +1,147 @@
+<!-- Phase 11C: Derivative & Intraday Positions View Component -->
+<div class="portfolio-container" id="positions-container">
+    <!-- Positions Header with Last Refreshed & Refresh Control -->
+    <div class="portfolio-header card">
+        <div class="portfolio-header-left">
+            <h3>Positions (Derivatives &amp; Intraday)</h3>
+            <span class="portfolio-refresh-info" id="positions-refresh-label">
+                Last Refreshed: <span class="font-numeric" id="positions-last-refreshed">--:--:--</span>
+            </span>
+        </div>
+        <div class="portfolio-header-actions">
+            <button class="btn btn-sm btn-secondary" id="refresh-positions-btn" title="Force refresh positions">
+                <span class="refresh-icon">🔄</span> Refresh
+            </button>
+        </div>
+    </div>
+
+    <!-- Live MTM Dashboard Strip -->
+    <div class="portfolio-stats-bar card">
+        <div class="p-stat">
+            <span class="lbl">Realized P&amp;L</span>
+            <span class="val font-numeric" id="pos-realized-pnl">₹0.00</span>
+        </div>
+        <div class="p-stat">
+            <span class="lbl">Unrealized MTM P&amp;L</span>
+            <span class="val font-numeric text-success" id="pos-unrealized-mtm">+₹0.00</span>
+        </div>
+        <div class="p-stat">
+            <span class="lbl">Net Day P&amp;L</span>
+            <span class="val font-numeric text-success" id="pos-net-pnl">+₹0.00</span>
+        </div>
+        <div class="p-stat">
+            <span class="lbl">Exposure Margin</span>
+            <span class="val font-numeric" id="pos-exposure-margin">₹0.00</span>
+        </div>
+    </div>
+
+    <!-- Sub-Tabs & Filter Controls -->
+    <div class="positions-filter-bar card">
+        <div class="filter-tabs">
+            <button class="filter-tab active" data-pos-filter="ALL" id="pos-tab-all">ALL (<span id="pos-count-all">0</span>)</button>
+            <button class="filter-tab" data-pos-filter="OPEN" id="pos-tab-open">OPEN (<span id="pos-count-open">0</span>)</button>
+            <button class="filter-tab" data-pos-filter="CLOSED" id="pos-tab-closed">CLOSED (<span id="pos-count-closed">0</span>)</button>
+        </div>
+        <div class="filter-dropdowns">
+            <select class="input-select" id="pos-product-filter">
+                <option value="ALL">All Products</option>
+                <option value="MIS">MIS (Intraday)</option>
+                <option value="NRML">NRML (F&amp;O)</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Positions Data Table -->
+    <div class="card table-container">
+        <div class="table-responsive">
+            <table class="data-table" id="positions-table">
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th>Instrument</th>
+                        <th class="text-right">Net Qty</th>
+                        <th class="text-right">Buy Avg (₹)</th>
+                        <th class="text-right">Sell Avg (₹)</th>
+                        <th class="text-right">LTP (₹)</th>
+                        <th class="text-right">Realized (₹)</th>
+                        <th class="text-right">MTM P&amp;L (₹)</th>
+                        <th class="text-right">Net P&amp;L (₹)</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="positions-tbody">
+                    <!-- Populated dynamically by portfolio.js -->
+                </tbody>
+            </table>
+        </div>
+
+        <div class="empty-state hidden" id="positions-empty-state">
+            <span class="empty-icon">🎯</span>
+            <h4>No Active Positions</h4>
+            <p>Positions executed in MIS or NRML will appear here with live MTM updates.</p>
+        </div>
+    </div>
+
+    <!-- Batch Control Action Bar -->
+    <div class="card positions-action-bar">
+        <div class="action-bar-info">
+            <span>Total Open Positions: <strong class="font-numeric" id="total-open-positions">0</strong></span>
+        </div>
+        <div class="action-bar-buttons">
+            <button class="btn btn-sm btn-danger" id="btn-square-off-all" disabled title="Emergency square off all open positions">
+                ⚠️ SQUARE OFF ALL POSITIONS
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Emergency Square Off All Positions -->
+<div class="modal-backdrop hidden" id="square-off-all-modal">
+    <div class="modal-dialog">
+        <div class="modal-header">
+            <h3 class="text-danger">⚠️ Emergency Square Off All Positions</h3>
+            <button class="btn btn-sm btn-icon" id="sq-all-close-btn">✕</button>
+        </div>
+        <div class="modal-body">
+            <p>
+                Are you sure you want to close <strong>ALL active open positions</strong>? This will immediately dispatch market exit orders.
+            </p>
+            <ul class="sq-positions-list" id="sq-all-positions-list">
+                <!-- Preview list populated by portfolio.js -->
+            </ul>
+            <div class="challenge-box" id="sq-challenge-box">
+                <label for="sq-all-challenge-input">Type <code class="font-bold">CONFIRM_EXIT_ALL</code> to authorize in LIVE mode:</label>
+                <input type="text" id="sq-all-challenge-input" class="input-text" placeholder="CONFIRM_EXIT_ALL" autocomplete="off" />
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="sq-all-cancel-btn">Cancel (Esc)</button>
+            <button class="btn btn-danger" id="sq-all-confirm-btn">Execute Square Off All</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Position Reverse Confirmation -->
+<div class="modal-backdrop hidden" id="reverse-position-modal">
+    <div class="modal-dialog">
+        <div class="modal-header">
+            <h3>🔄 Reverse Position Confirmation</h3>
+            <button class="btn btn-sm btn-icon" id="rev-close-btn">✕</button>
+        </div>
+        <div class="modal-body">
+            <p>
+                Flipping position will place an order with double the current quantity in the opposite direction.
+            </p>
+            <div class="reverse-details card">
+                <div><strong>Instrument:</strong> <span id="rev-symbol">—</span></div>
+                <div><strong>Current Exposure:</strong> <span class="font-numeric" id="rev-current-pos">—</span></div>
+                <div><strong>New Exposure Target:</strong> <span class="font-numeric" id="rev-new-pos">—</span></div>
+                <div><strong>Action:</strong> <span class="text-warning font-bold" id="rev-action-text">—</span></div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="rev-cancel-btn">Cancel (Esc)</button>
+            <button class="btn btn-primary" id="rev-confirm-btn">Proceed with Reversal</button>
+        </div>
+    </div>
+</div>

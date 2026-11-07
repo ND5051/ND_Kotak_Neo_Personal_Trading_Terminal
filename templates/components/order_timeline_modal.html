@@ -1,0 +1,66 @@
+<!-- Phase 11C: Order Timeline & FSM Transition Modal Component -->
+<div class="modal-backdrop hidden" id="order-timeline-modal">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-header">
+            <div>
+                <h3>Order Execution Timeline</h3>
+                <span class="timeline-order-sub" id="timeline-order-sub">
+                    <span class="font-numeric" id="timeline-client-order-id">cli_ord_...</span> &bull; 
+                    <span id="timeline-symbol-side">RELIANCE 100 Qty BUY</span>
+                </span>
+            </div>
+            <button class="btn btn-sm btn-icon" id="timeline-modal-close" title="Close timeline">✕</button>
+        </div>
+
+        <div class="modal-body">
+            <!-- Stepper Visual Pipeline -->
+            <div class="timeline-stepper card" id="timeline-stepper">
+                <div class="step-node completed" id="step-node-draft">
+                    <div class="step-circle">1</div>
+                    <div class="step-label">DRAFT</div>
+                    <div class="step-time font-numeric" id="step-time-draft">--:--:--</div>
+                </div>
+                <div class="step-line" id="step-line-1"></div>
+
+                <div class="step-node" id="step-node-validated">
+                    <div class="step-circle">2</div>
+                    <div class="step-label">VALIDATED</div>
+                    <div class="step-time font-numeric" id="step-time-validated">--:--:--</div>
+                </div>
+                <div class="step-line" id="step-line-2"></div>
+
+                <div class="step-node" id="step-node-submitted">
+                    <div class="step-circle">3</div>
+                    <div class="step-label">SUBMITTED</div>
+                    <div class="step-time font-numeric" id="step-time-submitted">--:--:--</div>
+                </div>
+                <div class="step-line" id="step-line-3"></div>
+
+                <div class="step-node" id="step-node-pending">
+                    <div class="step-circle">4</div>
+                    <div class="step-label">PENDING</div>
+                    <div class="step-time font-numeric" id="step-time-pending">--:--:--</div>
+                </div>
+                <div class="step-line" id="step-line-4"></div>
+
+                <div class="step-node" id="step-node-terminal">
+                    <div class="step-circle" id="step-circle-terminal">5</div>
+                    <div class="step-label" id="step-label-terminal">TRADED</div>
+                    <div class="step-time font-numeric" id="step-time-terminal">--:--:--</div>
+                </div>
+            </div>
+
+            <!-- Transition Audit Log Table -->
+            <div class="timeline-audit-section card">
+                <h4>Detailed Transition Audit Log</h4>
+                <div class="timeline-event-list" id="timeline-event-list">
+                    <!-- Events injected dynamically via order_book.js -->
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="timeline-modal-close-btn">Close</button>
+        </div>
+    </div>
+</div>

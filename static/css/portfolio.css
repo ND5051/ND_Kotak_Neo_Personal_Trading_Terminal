@@ -1,0 +1,670 @@
+/**
+ * Kotak Neo Personal Trading Terminal - Phase 11C
+ * Portfolio, Positions, Order Book, Trade Book, Funds Ledger & Timeline Stylesheet
+ */
+
+/* ==========================================================================
+   1. Portfolio & View Containers
+   ========================================================================== */
+.portfolio-container,
+.orders-container,
+.trades-container,
+.funds-expanded-container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) 0;
+    width: 100%;
+}
+
+.portfolio-header,
+.orders-header,
+.trades-header,
+.funds-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+}
+
+.portfolio-header-left,
+.orders-header-left,
+.trades-header-left,
+.funds-header-left {
+    display: flex;
+    align-items: baseline;
+    gap: var(--spacing-md);
+}
+
+.portfolio-header-left h3,
+.orders-header-left h3,
+.trades-header-left h3,
+.funds-header-left h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.portfolio-refresh-info {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.portfolio-header-actions,
+.orders-header-actions,
+.funds-header-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+/* Refresh spin animation */
+.refresh-icon.spinning {
+    display: inline-block;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    100% { transform: rotate(360deg); }
+}
+
+/* ==========================================================================
+   2. Live MTM & Summary Stats Strips
+   ========================================================================== */
+.portfolio-stats-bar {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: var(--spacing-md);
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+}
+
+.p-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.p-stat .lbl {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.p-stat .val {
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+/* ==========================================================================
+   3. Sub-tabs & Filter Controls
+   ========================================================================== */
+.positions-filter-bar,
+.orders-filter-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-xs) var(--spacing-md);
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+}
+
+.orders-subtabs-bar {
+    display: flex;
+    gap: 4px;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: var(--spacing-xs);
+}
+
+.orders-subtab {
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 6px 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.orders-subtab:hover {
+    color: var(--text-primary);
+}
+
+.orders-subtab.active {
+    color: var(--accent-primary);
+    border-bottom-color: var(--accent-primary);
+    background: rgba(27, 115, 232, 0.08);
+}
+
+.filter-tabs {
+    display: flex;
+    gap: 4px;
+}
+
+.filter-tab {
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.filter-tab:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.filter-tab.active {
+    background: var(--bg-secondary);
+    color: var(--accent-primary);
+    border-color: var(--border-color);
+}
+
+.filter-dropdowns {
+    display: flex;
+    gap: var(--spacing-sm);
+}
+
+.input-select {
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    padding: 4px 8px;
+    font-size: 0.8rem;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.orders-search-wrap input {
+    min-width: 200px;
+}
+
+/* ==========================================================================
+   4. Action Bars & Footers
+   ========================================================================== */
+.positions-action-bar,
+.orders-footer-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-xs) var(--spacing-md);
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+}
+
+.action-bar-info,
+.footer-mode-info {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.trades-summary-stats {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.stat-pill {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    background: var(--bg-secondary);
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
+}
+
+/* ==========================================================================
+   5. Action Buttons in Data Rows
+   ========================================================================== */
+.table-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.btn-xs {
+    padding: 2px 6px;
+    font-size: 0.7rem;
+    border-radius: 3px;
+    cursor: pointer;
+    border: none;
+    font-weight: 600;
+    transition: all 0.15s ease;
+}
+
+.btn-action-add {
+    background: rgba(0, 208, 156, 0.15);
+    color: var(--accent-green);
+    border: 1px solid rgba(0, 208, 156, 0.3);
+}
+
+.btn-action-add:hover {
+    background: var(--accent-green);
+    color: #000;
+}
+
+.btn-action-exit {
+    background: rgba(235, 87, 87, 0.15);
+    color: var(--accent-red);
+    border: 1px solid rgba(235, 87, 87, 0.3);
+}
+
+.btn-action-exit:hover {
+    background: var(--accent-red);
+    color: #fff;
+}
+
+.btn-action-reverse {
+    background: rgba(242, 153, 74, 0.15);
+    color: var(--accent-warning);
+    border: 1px solid rgba(242, 153, 74, 0.3);
+}
+
+.btn-action-reverse:hover {
+    background: var(--accent-warning);
+    color: #000;
+}
+
+.btn-action-modify {
+    background: rgba(27, 115, 232, 0.15);
+    color: var(--accent-primary);
+    border: 1px solid rgba(27, 115, 232, 0.3);
+}
+
+.btn-action-modify:hover {
+    background: var(--accent-primary);
+    color: #fff;
+}
+
+.btn-action-cancel {
+    background: rgba(139, 148, 158, 0.15);
+    color: var(--text-muted);
+    border: 1px solid rgba(139, 148, 158, 0.3);
+}
+
+.btn-action-cancel:hover {
+    background: var(--accent-red);
+    color: #fff;
+    border-color: var(--accent-red);
+}
+
+.btn-action-timeline {
+    background: rgba(139, 148, 158, 0.12);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+}
+
+.btn-action-timeline:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+/* ==========================================================================
+   6. FSM Status Badges
+   ========================================================================== */
+.badge-status-open,
+.badge-status-pending {
+    background: rgba(27, 115, 232, 0.15);
+    color: #58a6ff;
+    border: 1px solid rgba(27, 115, 232, 0.4);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 0.7rem;
+    font-weight: 700;
+}
+
+.badge-status-traded,
+.badge-status-filled {
+    background: rgba(0, 208, 156, 0.15);
+    color: var(--accent-green);
+    border: 1px solid rgba(0, 208, 156, 0.4);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 0.7rem;
+    font-weight: 700;
+}
+
+.badge-status-cancelled {
+    background: rgba(139, 148, 158, 0.15);
+    color: #8b949e;
+    border: 1px solid rgba(139, 148, 158, 0.4);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 0.7rem;
+    font-weight: 700;
+}
+
+.badge-status-rejected {
+    background: rgba(235, 87, 87, 0.15);
+    color: var(--accent-red);
+    border: 1px solid rgba(235, 87, 87, 0.4);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 0.7rem;
+    font-weight: 700;
+}
+
+.badge-status-reconciling {
+    background: rgba(242, 153, 74, 0.15);
+    color: var(--accent-warning);
+    border: 1px solid rgba(242, 153, 74, 0.4);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    animation: amberPulse 1.5s infinite;
+}
+
+@keyframes amberPulse {
+    0% { opacity: 0.6; }
+    50% { opacity: 1; }
+    100% { opacity: 0.6; }
+}
+
+/* ==========================================================================
+   7. Order Timeline Modal & Stepper Pipeline
+   ========================================================================== */
+.timeline-order-sub {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.timeline-stepper {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+    background: var(--bg-secondary);
+}
+
+.step-node {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    position: relative;
+    z-index: 2;
+    min-width: 70px;
+}
+
+.step-circle {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--bg-card);
+    border: 2px solid var(--border-color);
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.step-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+}
+
+.step-time {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+}
+
+.step-line {
+    flex: 1;
+    height: 2px;
+    background: var(--border-color);
+    margin: 0 -4px;
+    margin-bottom: 24px;
+    z-index: 1;
+}
+
+/* Stepper Node States */
+.step-node.completed .step-circle {
+    background: var(--accent-green);
+    border-color: var(--accent-green);
+    color: #000;
+}
+.step-node.completed .step-label {
+    color: var(--accent-green);
+}
+
+.step-node.active .step-circle {
+    background: var(--accent-primary);
+    border-color: var(--accent-primary);
+    color: #fff;
+    box-shadow: 0 0 10px rgba(27, 115, 232, 0.6);
+}
+.step-node.active .step-label {
+    color: var(--accent-primary);
+}
+
+.step-node.failed .step-circle {
+    background: var(--accent-red);
+    border-color: var(--accent-red);
+    color: #fff;
+}
+.step-node.failed .step-label {
+    color: var(--accent-red);
+}
+
+.step-line.completed {
+    background: var(--accent-green);
+}
+
+.timeline-audit-section {
+    padding: var(--spacing-md);
+}
+
+.timeline-audit-section h4 {
+    margin: 0 0 var(--spacing-sm) 0;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.timeline-event-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.timeline-event-item {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-sm);
+    padding: 6px 8px;
+    background: var(--bg-card);
+    border-left: 3px solid var(--accent-primary);
+    border-radius: 0 4px 4px 0;
+    font-size: 0.8rem;
+}
+
+.timeline-event-time {
+    color: var(--text-muted);
+    min-width: 80px;
+}
+
+.timeline-event-badge {
+    font-weight: 700;
+    padding: 1px 4px;
+    border-radius: 3px;
+}
+
+.timeline-event-desc {
+    flex: 1;
+    color: var(--text-primary);
+}
+
+/* ==========================================================================
+   8. Expanded Funds Ledger & Utilization Bar
+   ========================================================================== */
+.funds-ledger-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-md);
+}
+
+@media (max-width: 900px) {
+    .funds-ledger-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.ledger-card {
+    padding: var(--spacing-md);
+}
+
+.ledger-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-sm);
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.ledger-header h4 {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+}
+
+.ledger-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.ledger-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85rem;
+}
+
+.ledger-label {
+    color: var(--text-muted);
+}
+
+.ledger-value {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.ledger-row.total-row {
+    margin-top: 6px;
+    padding-top: 8px;
+    border-top: 1px dashed var(--border-color);
+    font-weight: 700;
+    font-size: 0.95rem;
+}
+
+.utilization-card {
+    padding: var(--spacing-md);
+}
+
+.utilization-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-sm);
+}
+
+.utilization-header h4 {
+    margin: 0;
+    font-size: 0.9rem;
+}
+
+.progress-track {
+    width: 100%;
+    height: 12px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    overflow: hidden;
+    position: relative;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background: var(--accent-green);
+    transition: width 0.3s ease, background 0.3s ease;
+}
+
+.progress-bar-fill.caution {
+    background: var(--accent-warning);
+}
+
+.progress-bar-fill.danger {
+    background: var(--accent-red);
+}
+
+.utilization-footer {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    margin-top: var(--spacing-xs);
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.status-indicator.safe {
+    background: var(--accent-green);
+}
+.status-indicator.caution {
+    background: var(--accent-warning);
+}
+.status-indicator.danger {
+    background: var(--accent-red);
+}
+
+.risk-snapshot-card {
+    padding: var(--spacing-md);
+}
+
+.risk-snapshot-card h4 {
+    margin: 0 0 var(--spacing-sm) 0;
+    font-size: 0.9rem;
+}
+
+.risk-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--spacing-md);
+}
+
+.risk-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.risk-item .lbl {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+}
+
+.risk-item .val {
+    font-size: 0.85rem;
+    font-weight: 600;
+}

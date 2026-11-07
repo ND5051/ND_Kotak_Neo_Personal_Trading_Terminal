@@ -214,7 +214,7 @@
         /* ==========================================================================
            2. Opening & Hydrating Ticket
            ========================================================================== */
-        openTicket(item, side = 'BUY') {
+        openTicket(item, side = 'BUY', options = {}) {
             this.item = item;
             const container = document.getElementById('order-ticket-container');
             const symbolEl = document.getElementById('ticket-symbol');
@@ -226,10 +226,15 @@
 
             const isFo = (item.exchange_segment || '').toLowerCase().includes('fo');
             this.lotSize = isFo ? (item.trading_symbol.includes('BANKNIFTY') ? 15 : 25) : 1;
-            this.quantity = this.lotSize;
+            this.quantity = options.quantity !== undefined ? options.quantity : this.lotSize;
 
             const q = item.quote || { ltp: 142.50 };
-            this.price = this.roundTick(q.ltp || 142.50);
+            const effectivePrice = options.price !== undefined ? options.price : (q.ltp || 142.50);
+            this.price = this.roundTick(effectivePrice);
+
+            if (options.product) {
+                this.product = options.product;
+            }
 
             if (symbolEl) symbolEl.textContent = item.trading_symbol;
             if (segEl) segEl.textContent = (item.exchange_segment || 'NSE').toUpperCase();
@@ -250,10 +255,18 @@
                 }
             }
 
+            // Sync product radio selection
+            const prodRadio = document.querySelector(`input[name="product_type"][value="${this.product}"]`);
+            if (prodRadio) prodRadio.checked = true;
+
             this.updateLotsCaption();
             this.setSide(side);
             this.updateOrderTypeInputs();
             this.syncExecutionMode();
+
+            if (options.notice && window.terminalShell) {
+                window.terminalShell.showToast(options.notice);
+            }
 
             if (container) container.classList.remove('hidden');
             this.runValidationAndMarginPreview();

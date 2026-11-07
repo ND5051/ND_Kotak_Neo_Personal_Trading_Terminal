@@ -1,0 +1,87 @@
+<!-- Phase 11C: Order Book Component -->
+<div class="orders-container" id="order-book-container">
+    <!-- Header with Search and Refresh -->
+    <div class="orders-header card">
+        <div class="orders-header-left">
+            <h3>Order Book (Active &amp; Filtered FSM Orders)</h3>
+            <span class="portfolio-refresh-info" id="orders-refresh-label">
+                Last Refreshed: <span class="font-numeric" id="orders-last-refreshed">--:--:--</span>
+            </span>
+        </div>
+        <div class="orders-header-actions">
+            <div class="orders-search-wrap">
+                <input type="text" class="input-text input-sm" id="order-search-input" placeholder="Search Symbol / Order ID..." />
+            </div>
+            <button class="btn btn-sm btn-secondary" id="refresh-orders-btn" title="Refresh order book">
+                <span class="refresh-icon">🔄</span> Refresh
+            </button>
+        </div>
+    </div>
+
+    <!-- Filter Tabs Strip -->
+    <div class="orders-filter-bar card">
+        <div class="filter-tabs" id="order-status-tabs">
+            <button class="filter-tab active" data-order-status="ALL" id="order-tab-all">
+                ALL (<span class="font-numeric" id="order-count-all">0</span>)
+            </button>
+            <button class="filter-tab" data-order-status="OPEN" id="order-tab-open">
+                OPEN (<span class="font-numeric" id="order-count-open">0</span>)
+            </button>
+            <button class="filter-tab" data-order-status="TRADED" id="order-tab-executed">
+                EXECUTED (<span class="font-numeric" id="order-count-executed">0</span>)
+            </button>
+            <button class="filter-tab" data-order-status="CANCELLED" id="order-tab-cancelled">
+                CANCELLED (<span class="font-numeric" id="order-count-cancelled">0</span>)
+            </button>
+            <button class="filter-tab" data-order-status="REJECTED" id="order-tab-rejected">
+                REJECTED (<span class="font-numeric" id="order-count-rejected">0</span>)
+            </button>
+            <button class="filter-tab" data-order-status="RECONCILING" id="order-tab-reconciling">
+                RECONCILING (<span class="font-numeric" id="order-count-reconciling">0</span>)
+            </button>
+        </div>
+    </div>
+
+    <!-- Orders Table Container -->
+    <div class="card table-container">
+        <div class="table-responsive">
+            <table class="data-table" id="orders-table">
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>Client Order ID</th>
+                        <th>Instrument</th>
+                        <th>Product</th>
+                        <th>Type</th>
+                        <th>Side</th>
+                        <th class="text-right">Qty / Filled</th>
+                        <th class="text-right">Price (₹)</th>
+                        <th>Status</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="orders-tbody">
+                    <!-- Populated dynamically via order_book.js -->
+                </tbody>
+            </table>
+        </div>
+        <div class="empty-state hidden" id="orders-empty-state">
+            <span class="empty-icon">📭</span>
+            <h4>No Orders Found</h4>
+            <p>No orders match the selected filter criteria.</p>
+        </div>
+    </div>
+
+    <!-- Emergency Batch Control & Execution Mode Bar -->
+    <div class="orders-footer-bar card">
+        <div class="footer-batch-actions">
+            <button class="btn btn-sm btn-danger" id="btn-cancel-all-orders" disabled title="Cancel all open orders in account">
+                ⚠️ Cancel All Open Orders (<span id="cancel-all-count">0</span>)
+            </button>
+        </div>
+        <div class="footer-mode-info">
+            <span class="lbl">Execution Mode:</span>
+            <span class="badge badge-paper font-numeric" id="orders-execution-mode-badge">{{ execution_mode }}</span>
+        </div>
+    </div>
+</div>

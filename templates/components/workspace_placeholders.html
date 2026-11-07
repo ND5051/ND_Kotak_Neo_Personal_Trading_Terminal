@@ -43,49 +43,32 @@
         </div>
     </section>
 
-    <!-- View: Orders (Phase 11C Target) -->
+    <!-- View: Orders (Phase 11C Component) -->
     <section class="workspace-view" id="view-orders" role="tabpanel" aria-labelledby="tab-orders">
-        <div class="card view-container">
-            <div class="view-header">
-                <h3>Order Book &amp; Trade History</h3>
-                <span class="badge badge-neutral">Phase 11C Target</span>
-            </div>
-            <div class="empty-state">
-                <span class="empty-icon">📑</span>
-                <h4>Order Management Engine Connected</h4>
-                <p>Phase 7 &amp; 8 Order Execution Foundation is online. Real-time order grid and trade log will mount here in Sub-Phase 11C.</p>
-            </div>
+        <div class="orders-subtabs-bar">
+            <button class="orders-subtab active" data-orders-subtab="orders" id="subtab-orders-book">
+                📋 Orders
+            </button>
+            <button class="orders-subtab" data-orders-subtab="trades" id="subtab-trades-book">
+                📜 Trades
+            </button>
+        </div>
+        <div class="orders-subview active" id="subview-orders-book">
+            {% include "components/order_book_view.html" %}
+        </div>
+        <div class="orders-subview hidden" id="subview-trades-book">
+            {% include "components/trade_book_view.html" %}
         </div>
     </section>
 
-    <!-- View: Holdings (Phase 11C Target) -->
+    <!-- View: Holdings (Phase 11C Component) -->
     <section class="workspace-view" id="view-holdings" role="tabpanel" aria-labelledby="tab-holdings">
-        <div class="card view-container">
-            <div class="view-header">
-                <h3>Long-Term Equity Holdings (CNC)</h3>
-                <span class="badge badge-neutral">Phase 11C Target</span>
-            </div>
-            <div class="empty-state">
-                <span class="empty-icon">💼</span>
-                <h4>Portfolio Demat Holdings Ready</h4>
-                <p>Phase 6 Portfolio Foundation connected. Total investments, current valuations, and CNC P&amp;L will render here in Sub-Phase 11C.</p>
-            </div>
-        </div>
+        {% include "components/holdings_view.html" %}
     </section>
 
-    <!-- View: Positions (Phase 11C Target) -->
+    <!-- View: Positions (Phase 11C Component) -->
     <section class="workspace-view" id="view-positions" role="tabpanel" aria-labelledby="tab-positions">
-        <div class="card view-container">
-            <div class="view-header">
-                <h3>Derivative &amp; Intraday Positions (MIS / NRML)</h3>
-                <span class="badge badge-neutral">Phase 11C Target</span>
-            </div>
-            <div class="empty-state">
-                <span class="empty-icon">🎯</span>
-                <h4>Live MTM Tracking Engine Active</h4>
-                <p>Phase 6 positions pipeline active. Real-time tick MTM calculations and emergency square-off controls will mount here in Sub-Phase 11C.</p>
-            </div>
-        </div>
+        {% include "components/positions_view.html" %}
     </section>
 
     <!-- View: Option Chain (Phase 11D Target) -->
@@ -118,11 +101,9 @@
         </div>
     </section>
 
-    <!-- View: Funds Full Tab -->
+    <!-- View: Funds Full Tab (Phase 11C Expanded) -->
     <section class="workspace-view" id="view-funds" role="tabpanel" aria-labelledby="tab-funds">
-        <div class="view-container">
-            {% include "components/funds_widget.html" %}
-        </div>
+        {% include "components/funds_expanded_view.html" %}
     </section>
 
     <!-- View: Health Full Tab -->

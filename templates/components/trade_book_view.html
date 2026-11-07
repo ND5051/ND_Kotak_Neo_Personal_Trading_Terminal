@@ -1,0 +1,52 @@
+<!-- Phase 11C: Trade Book Component -->
+<div class="trades-container" id="trade-book-container">
+    <!-- Header with Turnover Summary and Refresh -->
+    <div class="trades-header card">
+        <div class="trades-header-left">
+            <h3>Trade Book (Completed Fills)</h3>
+            <span class="portfolio-refresh-info" id="trades-refresh-label">
+                Last Refreshed: <span class="font-numeric" id="trades-last-refreshed">--:--:--</span>
+            </span>
+        </div>
+        <div class="trades-summary-stats">
+            <span class="stat-pill">
+                Trades: <strong class="font-numeric" id="trade-total-count">0</strong>
+            </span>
+            <span class="stat-pill">
+                Turnover: <strong class="font-numeric" id="trade-total-turnover">₹0.00</strong>
+            </span>
+            <button class="btn btn-sm btn-secondary" id="refresh-trades-btn" title="Refresh trades">
+                <span class="refresh-icon">🔄</span> Refresh
+            </button>
+        </div>
+    </div>
+
+    <!-- Trades Table Container -->
+    <div class="card table-container">
+        <div class="table-responsive">
+            <table class="data-table" id="trades-table">
+                <thead>
+                    <tr>
+                        <th>Trade Time (IST)</th>
+                        <th>Trade ID</th>
+                        <th>Client Order ID</th>
+                        <th>Symbol</th>
+                        <th>Segment</th>
+                        <th>Side</th>
+                        <th class="text-right">Qty</th>
+                        <th class="text-right">Fill Price (₹)</th>
+                        <th class="text-right">Turnover (₹)</th>
+                    </tr>
+                </thead>
+                <tbody id="trades-tbody">
+                    <!-- Populated dynamically via order_book.js -->
+                </tbody>
+            </table>
+        </div>
+        <div class="empty-state hidden" id="trades-empty-state">
+            <span class="empty-icon">📜</span>
+            <h4>No Completed Trades</h4>
+            <p>Executed fills for the current trading day will appear here.</p>
+        </div>
+    </div>
+</div>

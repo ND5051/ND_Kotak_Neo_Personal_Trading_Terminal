@@ -1,0 +1,67 @@
+<!-- Phase 11C: Demat Holdings View Component -->
+<div class="portfolio-container" id="holdings-container">
+    <!-- Holdings Summary Header & Refresh Controls -->
+    <div class="portfolio-header card">
+        <div class="portfolio-header-left">
+            <h3>Holdings (CNC Demat Portfolio)</h3>
+            <span class="portfolio-refresh-info" id="holdings-refresh-label">
+                Last Refreshed: <span class="font-numeric" id="holdings-last-refreshed">--:--:--</span>
+            </span>
+        </div>
+        <div class="portfolio-header-actions">
+            <button class="btn btn-sm btn-secondary" id="refresh-holdings-btn" title="Force refresh from broker">
+                <span class="refresh-icon">🔄</span> Refresh
+            </button>
+        </div>
+    </div>
+
+    <!-- Summary Metrics Strip -->
+    <div class="portfolio-stats-bar card">
+        <div class="p-stat">
+            <span class="lbl">Total Investment</span>
+            <span class="val font-numeric" id="holdings-total-invested">₹0.00</span>
+        </div>
+        <div class="p-stat">
+            <span class="lbl">Current Valuation</span>
+            <span class="val font-numeric" id="holdings-current-val">₹0.00</span>
+        </div>
+        <div class="p-stat">
+            <span class="lbl">Total P&amp;L</span>
+            <span class="val font-numeric text-success" id="holdings-total-pnl">+₹0.00 (+0.00%)</span>
+        </div>
+        <div class="p-stat">
+            <span class="lbl">Day P&amp;L</span>
+            <span class="val font-numeric text-success" id="holdings-day-pnl">+₹0.00 (+0.00%)</span>
+        </div>
+    </div>
+
+    <!-- Holdings Table Container -->
+    <div class="card table-container">
+        <div class="table-responsive">
+            <table class="data-table" id="holdings-table">
+                <thead>
+                    <tr>
+                        <th>Instrument</th>
+                        <th class="text-right">Qty (Avail)</th>
+                        <th class="text-right">T1 (Unsettled)</th>
+                        <th class="text-right">Buy Avg (₹)</th>
+                        <th class="text-right">LTP (₹)</th>
+                        <th class="text-right">Current Value (₹)</th>
+                        <th class="text-right">Total P&amp;L (₹)</th>
+                        <th class="text-right">Day P&amp;L (₹)</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="holdings-table-body">
+                    <!-- Populated dynamically by portfolio.js -->
+                </tbody>
+            </table>
+        </div>
+
+        <div class="empty-state hidden" id="holdings-empty-state">
+            <span class="empty-icon">💼</span>
+            <h4>No Holdings in Demat Account</h4>
+            <p>Delivery shares purchased under CNC will appear here.</p>
+        </div>
+    </div>
+</div>

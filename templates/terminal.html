@@ -8,6 +8,8 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/terminal.css') }}">
     <!-- Phase 11B: Market Watch & Order Ticket Stylesheet -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/market_watch.css') }}">
+    <!-- Phase 11C: Portfolio & Order Book Stylesheet -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/portfolio.css') }}">
     <!-- High-Contrast Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -37,6 +39,9 @@
     <!-- Phase 11B: Professional Order Ticket -->
     {% include "components/order_ticket.html" %}
 
+    <!-- Phase 11C: Order Timeline & FSM Transition Modal -->
+    {% include "components/order_timeline_modal.html" %}
+
     <!-- Global Terminal Toast Container -->
     <div class="toast-container" id="toast-container"></div>
 
@@ -56,7 +61,7 @@
         </div>
         <div class="footer-right">
             <span class="footer-quote font-italic">"Correctness &gt; Features | Reliability &gt; Speed"</span>
-            <span class="footer-version">Phase 11B v1.0.0</span>
+            <span class="footer-version">Phase 11C v1.0.0</span>
         </div>
     </footer>
 
@@ -65,6 +70,8 @@
     <script src="{{ url_for('static', filename='js/terminal_shell.js') }}"></script>
     <script src="{{ url_for('static', filename='js/market_watch.js') }}"></script>
     <script src="{{ url_for('static', filename='js/order_ticket.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/portfolio.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/order_book.js') }}"></script>
 </body>
 </html>
 

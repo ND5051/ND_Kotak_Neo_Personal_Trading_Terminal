@@ -1,0 +1,128 @@
+<!-- Phase 11C: Expanded Funds & Collateral Account Ledger Component -->
+<div class="funds-expanded-container" id="funds-expanded-container">
+    <!-- Header with Action Controls -->
+    <div class="funds-header card">
+        <div class="funds-header-left">
+            <h3>Funds &amp; Collateral Account Ledger</h3>
+            <span class="portfolio-refresh-info" id="funds-refresh-label">
+                Last Refreshed: <span class="font-numeric" id="funds-last-refreshed">--:--:--</span>
+            </span>
+        </div>
+        <div class="funds-header-actions">
+            <button class="btn btn-sm btn-secondary" id="refresh-funds-expanded-btn" title="Refresh margin balances">
+                <span class="refresh-icon">🔄</span> Refresh Balances
+            </button>
+            <button class="btn btn-sm btn-primary" id="btn-add-funds" title="Add Trading Funds">
+                💳 Add Funds
+            </button>
+            <button class="btn btn-sm btn-secondary" id="btn-withdraw-funds" title="Withdraw Funds">
+                🏧 Withdraw
+            </button>
+        </div>
+    </div>
+
+    <!-- 2-Column Ledger Grids -->
+    <div class="funds-ledger-grid">
+        <!-- 1. Trading Capital Breakdown -->
+        <div class="card ledger-card">
+            <div class="ledger-header">
+                <h4>1. Trading Capital Breakdown</h4>
+                <span class="badge badge-success">Available</span>
+            </div>
+            <div class="ledger-rows">
+                <div class="ledger-row">
+                    <span class="ledger-label">Available Realized Cash</span>
+                    <span class="ledger-value font-numeric" id="funds-avail-cash">₹0.00</span>
+                </div>
+                <div class="ledger-row">
+                    <span class="ledger-label">Collateral from Pledged Shares</span>
+                    <span class="ledger-value font-numeric" id="funds-collateral">₹0.00</span>
+                </div>
+                <div class="ledger-row">
+                    <span class="ledger-label">Unrealized Intraday MTM Credit</span>
+                    <span class="ledger-value font-numeric text-success" id="funds-mtm-credit">+₹0.00</span>
+                </div>
+                <div class="ledger-row total-row">
+                    <span class="ledger-label">Total Margin Available</span>
+                    <span class="ledger-value font-numeric" id="funds-total-avail">₹0.00</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Margin Utilization Breakdown -->
+        <div class="card ledger-card">
+            <div class="ledger-header">
+                <h4>2. Margin Utilization Breakdown</h4>
+                <span class="badge badge-warning">Blocked</span>
+            </div>
+            <div class="ledger-rows">
+                <div class="ledger-row">
+                    <span class="ledger-label">Span Margin Used (F&amp;O)</span>
+                    <span class="ledger-value font-numeric" id="funds-span-margin">₹0.00</span>
+                </div>
+                <div class="ledger-row">
+                    <span class="ledger-label">Exposure Margin Used</span>
+                    <span class="ledger-value font-numeric" id="funds-exposure-margin">₹0.00</span>
+                </div>
+                <div class="ledger-row">
+                    <span class="ledger-label">Option Premium Blocked</span>
+                    <span class="ledger-value font-numeric" id="funds-premium-blocked">₹0.00</span>
+                </div>
+                <div class="ledger-row total-row">
+                    <span class="ledger-label">Total Margin Used</span>
+                    <span class="ledger-value font-numeric" id="funds-total-used">₹0.00</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Margin Utilization Progress Bar -->
+    <div class="card utilization-card">
+        <div class="utilization-header">
+            <h4>3. Margin Utilization</h4>
+            <span class="utilization-metric font-numeric">
+                <span id="funds-utilization-pct">0.0%</span> Utilized (<span id="funds-used-summary">₹0.00</span> / <span id="funds-avail-summary">₹0.00</span>)
+            </span>
+        </div>
+        <div class="progress-track">
+            <div class="progress-bar-fill" id="funds-utilization-bar" style="width: 0%;"></div>
+        </div>
+        <div class="utilization-footer">
+            <span class="status-indicator safe" id="funds-threshold-indicator"></span>
+            <span id="funds-threshold-text">Status: SAFE CAPITAL BUFFER (Thresholds: 70% Caution, 85% Hard Limit)</span>
+        </div>
+    </div>
+
+    <!-- 4. Risk Snapshot Metrics -->
+    <div class="card risk-snapshot-card">
+        <div class="risk-header">
+            <h4>4. Risk &amp; Regulatory Snapshot</h4>
+        </div>
+        <div class="risk-grid">
+            <div class="risk-item">
+                <span class="lbl">Peak Margin Today:</span>
+                <span class="val font-numeric" id="funds-peak-margin">₹0.00</span>
+            </div>
+            <div class="risk-item">
+                <span class="lbl">Ad-hoc Margin:</span>
+                <span class="val font-numeric" id="funds-adhoc-margin">₹0.00</span>
+            </div>
+            <div class="risk-item">
+                <span class="lbl">Broker Entity:</span>
+                <span class="val">Kotak Securities Ltd</span>
+            </div>
+            <div class="risk-item">
+                <span class="lbl">Segments Covered:</span>
+                <span class="val font-numeric">NSE_CM, BSE_CM, NSE_FO</span>
+            </div>
+            <div class="risk-item">
+                <span class="lbl">Balance Timestamp:</span>
+                <span class="val font-numeric" id="funds-balance-timestamp">--:--:--</span>
+            </div>
+            <div class="risk-item">
+                <span class="lbl">Upstream Status:</span>
+                <span class="badge badge-success" id="funds-upstream-status">RECONCILED</span>
+            </div>
+        </div>
+    </div>
+</div>
