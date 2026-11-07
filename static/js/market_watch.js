@@ -746,3 +746,4 @@
     // Export singleton instance
     window.marketWatchController = new MarketWatchController();
 })(window, document);
+
