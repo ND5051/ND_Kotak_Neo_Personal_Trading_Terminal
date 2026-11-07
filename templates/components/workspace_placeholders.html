@@ -3,25 +3,7 @@
     <section class="workspace-view active" id="view-market-watch" role="tabpanel" aria-labelledby="tab-market-watch">
         <div class="split-pane">
             <aside class="sidebar-pane" id="sidebar-market-watch">
-                <div class="sidebar-header">
-                    <div class="search-box">
-                        <span class="search-icon">🔍</span>
-                        <input type="text" id="global-scrip-search" placeholder="Search Scrip / Symbol (Ctrl+K or /)" class="input-search">
-                        <kbd class="kbd-hint">/</kbd>
-                    </div>
-                </div>
-                <div class="scrip-list-placeholder">
-                    <div class="empty-state">
-                        <span class="empty-icon">📊</span>
-                        <h4>Market Watch Ready</h4>
-                        <p>Watchlist containers initialized. Phase 11B will attach interactive scrips and live 5-level depth.</p>
-                        <div class="scrip-skeleton-list">
-                            <div class="skeleton-row"><span>NIFTY 50 INDEX</span><span class="font-numeric">24,520.50</span></div>
-                            <div class="skeleton-row"><span>BANKNIFTY INDEX</span><span class="font-numeric">52,180.20</span></div>
-                            <div class="skeleton-row"><span>RELIANCE EQ</span><span class="font-numeric">2,945.00</span></div>
-                        </div>
-                    </div>
-                </div>
+                {% include "components/market_watch_grid.html" %}
             </aside>
 
             <main class="primary-content-pane">

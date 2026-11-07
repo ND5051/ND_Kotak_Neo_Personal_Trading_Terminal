@@ -6,6 +6,8 @@
     <title>Kotak Neo Personal Trading Terminal</title>
     <!-- Dark Theme Master Stylesheet -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/terminal.css') }}">
+    <!-- Phase 11B: Market Watch & Order Ticket Stylesheet -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/market_watch.css') }}">
     <!-- High-Contrast Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -26,6 +28,15 @@
     <!-- Execution Mode Configuration Modal -->
     {% include "components/execution_mode_modal.html" %}
 
+    <!-- Phase 11B: Scrip Search Command Palette Modal -->
+    {% include "components/scrip_search_modal.html" %}
+
+    <!-- Phase 11B: 5-Level Market Depth DOM Popover -->
+    {% include "components/market_depth_modal.html" %}
+
+    <!-- Phase 11B: Professional Order Ticket -->
+    {% include "components/order_ticket.html" %}
+
     <!-- Global Terminal Toast Container -->
     <div class="toast-container" id="toast-container"></div>
 
@@ -45,13 +56,15 @@
         </div>
         <div class="footer-right">
             <span class="footer-quote font-italic">"Correctness &gt; Features | Reliability &gt; Speed"</span>
-            <span class="footer-version">Phase 11A Shell v1.0.0</span>
+            <span class="footer-version">Phase 11B v1.0.0</span>
         </div>
     </footer>
 
     <!-- Modular Front-End Scripts -->
     <script src="{{ url_for('static', filename='js/workspace_persistence.js') }}"></script>
     <script src="{{ url_for('static', filename='js/terminal_shell.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/market_watch.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/order_ticket.js') }}"></script>
 </body>
 </html>
 

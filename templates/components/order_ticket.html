@@ -1,0 +1,171 @@
+<!-- Phase 11B: Professional Order Ticket (Docked & Floating Modal) -->
+<div class="order-ticket-container docked hidden" id="order-ticket-container" role="dialog" aria-modal="true">
+    <!-- Header with Buy/Sell Theming -->
+    <div class="ticket-header side-buy" id="ticket-header">
+        <div class="ticket-title-wrap">
+            <span class="ticket-side-badge" id="ticket-side-label">BUY</span>
+            <span class="ticket-symbol" id="ticket-symbol">NIFTY 28NOV 24500 CE</span>
+            <span class="ticket-segment-tag" id="ticket-segment">NSE_FO</span>
+            <span class="ticket-ltp font-numeric" id="ticket-ltp">₹142.50</span>
+        </div>
+        <div class="ticket-header-controls">
+            <button class="ticket-ctrl-btn" id="ticket-dock-toggle" title="Toggle Docked / Floating Window">⤢</button>
+            <button class="ticket-ctrl-btn" id="ticket-close-btn" title="Close Ticket (Esc)">✕</button>
+        </div>
+    </div>
+
+    <!-- Ticket Form Body -->
+    <form class="ticket-body" id="order-ticket-form" onsubmit="return false;">
+        <!-- Side Selector -->
+        <div class="form-row side-selector-row">
+            <label class="radio-label buy-radio">
+                <input type="radio" name="order_side" value="BUY" checked id="side-buy-radio">
+                <span class="radio-custom"></span>
+                <span class="radio-text">BUY</span>
+            </label>
+            <label class="radio-label sell-radio">
+                <input type="radio" name="order_side" value="SELL" id="side-sell-radio">
+                <span class="radio-custom"></span>
+                <span class="radio-text">SELL</span>
+            </label>
+        </div>
+
+        <!-- Product Selector -->
+        <div class="form-row product-selector-row">
+            <span class="row-label">Product:</span>
+            <div class="pill-group">
+                <label class="pill-radio">
+                    <input type="radio" name="product_type" value="MIS" checked>
+                    <span>MIS (Intraday)</span>
+                </label>
+                <label class="pill-radio">
+                    <input type="radio" name="product_type" value="NRML">
+                    <span>NRML (F&amp;O)</span>
+                </label>
+                <label class="pill-radio" id="product-cnc-wrap">
+                    <input type="radio" name="product_type" value="CNC">
+                    <span>CNC (Delivery)</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- Order Type Selector -->
+        <div class="form-row order-type-row">
+            <span class="row-label">Order Type:</span>
+            <div class="pill-group">
+                <label class="pill-radio">
+                    <input type="radio" name="order_type" value="LIMIT" checked>
+                    <span>LIMIT</span>
+                </label>
+                <label class="pill-radio">
+                    <input type="radio" name="order_type" value="MARKET">
+                    <span>MARKET</span>
+                </label>
+                <label class="pill-radio">
+                    <input type="radio" name="order_type" value="SL">
+                    <span>SL</span>
+                </label>
+                <label class="pill-radio">
+                    <input type="radio" name="order_type" value="SL-M">
+                    <span>SL-M</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- Numeric Steppers Grid -->
+        <div class="form-grid-3">
+            <!-- Quantity Field with Lot Multiplier -->
+            <div class="input-block">
+                <div class="block-header">
+                    <label for="ticket-qty-input">Quantity</label>
+                    <span class="block-caption" id="ticket-lots-caption">1 Lot (x25)</span>
+                </div>
+                <div class="stepper-input">
+                    <button type="button" class="step-btn" id="qty-step-down">-</button>
+                    <input type="number" id="ticket-qty-input" class="input-numeric font-numeric" value="25" min="1" step="25">
+                    <button type="button" class="step-btn" id="qty-step-up">+</button>
+                </div>
+                <span class="field-hint" id="ticket-freeze-hint">Freeze limit: 1,800</span>
+            </div>
+
+            <!-- Price Field with 0.05 Tick Stepper -->
+            <div class="input-block" id="block-price">
+                <div class="block-header">
+                    <label for="ticket-price-input">Price (₹)</label>
+                    <span class="block-caption" id="ticket-price-caption">Tick: 0.05</span>
+                </div>
+                <div class="stepper-input">
+                    <button type="button" class="step-btn" id="price-step-down">-0.05</button>
+                    <input type="number" id="ticket-price-input" class="input-numeric font-numeric" value="142.50" step="0.05" min="0.05">
+                    <button type="button" class="step-btn" id="price-step-up">+0.05</button>
+                </div>
+                <span class="field-hint font-numeric" id="ticket-ask-bid-hint">Ask: 142.55 | Bid: 142.45</span>
+            </div>
+
+            <!-- Trigger Price (Conditional) -->
+            <div class="input-block disabled" id="block-trigger-price">
+                <div class="block-header">
+                    <label for="ticket-trigger-input">Trigger Price (₹)</label>
+                    <span class="block-caption">For SL / SL-M</span>
+                </div>
+                <div class="stepper-input">
+                    <button type="button" class="step-btn" id="trigger-step-down" disabled>-0.05</button>
+                    <input type="number" id="ticket-trigger-input" class="input-numeric font-numeric" value="0.00" step="0.05" disabled>
+                    <button type="button" class="step-btn" id="trigger-step-up" disabled>+0.05</button>
+                </div>
+                <span class="field-hint">Required for Stop-Loss</span>
+            </div>
+        </div>
+
+        <!-- Optional Parameters Row -->
+        <div class="form-row-compact">
+            <div class="input-block-inline">
+                <label for="ticket-disclosed-qty">Disclosed Qty:</label>
+                <input type="number" id="ticket-disclosed-qty" class="input-inline font-numeric" value="0" min="0">
+                <span class="caption-muted">(0 = 100%)</span>
+            </div>
+            <div class="market-protection-slider" id="market-protection-wrap">
+                <label for="market-protection-range">Market Protection: <strong id="mp-value-label">2%</strong></label>
+                <input type="range" id="market-protection-range" min="0" max="5" step="0.5" value="2">
+            </div>
+        </div>
+
+        <!-- Real-Time Order Validation Feedback -->
+        <div class="validation-feedback-box hidden" id="ticket-validation-box">
+            <span class="val-icon">⚠️</span>
+            <span class="val-msg" id="ticket-val-msg">Validation Error</span>
+        </div>
+
+        <!-- Margin & Execution Preview Strip -->
+        <div class="ticket-margin-strip" id="ticket-margin-strip">
+            <div class="margin-metric">
+                <span class="lbl">Required Margin:</span>
+                <strong class="font-numeric val" id="ticket-req-margin">₹3,562.50</strong>
+            </div>
+            <div class="margin-metric">
+                <span class="lbl">Available Cash:</span>
+                <strong class="font-numeric val" id="ticket-avail-cash">₹2,45,000.00</strong>
+            </div>
+            <div class="margin-status-badge status-sufficient" id="ticket-margin-status">
+                SUFFICIENT MARGIN
+            </div>
+        </div>
+
+        <!-- ExecutionMode Visual Warning Banner -->
+        <div class="ticket-mode-banner mode-paper" id="ticket-mode-banner">
+            <span class="mode-dot"></span>
+            <span class="mode-banner-text" id="ticket-mode-banner-text">
+                SIMULATION MODE: Orders will be processed by Paper Simulator.
+            </span>
+        </div>
+
+        <!-- Action Controls -->
+        <div class="ticket-actions">
+            <button type="button" class="btn btn-secondary" id="ticket-cancel-btn">Cancel (Esc)</button>
+            <button type="submit" class="btn btn-submit-order side-buy-btn" id="ticket-submit-btn">
+                <span class="submit-spinner hidden" id="ticket-submit-spinner">⏳</span>
+                <span id="ticket-submit-text">BUY ORDER (Enter)</span>
+            </button>
+        </div>
+    </form>
+</div>

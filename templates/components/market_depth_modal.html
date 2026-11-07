@@ -1,0 +1,114 @@
+<!-- Phase 11B: 5-Level Market Depth DOM Popover Component -->
+<div class="modal-backdrop hidden" id="market-depth-modal" role="dialog" aria-modal="true">
+    <div class="depth-modal-card">
+        <div class="depth-header">
+            <div class="depth-title-group">
+                <span class="depth-symbol" id="depth-symbol">NIFTY 28NOV 24500 CE</span>
+                <span class="depth-segment-badge" id="depth-segment">NSE_FO</span>
+                <span class="depth-ltp font-numeric" id="depth-ltp">142.50</span>
+                <span class="depth-chg font-numeric text-success" id="depth-chg">+12.40 (+9.53%)</span>
+            </div>
+            <button class="btn btn-xs btn-ghost close-modal-btn" id="close-depth-btn" title="Close (Esc)">✕</button>
+        </div>
+
+        <div class="depth-body">
+            <!-- 5-Level Bid/Ask Table -->
+            <div class="depth-ladder-container">
+                <table class="depth-table">
+                    <thead>
+                        <tr>
+                            <th class="th-bid" colspan="3">BID (BUYERS)</th>
+                            <th class="th-ask" colspan="3">ASK (SELLERS)</th>
+                        </tr>
+                        <tr class="sub-headers">
+                            <th>Orders</th>
+                            <th>Qty</th>
+                            <th>Price</th>
+                            <th>Price</th>
+                            <th>Qty</th>
+                            <th>Orders</th>
+                        </tr>
+                    </thead>
+                    <tbody id="depth-table-body">
+                        <!-- Populated dynamically by market_watch.js -->
+                        <tr>
+                            <td class="font-numeric">12</td>
+                            <td class="font-numeric">600</td>
+                            <td class="font-numeric depth-bid-price">142.45</td>
+                            <td class="font-numeric depth-ask-price">142.55</td>
+                            <td class="font-numeric">750</td>
+                            <td class="font-numeric">15</td>
+                        </tr>
+                        <tr>
+                            <td class="font-numeric">24</td>
+                            <td class="font-numeric">1,250</td>
+                            <td class="font-numeric depth-bid-price">142.40</td>
+                            <td class="font-numeric depth-ask-price">142.60</td>
+                            <td class="font-numeric">1,100</td>
+                            <td class="font-numeric">21</td>
+                        </tr>
+                        <tr>
+                            <td class="font-numeric">8</td>
+                            <td class="font-numeric">450</td>
+                            <td class="font-numeric depth-bid-price">142.35</td>
+                            <td class="font-numeric depth-ask-price">142.65</td>
+                            <td class="font-numeric">500</td>
+                            <td class="font-numeric">9</td>
+                        </tr>
+                        <tr>
+                            <td class="font-numeric">15</td>
+                            <td class="font-numeric">800</td>
+                            <td class="font-numeric depth-bid-price">142.30</td>
+                            <td class="font-numeric depth-ask-price">142.70</td>
+                            <td class="font-numeric">650</td>
+                            <td class="font-numeric">11</td>
+                        </tr>
+                        <tr>
+                            <td class="font-numeric">31</td>
+                            <td class="font-numeric">1,800</td>
+                            <td class="font-numeric depth-bid-price">142.25</td>
+                            <td class="font-numeric depth-ask-price">142.75</td>
+                            <td class="font-numeric">1,450</td>
+                            <td class="font-numeric">28</td>
+                        </tr>
+                    </tbody>
+                    <tfoot>
+                        <tr class="depth-total-row">
+                            <td class="font-numeric" colspan="2">Total: <strong id="depth-total-buy-qty">4,900</strong></td>
+                            <td class="font-numeric text-success" id="depth-buy-ratio">47.3%</td>
+                            <td class="font-numeric text-danger" id="depth-sell-ratio">52.7%</td>
+                            <td class="font-numeric" colspan="2">Total: <strong id="depth-total-sell-qty">5,450</strong></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <!-- Pressure Bar -->
+            <div class="depth-pressure-track">
+                <div class="depth-pressure-fill buy" id="depth-pressure-buy" style="width: 47.3%;"></div>
+                <div class="depth-pressure-fill sell" id="depth-pressure-sell" style="width: 52.7%;"></div>
+            </div>
+
+            <!-- OHLC and Circuit Statistics -->
+            <div class="depth-stats-grid">
+                <div class="stat-pill"><span class="lbl">Open:</span> <strong class="font-numeric" id="depth-open">125.00</strong></div>
+                <div class="stat-pill"><span class="lbl">High:</span> <strong class="font-numeric" id="depth-high">165.20</strong></div>
+                <div class="stat-pill"><span class="lbl">Low:</span> <strong class="font-numeric" id="depth-low">110.00</strong></div>
+                <div class="stat-pill"><span class="lbl">Close:</span> <strong class="font-numeric" id="depth-close">130.10</strong></div>
+                <div class="stat-pill"><span class="lbl">ATP:</span> <strong class="font-numeric" id="depth-atp">141.20</strong></div>
+                <div class="stat-pill"><span class="lbl">Volume:</span> <strong class="font-numeric" id="depth-vol">2.4M</strong></div>
+                <div class="stat-pill"><span class="lbl">Lower Circuit:</span> <strong class="font-numeric text-danger" id="depth-lc">25.50</strong></div>
+                <div class="stat-pill"><span class="lbl">Upper Circuit:</span> <strong class="font-numeric text-success" id="depth-uc">285.00</strong></div>
+            </div>
+        </div>
+
+        <div class="depth-footer">
+            <button class="btn btn-primary" id="depth-buy-btn">
+                <span>BUY (B)</span>
+            </button>
+            <button class="btn btn-danger-solid" id="depth-sell-btn">
+                <span>SELL (S)</span>
+            </button>
+        </div>
+    </div>
+</div>

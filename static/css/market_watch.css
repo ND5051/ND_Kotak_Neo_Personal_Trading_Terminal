@@ -1,0 +1,1051 @@
+/* ==========================================================================
+   Phase 11B: Market Watch & Order Ticket Stylesheet
+   Zerodha Kite-Inspired Ergonomics, Dark Theme & High-Density Display
+   ========================================================================== */
+
+/* ==========================================================================
+   1. Market Watch Left Sidebar & Tabs
+   ========================================================================== */
+.market-watch-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background-color: var(--bg-surface);
+    user-select: none;
+    overflow: hidden;
+}
+
+.mw-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border-subtle);
+    gap: 8px;
+    background-color: var(--bg-surface-elevated);
+}
+
+.mw-search-trigger {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background-color: var(--bg-app);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    padding: 6px 10px;
+    cursor: pointer;
+    transition: border-color var(--transition-fast);
+}
+
+.mw-search-trigger:hover {
+    border-color: var(--accent-blue);
+}
+
+.mw-search-icon {
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.mw-search-placeholder {
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.mw-search-kbd {
+    font-size: 10px;
+    color: var(--text-muted);
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-family: var(--font-numeric);
+}
+
+.mw-quota-badge {
+    font-family: var(--font-numeric);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    background-color: var(--bg-surface-active);
+    padding: 4px 8px;
+    border-radius: var(--radius-sm);
+    white-space: nowrap;
+}
+
+/* 5-Tab Watchlist Bar */
+.mw-tabs-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: var(--bg-surface);
+    border-bottom: 1px solid var(--border-subtle);
+    padding: 0 4px;
+}
+
+.mw-tabs-scroll {
+    display: flex;
+    align-items: center;
+    overflow-x: auto;
+    scrollbar-width: none;
+    gap: 2px;
+}
+
+.mw-tabs-scroll::-webkit-scrollbar {
+    display: none;
+}
+
+.mw-tab {
+    padding: 8px 10px;
+    font-family: var(--font-sans);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    color: var(--text-secondary);
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    transition: color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.mw-tab:hover {
+    color: var(--text-primary);
+}
+
+.mw-tab.active {
+    color: var(--accent-blue);
+    border-bottom-color: var(--accent-blue);
+    font-weight: 600;
+}
+
+.mw-tab-star {
+    font-size: 10px;
+    color: #f2c94c;
+}
+
+.mw-tab-edit-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 11px;
+    padding: 4px 6px;
+    border-radius: var(--radius-sm);
+}
+
+.mw-tab-edit-btn:hover {
+    background-color: var(--bg-surface-hover);
+    color: var(--text-primary);
+}
+
+/* ==========================================================================
+   2. Scrip Row Architecture & Drag-and-Drop
+   ========================================================================== */
+.mw-scrip-list {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.scrip-row {
+    display: flex;
+    flex-direction: column;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border-subtle);
+    background-color: var(--bg-surface);
+    cursor: pointer;
+    position: relative;
+    transition: background-color var(--transition-fast);
+}
+
+.scrip-row:hover {
+    background-color: var(--bg-surface-hover);
+}
+
+.scrip-row.focused {
+    background-color: var(--bg-surface-active);
+    border-left: 2px solid var(--accent-blue);
+}
+
+.scrip-row.dragging {
+    opacity: 0.4;
+    background-color: var(--bg-surface-active);
+}
+
+.scrip-row.drag-over {
+    border-top: 2px solid var(--accent-blue);
+}
+
+.scrip-primary-line {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 2px;
+}
+
+.scrip-symbol-wrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.scrip-symbol {
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--text-primary);
+}
+
+.scrip-seg-tag {
+    font-size: 9.5px;
+    font-weight: 700;
+    padding: 1px 4px;
+    border-radius: 3px;
+    background-color: var(--bg-surface-elevated);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-subtle);
+}
+
+.scrip-ltp-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.scrip-ltp {
+    font-family: var(--font-numeric);
+    font-size: 13.5px;
+    font-weight: 600;
+}
+
+.scrip-secondary-line {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.scrip-contract-meta {
+    font-size: 11px;
+    color: var(--text-secondary);
+}
+
+.scrip-chg {
+    font-family: var(--font-numeric);
+    font-size: 11px;
+    font-weight: 500;
+}
+
+/* Quick Action Hover Bar */
+.scrip-hover-actions {
+    display: none;
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: var(--bg-surface-elevated);
+    border: 1px solid var(--border-prominent);
+    border-radius: var(--radius-sm);
+    padding: 2px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+    z-index: 10;
+    gap: 4px;
+}
+
+.scrip-row:hover .scrip-hover-actions,
+.scrip-row.focused .scrip-hover-actions {
+    display: flex;
+}
+
+.action-btn {
+    border: none;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 7px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: filter var(--transition-fast);
+}
+
+.action-btn:hover {
+    filter: brightness(1.2);
+}
+
+.action-btn-buy {
+    background-color: var(--accent-blue);
+    color: #ffffff;
+}
+
+.action-btn-sell {
+    background-color: var(--accent-orange);
+    color: #ffffff;
+}
+
+.action-btn-depth {
+    background-color: var(--bg-surface-active);
+    color: var(--text-primary);
+}
+
+.action-btn-chain {
+    background-color: #6f42c1;
+    color: #ffffff;
+}
+
+.action-btn-delete {
+    background-color: transparent;
+    color: var(--market-red);
+}
+
+.action-btn-delete:hover {
+    background-color: var(--market-red-bg);
+}
+
+/* Empty State & Footer */
+.mw-empty-state {
+    padding: 36px 16px;
+    text-align: center;
+    color: var(--text-secondary);
+}
+
+.mw-empty-state h4 {
+    color: var(--text-primary);
+    margin: 8px 0 4px;
+}
+
+.mw-empty-state p {
+    font-size: var(--font-size-sm);
+    margin-bottom: 14px;
+}
+
+.mw-footer {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 12px;
+    background-color: var(--bg-surface-elevated);
+    border-top: 1px solid var(--border-subtle);
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+/* ==========================================================================
+   3. Scrip Search Command Palette Modal (Ctrl+K)
+   ========================================================================== */
+.search-modal-card {
+    width: 90%;
+    max-width: 640px;
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-prominent);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+    overflow: hidden;
+    animation: modalSlide 180ms ease;
+    display: flex;
+    flex-direction: column;
+}
+
+.search-modal-header {
+    padding: 14px 16px 10px;
+    border-bottom: 1px solid var(--border-subtle);
+    background-color: var(--bg-surface-elevated);
+}
+
+.search-input-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background-color: var(--bg-app);
+    border: 1px solid var(--accent-blue);
+    border-radius: var(--radius-sm);
+    padding: 8px 12px;
+    margin-bottom: 10px;
+}
+
+.search-prefix-icon {
+    font-size: 15px;
+    color: var(--accent-blue);
+}
+
+.search-input-field {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    font-size: 14px;
+}
+
+.search-esc-hint {
+    font-size: 10px;
+    color: var(--text-muted);
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    padding: 1px 5px;
+    border-radius: 3px;
+}
+
+.segment-filter-bar {
+    display: flex;
+    gap: 6px;
+}
+
+.seg-pill {
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.seg-pill.active {
+    background-color: var(--accent-blue);
+    border-color: var(--accent-blue);
+    color: #ffffff;
+}
+
+.search-results-container {
+    max-height: 380px;
+    min-height: 200px;
+    overflow-y: auto;
+}
+
+.search-result-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border-subtle);
+    cursor: pointer;
+    transition: background-color var(--transition-fast);
+}
+
+.search-result-item:hover,
+.search-result-item.selected {
+    background-color: var(--bg-surface-hover);
+}
+
+.search-item-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.search-item-title-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.search-item-symbol {
+    font-weight: 600;
+    font-size: 13.5px;
+}
+
+.search-item-desc {
+    font-size: 11.5px;
+    color: var(--text-secondary);
+}
+
+.search-item-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.search-initial-hint {
+    padding: 32px 20px;
+    text-align: center;
+    color: var(--text-secondary);
+}
+
+.quick-suggest-tags {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 14px;
+}
+
+.suggest-tag {
+    background-color: var(--bg-surface-elevated);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-primary);
+    font-size: 11.5px;
+    padding: 4px 10px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+}
+
+.suggest-tag:hover {
+    background-color: var(--bg-surface-active);
+    border-color: var(--accent-blue);
+}
+
+.search-modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    background-color: var(--bg-surface-elevated);
+    border-top: 1px solid var(--border-subtle);
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.footer-keyboard-hints {
+    display: flex;
+    gap: 12px;
+}
+
+.footer-keyboard-hints kbd {
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    padding: 1px 4px;
+    border-radius: 2px;
+    color: var(--text-primary);
+    font-family: var(--font-numeric);
+}
+
+/* ==========================================================================
+   4. 5-Level Market Depth DOM Popover
+   ========================================================================== */
+.depth-modal-card {
+    width: 90%;
+    max-width: 600px;
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-prominent);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.6);
+    overflow: hidden;
+    animation: modalSlide 180ms ease;
+}
+
+.depth-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-subtle);
+    background-color: var(--bg-surface-elevated);
+}
+
+.depth-title-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.depth-symbol {
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.depth-segment-badge {
+    font-size: 10px;
+    padding: 1px 5px;
+    border-radius: 3px;
+    background-color: var(--bg-surface-active);
+    color: var(--text-secondary);
+}
+
+.depth-body {
+    padding: 14px 16px;
+}
+
+.depth-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11.5px;
+}
+
+.depth-table th,
+.depth-table td {
+    padding: 4px 6px;
+    text-align: right;
+}
+
+.depth-table th:first-child,
+.depth-table td:first-child {
+    text-align: left;
+}
+
+.th-bid {
+    background-color: var(--market-green-bg);
+    color: var(--market-green);
+    font-weight: 700;
+    text-align: center !important;
+}
+
+.th-ask {
+    background-color: var(--market-red-bg);
+    color: var(--market-red);
+    font-weight: 700;
+    text-align: center !important;
+}
+
+.sub-headers th {
+    font-size: 10px;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.depth-bid-price {
+    color: var(--market-green);
+    font-weight: 600;
+}
+
+.depth-ask-price {
+    color: var(--market-red);
+    font-weight: 600;
+}
+
+.depth-total-row {
+    font-weight: 700;
+    border-top: 1px solid var(--border-subtle);
+    border-bottom: 1px solid var(--border-subtle);
+    background-color: var(--bg-surface-elevated);
+}
+
+.depth-pressure-track {
+    display: flex;
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    overflow: hidden;
+    margin: 10px 0 14px;
+}
+
+.depth-pressure-fill.buy {
+    background-color: var(--market-green);
+}
+
+.depth-pressure-fill.sell {
+    background-color: var(--market-red);
+}
+
+.depth-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    font-size: 11px;
+}
+
+.stat-pill {
+    background-color: var(--bg-surface-elevated);
+    border: 1px solid var(--border-subtle);
+    padding: 4px 8px;
+    border-radius: var(--radius-sm);
+    display: flex;
+    justify-content: space-between;
+}
+
+.stat-pill .lbl {
+    color: var(--text-muted);
+}
+
+.depth-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 10px 16px;
+    background-color: var(--bg-surface-elevated);
+    border-top: 1px solid var(--border-subtle);
+}
+
+.btn-danger-solid {
+    background-color: var(--accent-orange);
+    color: #ffffff;
+}
+
+/* ==========================================================================
+   5. Order Ticket (Docked & Floating Modal)
+   ========================================================================== */
+.order-ticket-container {
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-prominent);
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.6);
+    z-index: 1500;
+    display: flex;
+    flex-direction: column;
+    animation: modalSlide 200ms ease;
+}
+
+/* Docked Bottom Drawer */
+.order-ticket-container.docked {
+    position: fixed;
+    bottom: var(--footer-height);
+    right: 20px;
+    width: 480px;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    border-bottom: none;
+}
+
+/* Floating Modal */
+.order-ticket-container.floating {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    max-width: 520px;
+    border-radius: var(--radius-lg);
+}
+
+.ticket-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.ticket-header.side-buy {
+    background: linear-gradient(90deg, #1b73e8, #1557b0);
+    color: #ffffff;
+}
+
+.ticket-header.side-sell {
+    background: linear-gradient(90deg, #ff5722, #e64a19);
+    color: #ffffff;
+}
+
+.ticket-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ticket-side-badge {
+    font-size: 11px;
+    font-weight: 800;
+    padding: 2px 6px;
+    background-color: rgba(255, 255, 255, 0.25);
+    border-radius: 3px;
+    letter-spacing: 0.5px;
+}
+
+.ticket-symbol {
+    font-weight: 700;
+    font-size: 13.5px;
+}
+
+.ticket-segment-tag {
+    font-size: 9.5px;
+    padding: 1px 4px;
+    border-radius: 2px;
+    background-color: rgba(0, 0, 0, 0.25);
+}
+
+.ticket-header-controls {
+    display: flex;
+    gap: 6px;
+}
+
+.ticket-ctrl-btn {
+    background: transparent;
+    border: none;
+    color: #ffffff;
+    font-size: 13px;
+    cursor: pointer;
+    padding: 2px 5px;
+    border-radius: 3px;
+}
+
+.ticket-ctrl-btn:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.ticket-body {
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.form-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.row-label {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    min-width: 75px;
+}
+
+/* Radio Pill Selectors */
+.pill-group {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.pill-radio {
+    cursor: pointer;
+}
+
+.pill-radio input[type="radio"] {
+    display: none;
+}
+
+.pill-radio span {
+    display: inline-block;
+    padding: 4px 10px;
+    font-size: 11.5px;
+    font-weight: 600;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    background-color: var(--bg-surface-elevated);
+    transition: background-color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.pill-radio input[type="radio"]:checked + span {
+    border-color: var(--accent-blue);
+    background-color: rgba(27, 115, 232, 0.15);
+    color: var(--text-primary);
+}
+
+/* Stepper Inputs */
+.form-grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+}
+
+.input-block {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.input-block.disabled {
+    opacity: 0.4;
+    pointer-events: none;
+}
+
+.block-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+}
+
+.block-header label {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.block-caption {
+    color: var(--text-muted);
+}
+
+.stepper-input {
+    display: flex;
+    align-items: center;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    background-color: var(--bg-app);
+    overflow: hidden;
+}
+
+.step-btn {
+    background-color: var(--bg-surface-elevated);
+    border: none;
+    color: var(--text-primary);
+    font-weight: 700;
+    padding: 6px 8px;
+    cursor: pointer;
+    font-size: 11px;
+}
+
+.step-btn:hover {
+    background-color: var(--bg-surface-active);
+}
+
+.input-numeric {
+    flex: 1;
+    width: 100%;
+    background: transparent;
+    border: none;
+    outline: none;
+    text-align: center;
+    color: var(--text-primary);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 4px 0;
+}
+
+.field-hint {
+    font-size: 9.5px;
+    color: var(--text-muted);
+}
+
+.form-row-compact {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+    padding-top: 4px;
+    border-top: 1px solid var(--border-subtle);
+}
+
+.input-block-inline {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.input-inline {
+    width: 60px;
+    background-color: var(--bg-app);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    padding: 2px 4px;
+    text-align: center;
+}
+
+.caption-muted {
+    color: var(--text-muted);
+}
+
+.market-protection-slider {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.market-protection-slider input[type="range"] {
+    width: 80px;
+}
+
+/* Validation Feedback */
+.validation-feedback-box {
+    background-color: var(--market-red-bg);
+    border: 1px solid var(--market-red);
+    border-radius: var(--radius-sm);
+    padding: 6px 10px;
+    font-size: 11px;
+    color: var(--market-red);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* Margin Preview Strip */
+.ticket-margin-strip {
+    background-color: var(--bg-surface-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+}
+
+.margin-metric .lbl {
+    color: var(--text-muted);
+    margin-right: 4px;
+}
+
+.margin-status-badge {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 10px;
+}
+
+.margin-status-badge.status-sufficient {
+    background-color: var(--market-green-bg);
+    color: var(--market-green);
+}
+
+.margin-status-badge.status-insufficient {
+    background-color: var(--market-red-bg);
+    color: var(--market-red);
+}
+
+/* ExecutionMode Banner */
+.ticket-mode-banner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border-radius: var(--radius-sm);
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.ticket-mode-banner .mode-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+}
+
+.ticket-mode-banner.mode-paper {
+    background-color: rgba(242, 153, 74, 0.12);
+    border: 1px solid var(--accent-amber);
+    color: var(--accent-amber);
+}
+.ticket-mode-banner.mode-paper .mode-dot { background-color: var(--accent-amber); }
+
+.ticket-mode-banner.mode-disabled {
+    background-color: rgba(235, 87, 87, 0.12);
+    border: 1px solid var(--market-red);
+    color: var(--market-red);
+}
+.ticket-mode-banner.mode-disabled .mode-dot { background-color: var(--market-red); }
+
+.ticket-mode-banner.mode-live {
+    background-color: rgba(0, 208, 156, 0.12);
+    border: 1px solid var(--market-green);
+    color: var(--market-green);
+}
+.ticket-mode-banner.mode-live .mode-dot { background-color: var(--market-green); }
+
+/* Submit Button Side Theming */
+.ticket-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 4px;
+}
+
+.btn-submit-order {
+    font-weight: 700;
+    padding: 8px 18px;
+    color: #ffffff;
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: filter var(--transition-fast);
+}
+
+.btn-submit-order:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    filter: grayscale(1);
+}
+
+.btn-submit-order.side-buy-btn {
+    background-color: var(--accent-blue);
+}
+
+.btn-submit-order.side-sell-btn {
+    background-color: var(--accent-orange);
+}

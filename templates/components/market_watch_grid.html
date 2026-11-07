@@ -1,0 +1,61 @@
+<!-- Phase 11B: Market Watch Grid & Watchlist Component -->
+<div class="market-watch-container" id="market-watch-container">
+    <!-- Watchlist Header & Search Bar -->
+    <div class="mw-header">
+        <div class="mw-search-trigger" id="mw-search-trigger" title="Search Instruments (Ctrl+K or /)">
+            <span class="mw-search-icon">🔍</span>
+            <span class="mw-search-placeholder">Search eg: NIFTY, INFY, 24500 CE</span>
+            <kbd class="mw-search-kbd">/</kbd>
+        </div>
+        <div class="mw-quota-badge" id="mw-quota-badge" title="Watchlist Scrip Quota (Max 50)">
+            <span id="mw-quota-count">0</span><span class="quota-delim">/</span><span class="quota-max">50</span>
+        </div>
+    </div>
+
+    <!-- 5-Tab Watchlist Bar -->
+    <div class="mw-tabs-bar" id="mw-tabs-bar">
+        <div class="mw-tabs-scroll">
+            <button class="mw-tab active" data-wl-id="1" data-wl-index="0" id="mw-tab-1">
+                <span class="mw-tab-name">Watchlist 1</span>
+                <span class="mw-tab-star">★</span>
+            </button>
+            <button class="mw-tab" data-wl-id="2" data-wl-index="1" id="mw-tab-2">
+                <span class="mw-tab-name">Watchlist 2</span>
+            </button>
+            <button class="mw-tab" data-wl-id="3" data-wl-index="2" id="mw-tab-3">
+                <span class="mw-tab-name">Watchlist 3</span>
+            </button>
+            <button class="mw-tab" data-wl-id="4" data-wl-index="3" id="mw-tab-4">
+                <span class="mw-tab-name">Watchlist 4</span>
+            </button>
+            <button class="mw-tab" data-wl-id="5" data-wl-index="4" id="mw-tab-5">
+                <span class="mw-tab-name">Watchlist 5</span>
+            </button>
+        </div>
+        <button class="mw-tab-edit-btn" id="mw-tab-edit-btn" title="Rename active watchlist">✏️</button>
+    </div>
+
+    <!-- Scrip Rows List Container -->
+    <div class="mw-scrip-list" id="mw-scrip-list">
+        <!-- Rendered dynamically by market_watch.js -->
+        <div class="mw-loading" id="mw-loading">
+            <div class="skeleton-row"><span>Loading Watchlist...</span></div>
+        </div>
+    </div>
+
+    <!-- Empty State Container -->
+    <div class="mw-empty-state hidden" id="mw-empty-state">
+        <span class="empty-icon">📈</span>
+        <h4>Watchlist is Empty</h4>
+        <p>Use search to add stocks, indices, and option contracts.</p>
+        <button class="btn btn-sm btn-primary" id="mw-empty-search-btn">
+            <span>🔍 Search Scrips (Ctrl+K)</span>
+        </button>
+    </div>
+
+    <!-- Quick Footer Stats -->
+    <div class="mw-footer" id="mw-footer">
+        <span class="mw-footer-text" id="mw-active-wl-label">Active: Watchlist 1</span>
+        <span class="mw-footer-stream">SFeed: <strong class="text-success">Live</strong></span>
+    </div>
+</div>

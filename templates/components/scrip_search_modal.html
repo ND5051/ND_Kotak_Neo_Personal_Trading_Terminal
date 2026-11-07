@@ -1,0 +1,48 @@
+<!-- Phase 11B: Scrip Search Command Palette Modal (Ctrl+K or /) -->
+<div class="modal-backdrop hidden" id="scrip-search-modal" role="dialog" aria-modal="true" aria-labelledby="search-modal-title">
+    <div class="search-modal-card">
+        <div class="search-modal-header">
+            <div class="search-input-wrapper">
+                <span class="search-prefix-icon">🔍</span>
+                <input type="text" id="scrip-search-input" class="search-input-field" 
+                       placeholder="Type symbol, strike, or company name... (e.g. NIFTY, 24500 CE, RELIANCE)" 
+                       autocomplete="off" spellcheck="false">
+                <kbd class="search-esc-hint">Esc</kbd>
+            </div>
+            <div class="segment-filter-bar">
+                <button class="seg-pill active" data-segment="">ALL</button>
+                <button class="seg-pill" data-segment="nse_cm">NSE</button>
+                <button class="seg-pill" data-segment="bse_cm">BSE</button>
+                <button class="seg-pill" data-segment="nse_fo">NFO</button>
+                <button class="seg-pill" data-segment="bse_fo">BFO</button>
+            </div>
+        </div>
+
+        <div class="search-results-container" id="search-results-container">
+            <!-- Dynamically populated by market_watch.js -->
+            <div class="search-initial-hint">
+                <p>Type at least 2 characters to search Indian cash and derivative instruments.</p>
+                <div class="quick-suggest-tags">
+                    <span class="suggest-tag" data-query="NIFTY">NIFTY 50</span>
+                    <span class="suggest-tag" data-query="BANKNIFTY">BANKNIFTY</span>
+                    <span class="suggest-tag" data-query="FINNIFTY">FINNIFTY</span>
+                    <span class="suggest-tag" data-query="RELIANCE">RELIANCE</span>
+                    <span class="suggest-tag" data-query="HDFCBANK">HDFCBANK</span>
+                    <span class="suggest-tag" data-query="TCS">TCS</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="search-modal-footer">
+            <div class="footer-keyboard-hints">
+                <span><kbd>↑</kbd> <kbd>↓</kbd> Navigate</span>
+                <span><kbd>Enter</kbd> Add to Watchlist</span>
+                <span><kbd>B</kbd> / <kbd>S</kbd> Instant Order Ticket</span>
+                <span><kbd>Esc</kbd> Close</span>
+            </div>
+            <div class="search-quota-notice" id="search-quota-notice">
+                <span>Target Watchlist: <strong id="search-target-wl">Watchlist 1</strong></span>
+            </div>
+        </div>
+    </div>
+</div>
