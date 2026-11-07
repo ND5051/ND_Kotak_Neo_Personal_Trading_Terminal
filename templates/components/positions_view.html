@@ -145,3 +145,29 @@
         </div>
     </div>
 </div>
+
+<!-- Modal: High-Exposure Position Exit Confirmation (> ₹1,00,000) -->
+<div class="modal-backdrop hidden" id="high-exposure-exit-modal">
+    <div class="modal-dialog">
+        <div class="modal-header">
+            <h3 class="text-warning">⚠️ High-Exposure Exit Warning</h3>
+            <button class="btn btn-sm btn-icon" id="high-exp-close-btn">✕</button>
+        </div>
+        <div class="modal-body">
+            <p>
+                Position exposure exceeds the safety threshold of <strong>₹1,00,000.00</strong>. Please verify details before proceeding with exit.
+            </p>
+            <div class="card high-exp-details">
+                <div><strong>Instrument:</strong> <span id="high-exp-symbol">—</span> (<span id="high-exp-product">MIS</span>)</div>
+                <div><strong>Position Size:</strong> <span class="font-numeric font-bold" id="high-exp-qty">—</span></div>
+                <div><strong>Current Mark / Price:</strong> <span class="font-numeric" id="high-exp-price">₹0.00</span></div>
+                <div><strong>Gross Exposure:</strong> <span class="font-numeric text-warning font-bold" id="high-exp-val">₹0.00</span></div>
+                <div><strong>Exit Order Action:</strong> <span class="font-bold" id="high-exp-action">—</span></div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="high-exp-cancel-btn">Cancel (Esc)</button>
+            <button class="btn btn-danger" id="high-exp-proceed-btn">Proceed with Exit</button>
+        </div>
+    </div>
+</div>

@@ -65,6 +65,9 @@ def test_terminal_loads_phase11c_components(client):
     assert "btn-square-off-all" in html
     assert "square-off-all-modal" in html
     assert "reverse-position-modal" in html
+    assert "high-exposure-exit-modal" in html
+    assert "high-exp-val" in html
+    assert "high-exp-proceed-btn" in html
 
     # 3. Order Book & Filter Tabs
     assert "order-book-container" in html

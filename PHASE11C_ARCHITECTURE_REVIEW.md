@@ -152,15 +152,18 @@ All implementations strictly adhere to the project's constitutional mandates:
 - **Visual Nodes:** Each node reflects completion status (`.completed`, `.active`, `.failed`) with its recorded microsecond timestamp.
 - **Audit Event Log:** Chronological list detailing transition reasons, actor identities, and gateway timestamps from `GET /api/orders/{client_order_id}`.
 
-### 3.10. Audit Item 10: Position Quick Actions (Add, Exit, Reverse)
+### 3.10. Audit Item 10: Position Quick Actions (Add, Exit, Reverse) & Safety Threshold
 - **`[Add]` Workflow:** Launches Order Ticket with same side and default lot size to scale or average into position.
-- **`[Exit]` Workflow:** Launches Order Ticket pre-filled with opposite side and exact open net quantity ($|\text{Net Qty}|$).
+- **`[Exit]` Workflow & Position Exit Safety Threshold:**
+  - Evaluates position gross exposure: $\text{Exposure} = |\text{Net Qty}| \times \max(\text{LTP}, \text{Buy Avg}, \text{Sell Avg})$.
+  - **Threshold Policy ($> ₹1,00,000$):** If position exposure exceeds ₹1,00,000.00, single-click exit is guarded by `#high-exposure-exit-modal`. The operator must explicitly verify instrument symbol, gross exposure amount, and liquidation quantity before the Order Ticket is presented.
+  - For exposures $\le ₹1,00,000.00$, directly launches Order Ticket pre-filled with opposite side and exact open net quantity ($|\text{Net Qty}|$).
 - **`[Reverse]` Workflow (180° Flip):**
   - Calculates reversal size: $\text{Reverse Qty} = 2 \times |\text{Net Qty}|$.
   - Direction: Opposite to current net exposure (Long $+50 \implies \text{SELL } 100 \implies \text{New Net } -50$).
   - Displays modal confirmation detailing current position vs new position target.
   - Launches Order Ticket pre-filled with reversal parameters and toast notification.
-- **Emergency Square Off All:** Opens modal listing all open legs. In `LIVE` mode, enforces typing challenge `CONFIRM_EXIT_ALL` before dispatching MARKET exit orders.
+- **Emergency Square Off All Workflow:** Opens modal listing all open legs. In `LIVE` mode, enforces typing challenge `CONFIRM_EXIT_ALL` before dispatching MARKET exit orders. Sequential order routing preserves the terminal's single-order risk checks.
 
 ### 3.11. Audit Item 11: Portfolio Refresh Controls & Timestamps
 - **Timestamp Display:** Header prominently displays `"Last Refreshed: HH:mm:ss"` parsed from backend `retrieved_timestamp`.
@@ -197,3 +200,4 @@ Phase 11C meets all design specifications, safety mandates, and performance crit
 | **Phase 11B** | Market Watch Grid, Scrip Search Palette (Ctrl+K), 5-Level Depth DOM, Professional Order Ticket | **COMPLETED** | — |
 | **Phase 11C** | Demat Holdings, Positions, Live MTM Dashboard, Order Book, Trade Book, Funds Ledger, Timeline Modal | **COMPLETED** | — |
 | **Phase 11D** | Multi-Leg Basket Builder UI & Option Chain Workbench UI | **PENDING** | Next Milestone |
+

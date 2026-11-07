@@ -15,6 +15,7 @@
             this.posFilter = 'ALL';
             this.posProductFilter = 'ALL';
             this.activeReverseItem = null;
+            this.activeExitItem = null;
 
             this.init();
         }
@@ -136,6 +137,30 @@
                     if (this.activeReverseItem) {
                         this.executePositionReverse(this.activeReverseItem);
                         closeRevModal();
+                    }
+                });
+            }
+
+            // High-Exposure Exit Modal (> ₹1,00,000 Safety Threshold)
+            const highExpModal = document.getElementById('high-exposure-exit-modal');
+            const highExpClose = document.getElementById('high-exp-close-btn');
+            const highExpCancel = document.getElementById('high-exp-cancel-btn');
+            const highExpProceed = document.getElementById('high-exp-proceed-btn');
+
+            const closeHighExpModal = () => {
+                if (highExpModal) highExpModal.classList.add('hidden');
+                this.activeExitItem = null;
+            };
+
+            if (highExpClose) highExpClose.addEventListener('click', closeHighExpModal);
+            if (highExpCancel) highExpCancel.addEventListener('click', closeHighExpModal);
+
+            if (highExpProceed) {
+                highExpProceed.addEventListener('click', () => {
+                    if (this.activeExitItem) {
+                        const item = this.activeExitItem;
+                        closeHighExpModal();
+                        this.proceedWithPositionExit(item);
                     }
                 });
             }
@@ -525,6 +550,42 @@
         }
 
         handlePositionExit(pos) {
+            if (!window.orderTicketController) return;
+            const qty = Math.abs(pos.net_quantity || 0);
+            const price = pos.last_price || pos.buy_average || pos.sell_average || 0;
+            const exposure = qty * price;
+
+            // Position Exit Safety Threshold: If exposure > ₹1,00,000, show confirmation modal
+            if (exposure > 100000) {
+                this.promptHighExposureExit(pos, exposure, price, qty);
+            } else {
+                this.proceedWithPositionExit(pos);
+            }
+        }
+
+        promptHighExposureExit(pos, exposure, price, qty) {
+            this.activeExitItem = pos;
+            const modal = document.getElementById('high-exposure-exit-modal');
+            const symEl = document.getElementById('high-exp-symbol');
+            const prodEl = document.getElementById('high-exp-product');
+            const qtyEl = document.getElementById('high-exp-qty');
+            const priceEl = document.getElementById('high-exp-price');
+            const valEl = document.getElementById('high-exp-val');
+            const actionEl = document.getElementById('high-exp-action');
+
+            const side = pos.net_quantity > 0 ? 'SELL' : 'BUY';
+
+            if (symEl) symEl.textContent = pos.trading_symbol;
+            if (prodEl) prodEl.textContent = pos.product_type || 'MIS';
+            if (qtyEl) qtyEl.textContent = `${pos.net_quantity > 0 ? '+' : ''}${pos.net_quantity} Qty`;
+            if (priceEl) priceEl.textContent = `₹${price.toFixed(2)}`;
+            if (valEl) valEl.textContent = `₹${exposure.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+            if (actionEl) actionEl.textContent = `Place ${side} Order for ${qty} Qty @ Market/LTP`;
+
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        proceedWithPositionExit(pos) {
             if (!window.orderTicketController) return;
             const side = pos.net_quantity > 0 ? 'SELL' : 'BUY';
             const exitQty = Math.abs(pos.net_quantity);

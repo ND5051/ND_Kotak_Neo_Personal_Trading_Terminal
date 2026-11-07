@@ -481,6 +481,19 @@
     color: var(--text-secondary);
 }
 
+.high-exp-details,
+.reverse-details {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: var(--spacing-md);
+    background: var(--bg-secondary);
+    margin: var(--spacing-sm) 0;
+    font-size: 0.85rem;
+    border-radius: var(--border-radius-sm);
+    border: 1px solid var(--border-color);
+}
+
 .timeline-event-list {
     display: flex;
     flex-direction: column;
@@ -668,3 +681,4 @@
     font-size: 0.85rem;
     font-weight: 600;
 }
+

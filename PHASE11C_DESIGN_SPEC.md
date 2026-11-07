@@ -280,9 +280,19 @@ The Funds screen provides an exhaustive, multi-tier accounting ledger expanding 
 
 ### 2.8. Position Exit Actions & Emergency Square Off All
 
-#### 2.8.1. Single Position Exit & Reverse Workflows:
-1. **Single Exit Workflow:**
+#### 2.8.1. Single Position Exit, Safety Threshold & Reverse Workflows:
+1. **Single Exit Workflow & Position Exit Safety Threshold:**
    - Operator clicks `[Exit]` on an active row in the Positions table.
+   - **Position Exit Safety Threshold Enforcement:**
+     - Computes nominal position gross exposure:
+       $$\text{Position Exposure} = |\text{Net Qty}| \times \max(\text{LTP}, \text{Buy Avg}, \text{Sell Avg})$$
+     - If $\text{Position Exposure} > ₹1,00,000$:
+       - System intercepts the exit action and presents a dedicated **High-Exposure Exit Confirmation Modal**:
+         *"⚠️ HIGH EXPOSURE WARNING: Position exposure of ₹X exceeds safety threshold of ₹1,00,000.00. Are you sure you want to proceed with exit?"*
+       - Displays exact liquidation side, quantity, current mark, and estimated turnover.
+       - Operator must explicitly click `[Proceed with Exit]` before the Order Ticket is hydrated and displayed.
+     - If $\text{Position Exposure} \le ₹1,00,000$:
+       - Directly launches Order Ticket pre-filled with exit parameters.
    - Generates an exit payload:
      - Opposite side: If $\text{Net Qty} > 0 \implies \text{SELL}$; if $\text{Net Qty} < 0 \implies \text{BUY}$.
      - Exact net open quantity: $\text{Qty} = |\text{Net Qty}|$.
