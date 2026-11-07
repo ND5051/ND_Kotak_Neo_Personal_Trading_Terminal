@@ -1,0 +1,71 @@
+<div class="card health-widget" id="health-widget">
+    <div class="widget-header">
+        <div class="widget-title">
+            <span class="widget-icon">⚡</span>
+            <h3>System Telemetry &amp; Health</h3>
+        </div>
+        <button class="btn btn-xs btn-ghost" id="refresh-health-btn" title="Run Health Check">
+            <span class="refresh-icon">🔄</span>
+        </button>
+    </div>
+
+    <div class="widget-body">
+        <div class="health-grid">
+            <!-- WebSocket SFeed -->
+            <div class="health-card" id="card-ws-health">
+                <div class="health-card-header">
+                    <span class="health-name">SFeed WebSocket</span>
+                    <span class="pulse-dot connected" id="ws-health-dot"></span>
+                </div>
+                <div class="health-card-value font-numeric" id="ws-latency-val">12 ms</div>
+                <div class="health-card-subtext" id="ws-rate-val">28 ticks/sec</div>
+            </div>
+
+            <!-- Broker Session -->
+            <div class="health-card" id="card-broker-health">
+                <div class="health-card-header">
+                    <span class="health-name">Broker Session</span>
+                    <span class="status-pill status-active" id="broker-status-pill">AUTHENTICATED</span>
+                </div>
+                <div class="health-card-value font-numeric" id="broker-expiry-timer">05:42:18</div>
+                <div class="health-card-subtext">Session Time Remaining</div>
+            </div>
+
+            <!-- Circuit Breaker -->
+            <div class="health-card" id="card-breaker-health">
+                <div class="health-card-header">
+                    <span class="health-name">Circuit Breaker</span>
+                    <span class="status-pill status-safe" id="breaker-status-pill">NORMAL</span>
+                </div>
+                <div class="health-card-value" id="breaker-state-val">CLOSED</div>
+                <div class="health-card-subtext">Zero Fault Tripping</div>
+            </div>
+
+            <!-- Execution Mode -->
+            <div class="health-card" id="card-mode-health">
+                <div class="health-card-header">
+                    <span class="health-name">Execution Mode</span>
+                    <span class="mode-pill mode-{{ execution_mode|lower }}" id="health-mode-pill">{{ execution_mode }}</span>
+                </div>
+                <div class="health-card-value font-numeric" id="health-mode-text">
+                    {% if execution_mode == 'LIVE' %}
+                        EXCHANGE WIRE
+                    {% elif execution_mode == 'PAPER' %}
+                        SIMULATOR ACTIVE
+                    {% else %}
+                        WIRE LOCKED
+                    {% endif %}
+                </div>
+                <div class="health-card-subtext">Global Gating</div>
+            </div>
+        </div>
+
+        <div class="telemetry-bar">
+            <span class="telemetry-item"><strong>Core:</strong> Flask 3.x / Python 3.14</span>
+            <span class="telemetry-item"><strong>DB Engine:</strong> SQLite 3 / SQLAlchemy 2.0</span>
+            <span class="telemetry-item"><strong>Audit Trail:</strong> Active</span>
+            <span class="telemetry-item"><strong>Events:</strong> Reactive EventBus</span>
+        </div>
+    </div>
+</div>
+

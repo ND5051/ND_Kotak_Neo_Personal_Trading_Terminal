@@ -1,0 +1,62 @@
+<div class="modal-backdrop hidden" id="execution-mode-modal">
+    <div class="modal-card">
+        <div class="modal-header">
+            <div class="modal-title">
+                <span class="modal-icon">🛡️</span>
+                <h3>Configure Execution Mode</h3>
+            </div>
+            <button class="btn btn-xs btn-ghost close-modal-btn" id="close-mode-modal-btn" title="Close (Esc)">✕</button>
+        </div>
+
+        <div class="modal-body">
+            <p class="modal-desc">
+                Select the global execution mode governing all single orders and multi-leg baskets across the terminal.
+            </p>
+
+            <div class="mode-options">
+                <label class="mode-option-card" id="option-mode-disabled">
+                    <input type="radio" name="execution_mode_radio" value="DISABLED" {% if execution_mode == 'DISABLED' %}checked{% endif %}>
+                    <div class="option-content">
+                        <div class="option-title text-danger">DISABLED</div>
+                        <div class="option-desc">Execution safety lock. All wire and paper submissions are refused immediately.</div>
+                    </div>
+                </label>
+
+                <label class="mode-option-card" id="option-mode-paper">
+                    <input type="radio" name="execution_mode_radio" value="PAPER" {% if execution_mode == 'PAPER' %}checked{% endif %}>
+                    <div class="option-content">
+                        <div class="option-title text-warning">PAPER</div>
+                        <div class="option-desc">Simulation mode. Fills generated via internal paper simulator without exchange risk.</div>
+                    </div>
+                </label>
+
+                <label class="mode-option-card" id="option-mode-live">
+                    <input type="radio" name="execution_mode_radio" value="LIVE" {% if execution_mode == 'LIVE' %}checked{% endif %}>
+                    <div class="option-content">
+                        <div class="option-title text-success">LIVE (Real Money)</div>
+                        <div class="option-desc">Real exchange wire routing via Kotak Neo API Gateway. Financial risk active.</div>
+                    </div>
+                </label>
+            </div>
+
+            <!-- Security Challenge for LIVE mode -->
+            <div class="live-challenge-box hidden" id="live-challenge-box">
+                <div class="challenge-alert text-danger">
+                    ⚠️ <strong>MANDATORY LIVE RISK CHALLENGE</strong>: To switch to LIVE execution, you must explicitly confirm real capital will be committed on the exchange wire.
+                </div>
+                <div class="challenge-input-group">
+                    <label for="live-confirm-input">Type <code class="confirm-code">CONFIRM_LIVE</code> to authorize:</label>
+                    <input type="text" id="live-confirm-input" class="input-text" placeholder="CONFIRM_LIVE" autocomplete="off">
+                </div>
+            </div>
+
+            <div class="modal-error text-danger hidden" id="mode-modal-error"></div>
+        </div>
+
+        <div class="modal-footer">
+            <button class="btn btn-secondary close-modal-btn" id="cancel-mode-btn">Cancel (Esc)</button>
+            <button class="btn btn-primary" id="save-mode-btn">Apply Execution Mode</button>
+        </div>
+    </div>
+</div>
+

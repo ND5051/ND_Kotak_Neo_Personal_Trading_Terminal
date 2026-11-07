@@ -1,0 +1,58 @@
+<nav class="terminal-nav" id="terminal-nav">
+    <div class="nav-tabs" role="tablist">
+        <button class="nav-tab active" data-tab="market_watch" role="tab" aria-selected="true" id="tab-market-watch">
+            <span class="tab-icon">📊</span>
+            <span class="tab-label">Market Watch</span>
+            <span class="tab-shortcut">1</span>
+        </button>
+        <button class="nav-tab" data-tab="orders" role="tab" aria-selected="false" id="tab-orders">
+            <span class="tab-icon">📑</span>
+            <span class="tab-label">Orders</span>
+            <span class="tab-badge" id="badge-open-orders">0</span>
+            <span class="tab-shortcut">2</span>
+        </button>
+        <button class="nav-tab" data-tab="holdings" role="tab" aria-selected="false" id="tab-holdings">
+            <span class="tab-icon">💼</span>
+            <span class="tab-label">Holdings</span>
+            <span class="tab-shortcut">3</span>
+        </button>
+        <button class="nav-tab" data-tab="positions" role="tab" aria-selected="false" id="tab-positions">
+            <span class="tab-icon">🎯</span>
+            <span class="tab-label">Positions</span>
+            <span class="tab-badge" id="badge-open-positions">0</span>
+            <span class="tab-shortcut">4</span>
+        </button>
+        <button class="nav-tab" data-tab="option_chain" role="tab" aria-selected="false" id="tab-option-chain">
+            <span class="tab-icon">⛓️</span>
+            <span class="tab-label">Option Chain</span>
+            <span class="tab-shortcut">5</span>
+        </button>
+        <button class="nav-tab" data-tab="baskets" role="tab" aria-selected="false" id="tab-baskets">
+            <span class="tab-icon">🧺</span>
+            <span class="tab-label">Baskets</span>
+            <span class="tab-shortcut">6</span>
+        </button>
+        <button class="nav-tab" data-tab="funds" role="tab" aria-selected="false" id="tab-funds">
+            <span class="tab-icon">💰</span>
+            <span class="tab-label">Funds</span>
+            <span class="tab-shortcut">7</span>
+        </button>
+        <button class="nav-tab" data-tab="health" role="tab" aria-selected="false" id="tab-health">
+            <span class="tab-icon">⚡</span>
+            <span class="tab-label">System Health</span>
+            <span class="tab-shortcut">8</span>
+        </button>
+    </div>
+
+    <div class="nav-actions">
+        <div class="quick-pnl" id="nav-quick-pnl" title="Live Day MTM P&L">
+            <span class="pnl-label">Day MTM:</span>
+            <span class="pnl-value font-numeric text-neutral" id="nav-day-pnl">₹0.00</span>
+        </div>
+        <button class="btn btn-sm btn-danger-outline" id="emergency-cancel-all-btn" title="Emergency Kill-Switch: Cancel All Open Orders (Shift+Esc)">
+            <span class="kill-icon">⚠️</span>
+            <span class="kill-label">Cancel All</span>
+        </button>
+    </div>
+</nav>
+

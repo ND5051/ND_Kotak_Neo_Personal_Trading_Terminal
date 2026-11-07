@@ -1,0 +1,57 @@
+<header class="terminal-header" id="terminal-header">
+    <div class="header-left">
+        <div class="brand">
+            <span class="brand-badge">KOTAK NEO</span>
+            <span class="brand-title">TRADING TERMINAL</span>
+        </div>
+        
+        <!-- Live Benchmark Ticker -->
+        <div class="ticker-strip" id="ticker-strip">
+            <div class="ticker-item" id="ticker-nifty" data-token="26000" data-segment="nse_cm">
+                <span class="ticker-symbol">NIFTY 50</span>
+                <span class="ticker-ltp" id="nifty-ltp">24,520.50</span>
+                <span class="ticker-chg text-success" id="nifty-chg">+102.30 (+0.42%)</span>
+            </div>
+            <div class="ticker-item" id="ticker-banknifty" data-token="26009" data-segment="nse_cm">
+                <span class="ticker-symbol">BANKNIFTY</span>
+                <span class="ticker-ltp" id="banknifty-ltp">52,180.20</span>
+                <span class="ticker-chg text-danger" id="banknifty-chg">-78.40 (-0.15%)</span>
+            </div>
+            <div class="ticker-item" id="ticker-sensex" data-token="1" data-segment="bse_cm">
+                <span class="ticker-symbol">SENSEX</span>
+                <span class="ticker-ltp" id="sensex-ltp">80,410.10</span>
+                <span class="ticker-chg text-success" id="sensex-chg">+305.20 (+0.38%)</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="header-right">
+        <!-- Compact Mode Toggle -->
+        <button class="btn btn-sm btn-ghost" id="compact-mode-toggle" title="Toggle Compact Mode (Alt+C)">
+            <span class="compact-icon">▤</span>
+            <span class="compact-label" id="compact-label">Compact: OFF</span>
+        </button>
+
+        <!-- Workspace Reset -->
+        <button class="btn btn-sm btn-ghost" id="workspace-reset-btn" title="Reset Workspace Layout to Default">
+            <span class="reset-icon">↺</span>
+            <span class="reset-label">Reset View</span>
+        </button>
+
+        <!-- ExecutionMode Master Badge -->
+        <div class="mode-badge-container">
+            <button class="mode-badge mode-{{ execution_mode|lower }}" id="execution-mode-badge" title="Click to change Execution Mode">
+                <span class="mode-indicator-dot"></span>
+                <span class="mode-text" id="execution-mode-label">MODE: {{ execution_mode }}</span>
+                <span class="mode-shield">🛡️</span>
+            </button>
+        </div>
+
+        <!-- Connection Pill -->
+        <div class="connection-pill" id="header-connection-pill" title="WebSocket SFeed Stream Status">
+            <span class="pulse-dot connected" id="header-conn-dot"></span>
+            <span class="conn-text" id="header-conn-text">LIVE STREAM</span>
+        </div>
+    </div>
+</header>
+

@@ -90,6 +90,11 @@ Professional proprietary and retail derivative traders demand an interface that 
     - `LIVE` (Emerald Green `#00d09c` with Security Shield icon): Real exchange wire submission enabled.
   - Clicking the badge opens the **ExecutionMode Modal**:
     - Switching to `LIVE` triggers a mandatory safety challenge requiring the user to type `"CONFIRM_LIVE"` to prevent accidental live execution.
+- **Compact Mode Controller:**
+  - Quick toggle switch in the global header (`Alt + C`) that toggles high-density display.
+  - Compact Mode reduces row heights, padding, and font scales across all tables and cards for maximum situational visibility.
+- **Workspace Persistence Controller:**
+  - Manages automatic saving and restoring of user workspace state (active tab, panel widths, compact mode state, last active watchlist).
 - **Master Navigation Tabs:**
   - `Market Watch` (Focus left pane / full-screen option)
   - `Orders` (Order Book, Executed Trades, Order Audit Trail)
@@ -338,6 +343,53 @@ The interface implements a custom dark theme tailored for high-frequency market 
 - **Monospace Alignment:** All monetary values, quantities, strikes, percentages, and timestamps must use `--font-numeric` with `font-variant-numeric: tabular-nums` to prevent layout shaking as digits tick.
 - **Color Discipline:** Green and Red are reserved strictly for market direction, P&L, and order sides. Non-financial UI controls use neutral grays or blue accents.
 
+### 4.3. Compact Mode Design Specifications
+Professional derivative day traders and multi-monitor setups frequently require ultra-high information density to monitor dozens of strikes and positions simultaneously.
+
+- **Toggle Mechanism:**
+  - Dedicated `[Compact Mode: ON/OFF]` toggle in the global header bar.
+  - Global hotkey: `Alt + C`.
+  - Master container class: `.compact-mode` toggled on `<body>` / `#app-root`.
+- **CSS Variable Overrides in Compact Mode:**
+  ```css
+  .compact-mode {
+    --row-height: 28px;               /* Reduced from 40px */
+    --font-size-base: 11.5px;         /* Reduced from 13px */
+    --font-size-numeric: 12px;        /* Reduced from 13.5px */
+    --padding-cell-x: 6px;            /* Reduced from 12px */
+    --padding-cell-y: 2px;            /* Reduced from 8px */
+    --gap-grid: 4px;                  /* Reduced from 8px */
+    --badge-padding: 1px 4px;         /* Condensed badges */
+  }
+  ```
+- **Behavioral Adjustments:**
+  - Hides non-essential verbose labels (e.g., "Exchange Segment: NSE_FO" becomes concise pill "NFO").
+  - Compresses table headers and spacing, increasing visible strike rows in the Option Chain by up to 45% without scrolling.
+  - Preserves full click/touch target functionality and tooltip hints.
+
+### 4.4. Workspace Persistence Architecture
+To guarantee a personalized and frictionless trader experience, the terminal layout and working state persist across page reloads and browser sessions.
+
+- **Persistence Schema (`WorkspaceState`):**
+  ```typescript
+  interface WorkspaceState {
+    version: number;                  // e.g. 1
+    active_tab: string;               // 'market_watch' | 'orders' | 'holdings' | 'positions' | 'option_chain' | 'baskets' | 'funds'
+    compact_mode: boolean;            // true | false
+    sidebar_collapsed: boolean;       // Left pane collapse state
+    sidebar_width: number;            // Custom pixel width (280px - 450px)
+    bottom_drawer_height: number;     // Docked ticket/console height (180px - 360px)
+    selected_watchlist_id: number;    // ID of active watchlist tab
+    selected_underlying: string;      // Last viewed option chain underlying (e.g. 'NIFTY')
+    option_chain_preset: string;      // 'ATM_5' | 'ATM_10' | 'ATM_15' | 'ATM_20'
+    last_updated: string;             // ISO-8601 timestamp
+  }
+  ```
+- **Storage Strategy:**
+  - **Primary Layer:** Fast, synchronous browser `localStorage` key (`kotak_neo_workspace_v1`), loaded prior to initial paint to eliminate layout flashing (FOUC).
+  - **Graceful Fallbacks:** If `localStorage` is unavailable or corrupted, safely resets to default desktop layout configuration.
+  - **Export / Reset:** Allows operator to reset workspace to default factory layout with one click.
+
 ---
 
 ## 5. Responsive Layout Breakpoints
@@ -443,3 +495,42 @@ Upon approval of this specification, the implementation of Phase 11 will deliver
 4. `app/static/js/`: Modular ES6 client code (`store.js`, `stream_client.js`, `order_ticket.js`, `option_chain_ui.js`, `basket_builder_ui.js`, `keyboard_nav.js`).
 5. `tests/integration/test_ui_routes.py`: Flask route integration tests serving UI endpoints and assets.
 6. `PHASE11_ARCHITECTURE_REVIEW.md`: Comprehensive post-implementation architectural audit.
+
+---
+
+## 10. Phased Implementation Roadmap
+
+To maintain architectural rigor, continuous verification, and zero regression risk across the 188 existing tests, Phase 11 is strictly partitioned into four sequential sub-phases:
+
+### Sub-Phase 11A — Terminal Shell & Workspace Foundation (Current Target)
+- **Scope:**
+  - Master terminal layout container (`terminal.html`, `base.html` integration).
+  - Professional Dark Theme design system (`terminal.css`) with complete CSS custom properties.
+  - Global Header: Persistent benchmark index ticker (`NIFTY 50`, `BANKNIFTY`, `SENSEX`), user session display, and quick actions.
+  - ExecutionMode Master Badge & Modal: Color-coded indicator (`DISABLED` crimson, `PAPER` amber, `LIVE` green) with challenge verification.
+  - Compact Mode Controller: Real-time high-density toggle (`Alt+C`).
+  - Workspace Persistence: `WorkspaceState` manager persisting active tab, compact mode, and layout dimensions in `localStorage`.
+  - Navigation Tabs: Tab switcher (`Market Watch`, `Orders`, `Holdings`, `Positions`, `Option Chain`, `Baskets`, `Funds`).
+  - Funds Widget: Real-time balance breakdown, collateral, used margin, and 3-color progress utilization bar.
+  - System Health & Telemetry Widget: WebSocket status LED, ping latency, broker session expiry countdown, and circuit breaker status.
+- **Milestone Output:** `PHASE11A_ARCHITECTURE_REVIEW.md`.
+
+### Sub-Phase 11B — Market Watch & Order Ticket
+- **Scope:**
+  - 5-tab user watchlist management, scrip row rendering, drag-and-drop reordering.
+  - Global scrip search modal (`/` or `Ctrl+K`) with segment filters.
+  - 5-level market depth popover.
+  - Kite-inspired docked/floating Order Entry window with Buy/Sell theming, lot steppers, tick modulo rules, and live margin validation preview.
+
+### Sub-Phase 11C — Portfolio & Order Book
+- **Scope:**
+  - Holdings (CNC) long-term investment overview.
+  - Positions (MIS/NRML) live MTM tracking, individual position exit tickets, and emergency `Square Off All` modal.
+  - Order Book view with tabbed filters (`Open`, `Executed`, `Cancelled`), execution timeline, and trade book.
+
+### Sub-Phase 11D — Basket Builder & Option Chain UI
+- **Scope:**
+  - Option Chain Workbench UI: Symmetrical two-sided ladder, preset filters (`ATM ±5` to `±20`), ITM/ATM moneyness styling, PCR/Max Pain summary badges, and live SFeed streaming updates.
+  - Basket Builder Strategy UI: Predefined strategy templates, leg dependency visualization, dry-run validation, and execution dispatch.
+
+

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kotak Neo Personal Trading Terminal</title>
+    <!-- Dark Theme Master Stylesheet -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/terminal.css') }}">
+    <!-- High-Contrast Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="theme-dark" id="app-root">
+    <!-- Master Terminal Header & Ticker -->
+    {% include "components/header.html" %}
+
+    <!-- Global Navigation Tabs -->
+    {% include "components/navigation_tabs.html" %}
+
+    <!-- Main Workspace Viewport -->
+    <main class="terminal-main" id="terminal-main">
+        {% include "components/workspace_placeholders.html" %}
+    </main>
+
+    <!-- Execution Mode Configuration Modal -->
+    {% include "components/execution_mode_modal.html" %}
+
+    <!-- Global Terminal Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- Terminal Footer Status Bar -->
+    <footer class="terminal-footer" id="terminal-footer">
+        <div class="footer-left">
+            <span class="footer-status-item">
+                <span class="status-indicator online" id="footer-ws-dot"></span>
+                <span>SFeed WebSocket: <strong>CONNECTED</strong></span>
+            </span>
+            <span class="footer-status-item">
+                <span>Latency: <strong class="font-numeric" id="footer-latency">12ms</strong></span>
+            </span>
+            <span class="footer-status-item">
+                <span>Execution Mode: <strong class="mode-text font-numeric" id="footer-mode">{{ execution_mode }}</strong></span>
+            </span>
+        </div>
+        <div class="footer-right">
+            <span class="footer-quote font-italic">"Correctness &gt; Features | Reliability &gt; Speed"</span>
+            <span class="footer-version">Phase 11A Shell v1.0.0</span>
+        </div>
+    </footer>
+
+    <!-- Modular Front-End Scripts -->
+    <script src="{{ url_for('static', filename='js/workspace_persistence.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/terminal_shell.js') }}"></script>
+</body>
+</html>
+
