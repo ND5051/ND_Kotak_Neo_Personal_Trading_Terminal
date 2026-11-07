@@ -233,3 +233,4 @@ With the Phase 11A foundation validated and operating cleanly across 194 automat
    - Global scrip search modal (`/` or `Ctrl+K`) with segment filters (`NSE`, `BSE`, `NFO`, `BFO`).
    - 5-level Market Depth DOM popover.
    - Docked / floating Kite-inspired Order Entry window with lot size steppers, tick modulo rules, and live margin validation preview.
+
