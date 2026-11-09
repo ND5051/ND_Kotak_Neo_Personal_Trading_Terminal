@@ -34,6 +34,14 @@ def broker_capabilities():
     return api_response(data=capabilities)
 
 
+@broker_bp.route("/profile", methods=["GET"])
+@login_required
+def broker_profile():
+    """Retrieve authenticated client profile and authorized market segment permissions."""
+    profile_data = kotak_adapter.get_profile()
+    return api_response(data=profile_data)
+
+
 @broker_bp.route("/login", methods=["POST"])
 @login_required
 def broker_login():

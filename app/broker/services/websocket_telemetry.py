@@ -19,6 +19,9 @@ class WebSocketMetrics:
     avg_reconnect_time_ms: float = 0.0
     last_connected_time: Optional[str] = None
     total_reconnect_samples: int = 0
+    total_ticks_processed: int = 0
+    cma_tick_latency_ms: float = 0.0
+    last_tick_latency_ms: float = 0.0
 
 
 class WebSocketTelemetryTracker:
@@ -36,6 +39,9 @@ class WebSocketTelemetryTracker:
         self._last_connected_time: Optional[str] = None
         self._total_reconnect_samples: int = 0
         self._current_reconnect_start: Optional[float] = None
+        self._total_ticks_processed: int = 0
+        self._cma_tick_latency_ms: float = 0.0
+        self._last_tick_latency_ms: float = 0.0
 
     def record_connection(self) -> None:
         """Record successful transition to CONNECTED state."""
@@ -93,6 +99,18 @@ class WebSocketTelemetryTracker:
                 heartbeat_miss_count=self._heartbeat_miss_count,
             )
 
+    def record_tick_latency(self, latency_ms: float) -> None:
+        """
+        Record tick latency between upstream exchange source timestamp and local gateway ingestion.
+        Maintains Cumulative Moving Average (CMA) latency.
+        """
+        with self._lock:
+            self._total_ticks_processed += 1
+            self._last_tick_latency_ms = round(max(0.0, latency_ms), 2)
+            n = self._total_ticks_processed
+            # CMA: CMA_n = CMA_{n-1} + (x_n - CMA_{n-1}) / n
+            self._cma_tick_latency_ms += (self._last_tick_latency_ms - self._cma_tick_latency_ms) / n
+
     def get_metrics(self) -> Dict[str, Any]:
         """Retrieve thread-safe diagnostic dictionary."""
         with self._lock:
@@ -103,6 +121,9 @@ class WebSocketTelemetryTracker:
                 "avg_reconnect_time_ms": round(self._avg_reconnect_time_ms, 2),
                 "last_connected_time": self._last_connected_time,
                 "total_reconnect_samples": self._total_reconnect_samples,
+                "total_ticks_processed": self._total_ticks_processed,
+                "cma_tick_latency_ms": round(self._cma_tick_latency_ms, 2),
+                "last_tick_latency_ms": self._last_tick_latency_ms,
             }
 
     def reset(self) -> None:
@@ -115,6 +136,9 @@ class WebSocketTelemetryTracker:
             self._last_connected_time = None
             self._total_reconnect_samples = 0
             self._current_reconnect_start = None
+            self._total_ticks_processed = 0
+            self._cma_tick_latency_ms = 0.0
+            self._last_tick_latency_ms = 0.0
 
 
 # Global singleton tracker

@@ -462,6 +462,41 @@ WantedBy=multi-user.target
    sqlite3 instance/terminal.db ".backup 'backups/daily/terminal_$(date +%Y%m%d).db'"
    ```
 
+### 13.2. Broker Credential Rotation Runbook
+
+Maintaining security hygiene requires routine (quarterly) and emergency (upon suspected compromise) rotation of the five authentication factors (`NEO_CONSUMER_KEY`, `NEO_MOBILE_NUMBER`, `NEO_UCC`, `NEO_MPIN`, `NEO_TOTP_SECRET`):
+
+```
++---------------------------------------------------------------------------------------------------------+
+|                                  BROKER CREDENTIAL ROTATION WORKFLOW                                    |
+|                                                                                                         |
+|  Step 1: Pre-Rotation Safety Lockout                                                                    |
+|    - Verify all intraday positions are fully squared off and order book has 0 open orders.             |
+|    - Lock ExecutionMode to DISABLED via Header UI.                                                      |
+|    - Gracefully stop the terminal service: sudo systemctl stop kotak-terminal                           |
+|                                                                                                         |
+|  Step 2: Kotak Neo Developer Portal Secret Re-Generation                                                |
+|    - Log in to developer portal (https://neo.kotaksecurities.com/developer).                            |
+|    - Regenerate API Application Consumer Key & Consumer Secret.                                         |
+|    - In Kotak Neo Mobile App: Reset 6-Digit MPIN via Profile -> Security -> Change MPIN.                |
+|    - In 2FA Security Settings: Generate new RFC 6238 TOTP QR / Secret Seed.                             |
+|                                                                                                         |
+|  Step 3: Atomic Environment File Update                                                                 |
+|    - Create a secure temporary copy: cp .env .env.bak && chmod 600 .env.bak                             |
+|    - Update .env keys:                                                                                  |
+|        NEO_CONSUMER_KEY="<new_consumer_key>"                                                            |
+|        NEO_MPIN="<new_mpin>"                                                                            |
+|        NEO_TOTP_SECRET="<new_totp_seed>"                                                                |
+|    - Enforce strict file permissions: chmod 600 .env                                                    |
+|                                                                                                         |
+|  Step 4: Service Initialization & Handshake Verification                                                |
+|    - Restart service: sudo systemctl start kotak-terminal                                               |
+|    - Monitor logs: journalctl -u kotak-terminal -n 50 -f                                                |
+|    - Open /terminal, execute Login with new credentials, verify profile retrieval matches NEO_UCC.      |
+|    - Once verified, securely purge backup: shred -u .env.bak                                            |
++---------------------------------------------------------------------------------------------------------+
+```
+
 ---
 
 ## 14. Disaster Recovery Runbook
@@ -510,6 +545,37 @@ WantedBy=multi-user.target
   sudo systemctl start kotak-terminal
   ```
 
+### 14.2. Kill-Switch Validation Drill
+
+To prevent disaster response failures during actual market panics, operators must conduct a weekly pre-market **Kill-Switch Validation Drill**:
+
+```
++---------------------------------------------------------------------------------------------------------+
+|                                    KILL-SWITCH VALIDATION DRILL                                         |
+|                                                                                                         |
+|  Drill Schedule: Every Monday between 08:45 and 09:00 IST (Pre-Market)                                  |
+|                                                                                                         |
+|  Execution Protocol:                                                                                    |
+|    1. Set Execution Mode to PAPER.                                                                      |
+|    2. Stage 5 synthetic open Limit orders across different underlyings:                                |
+|         - NIFTY 50 Call Option (Far OTM Limit Buy)                                                      |
+|         - BANKNIFTY Put Option (Far OTM Limit Buy)                                                      |
+|         - RELIANCE Equity (5% Below Market Limit Buy)                                                   |
+|         - INFY Equity (5% Below Market Limit Buy)                                                       |
+|         - TCS Equity (5% Below Market Limit Buy)                                                        |
+|    3. Verify all 5 orders render with OPEN status in Order Book (Alt+2).                                |
+|    4. Trigger Global Emergency Kill-Switch via Shift + Esc shortcut.                                    |
+|    5. Confirm modal prompt: "CANCEL ALL 5 ACTIVE ORDERS?".                                              |
+|                                                                                                         |
+|  Verification Acceptance Thresholds:                                                                    |
+|    ├── Total Cancellation Latency: <= 500ms for all 5 orders to report CANCELLED.                       |
+|    ├── Audit Log Verification: AUDIT_ORDERS_CANCEL_ALL logged with user_id, timestamp, and IP.          |
+|    ├── Fallback Channel Test: Disconnect WebSocket network; strike Shift+Esc; assert cancel-all         |
+|    │   executes reliably via REST HTTP fallback without hanging.                                        |
+|    └── Zero Ghost Orders: Refresh Order Book (R); assert 0 open orders remain active.                   |
++---------------------------------------------------------------------------------------------------------+
+```
+
 ---
 
 ## 15. Compliance & Invariant Traceability Matrix
@@ -536,3 +602,4 @@ Following formal review and user approval of `PHASE12_DESIGN_SPEC.md`, execution
 2. **Sub-Phase 12B:** Live Single Order (Equity & Option) & Multi-Leg Basket UAT
 3. **Sub-Phase 12C:** Soak Testing, Chaos Injection & Disaster Recovery Drills
 4. **Sub-Phase 12D:** Cloud Deployment, Systemd Packaging & V1 Production Release Sign-Off
+
