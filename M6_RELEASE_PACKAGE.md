@@ -315,3 +315,4 @@ To advance the terminal from the Milestone M6 baseline to the final **V1 Product
 4. **Operator User Guide & Disaster Recovery Runbook:**
    - Compile comprehensive Operator Manual detailing keyboard shortcuts, strategy templates, and order workflows.
    - Author Disaster Recovery Runbook covering emergency kill-switch procedures, session reconnect workflows, and broker API outage handling.
+
