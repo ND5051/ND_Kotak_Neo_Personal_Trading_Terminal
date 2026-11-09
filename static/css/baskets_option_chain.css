@@ -1,0 +1,789 @@
+/**
+ * Kotak Neo Personal Trading Terminal - Phase 11D
+ * Option Chain Workbench & Multi-Leg Strategy Basket Builder Stylesheet
+ */
+
+/* ==========================================================================
+   1. Option Chain Workbench Layout
+   ========================================================================== */
+.option-chain-container,
+.basket-builder-container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) 0;
+    width: 100%;
+}
+
+.option-chain-header,
+.basket-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+}
+
+.oc-header-left,
+.basket-header-left {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    flex-wrap: wrap;
+}
+
+.oc-header-left h3,
+.basket-header-left h3 {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.oc-spot-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--bg-secondary);
+    padding: 3px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
+    font-size: 0.85rem;
+}
+
+.oc-spot-badge .spot-lbl {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.oc-header-controls,
+.basket-header-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    flex-wrap: wrap;
+}
+
+.control-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+/* Sentiment & PCR Bar */
+.oc-sentiment-bar {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: var(--spacing-sm);
+    padding: var(--spacing-xs) var(--spacing-md);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+}
+
+.sentiment-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.sentiment-item .lbl {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.sentiment-item .val {
+    font-size: 0.95rem;
+    font-weight: 700;
+}
+
+/* Strategy Shortcuts Bar */
+.oc-strategy-shortcuts-bar {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: 6px var(--spacing-md);
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    flex-wrap: wrap;
+}
+
+.shortcuts-lbl {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-right: 4px;
+}
+
+/* ==========================================================================
+   2. Symmetrical Strike Matrix Table
+   ========================================================================== */
+.oc-table-container {
+    max-height: calc(100vh - 270px);
+    overflow: auto;
+}
+
+.oc-matrix-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.oc-matrix-table th {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: var(--bg-secondary);
+}
+
+.super-header th {
+    font-size: 0.75rem;
+    letter-spacing: 1px;
+    padding: 4px 8px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.call-super-header {
+    background: rgba(0, 208, 156, 0.08) !important;
+    color: var(--accent-green);
+    border-right: 2px solid var(--border-color);
+}
+
+.strike-super-header {
+    background: var(--bg-card) !important;
+    color: var(--accent-warning);
+    font-weight: 800;
+    border-right: 2px solid var(--border-color);
+}
+
+.put-super-header {
+    background: rgba(235, 87, 87, 0.08) !important;
+    color: var(--accent-red);
+    border-right: 2px solid var(--border-color);
+}
+
+.strike-col-header {
+    background: var(--bg-card) !important;
+    border-left: 2px solid var(--border-color);
+    border-right: 2px solid var(--border-color);
+}
+
+/* ITM Shading */
+.oc-matrix-table td.itm-call {
+    background: rgba(255, 193, 7, 0.06);
+}
+
+.oc-matrix-table td.itm-put {
+    background: rgba(255, 193, 7, 0.06);
+}
+
+/* ATM Row Highlight */
+.oc-matrix-table tr.strike-atm td {
+    background: rgba(242, 153, 74, 0.15) !important;
+    border-top: 1px solid var(--accent-warning) !important;
+    border-bottom: 1px solid var(--accent-warning) !important;
+}
+
+.oc-matrix-table tr.strike-atm td.strike-cell {
+    color: var(--accent-warning);
+    font-weight: 800;
+}
+
+.strike-cell {
+    background: var(--bg-card);
+    font-weight: 700;
+    border-left: 2px solid var(--border-color);
+    border-right: 2px solid var(--border-color);
+    position: relative;
+}
+
+/* In-Cell Open Interest Visual Bars */
+.oi-cell {
+    position: relative;
+    overflow: hidden;
+}
+
+.oi-bar {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    z-index: 1;
+    opacity: 0.18;
+    pointer-events: none;
+    transition: width 0.3s ease;
+}
+
+.oi-bar.call {
+    right: 0;
+    background: var(--accent-green);
+}
+
+.oi-bar.put {
+    left: 0;
+    background: var(--accent-red);
+}
+
+.oi-text {
+    position: relative;
+    z-index: 2;
+}
+
+/* Support & Resistance Badges */
+.badge-resistance {
+    background: rgba(235, 87, 87, 0.2);
+    color: var(--accent-red);
+    border: 1px solid rgba(235, 87, 87, 0.4);
+    font-size: 0.65rem;
+    padding: 1px 4px;
+    border-radius: 3px;
+    margin-left: 4px;
+}
+
+.badge-support {
+    background: rgba(0, 208, 156, 0.2);
+    color: var(--accent-green);
+    border: 1px solid rgba(0, 208, 156, 0.4);
+    font-size: 0.65rem;
+    padding: 1px 4px;
+    border-radius: 3px;
+    margin-left: 4px;
+}
+
+/* ==========================================================================
+   3. Strategy Template Selector
+   ========================================================================== */
+.basket-templates-card {
+    padding: var(--spacing-sm) var(--spacing-md);
+}
+
+.templates-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: var(--spacing-xs);
+}
+
+.templates-header h4 {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+}
+
+.templates-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 8px;
+}
+
+.template-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 8px 6px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-align: center;
+}
+
+.template-btn:hover {
+    background: var(--bg-hover);
+    border-color: var(--accent-primary);
+    transform: translateY(-1px);
+}
+
+.template-btn .tpl-icon {
+    font-size: 1.2rem;
+}
+
+.template-btn .tpl-name {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.template-btn .tpl-desc {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+}
+
+/* ==========================================================================
+   4. Basket Lot Multiplier & Table Controls
+   ========================================================================== */
+.basket-name-wrap input {
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.basket-name-wrap input:hover,
+.basket-name-wrap input:focus {
+    background: var(--bg-input);
+    border-color: var(--border-color);
+}
+
+.basket-autosave-info {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.basket-lot-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px var(--spacing-md);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+}
+
+.lot-bar-left {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    font-size: 0.85rem;
+}
+
+.lot-stepper {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: var(--bg-card);
+}
+
+.lot-mult-val {
+    padding: 2px 10px;
+    font-size: 0.85rem;
+}
+
+/* ==========================================================================
+   5. Dependency Execution Graph (DAG)
+   ========================================================================== */
+.basket-dag-card {
+    padding: var(--spacing-sm) var(--spacing-md);
+}
+
+.dag-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-xs);
+}
+
+.dag-header h4 {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.dag-pipeline {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    background: var(--bg-secondary);
+    padding: var(--spacing-sm);
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
+    overflow-x: auto;
+}
+
+.dag-stage {
+    flex: 1;
+    min-width: 220px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 6px 10px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+}
+
+.dag-stage .stage-header {
+    display: flex;
+    flex-direction: column;
+    border-bottom: 1px dashed var(--border-color);
+    padding-bottom: 4px;
+}
+
+.stage-tag {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--accent-primary);
+}
+
+.stage-desc {
+    font-size: 0.65rem;
+}
+
+.stage-nodes {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 4px;
+}
+
+.dag-node {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 3px 6px;
+    background: var(--bg-secondary);
+    border-radius: 3px;
+    font-size: 0.75rem;
+}
+
+.dag-node.side-buy {
+    border-left: 3px solid var(--accent-green);
+}
+
+.dag-node.side-sell {
+    border-left: 3px solid var(--accent-red);
+}
+
+.dag-arrow {
+    font-size: 1.5rem;
+    color: var(--text-muted);
+}
+
+/* ==========================================================================
+   6. Pre-Flight Validation Panel
+   ========================================================================== */
+.basket-validation-panel {
+    padding: var(--spacing-sm) var(--spacing-md);
+}
+
+.validation-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-xs);
+}
+
+.validation-header h4 {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.validation-checklist {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 6px;
+    font-size: 0.8rem;
+}
+
+.check-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-muted);
+}
+
+.check-item.passed {
+    color: var(--text-primary);
+}
+
+.check-item.passed .chk-icon {
+    color: var(--accent-green);
+}
+
+.check-item.failed {
+    color: var(--accent-red);
+    font-weight: 600;
+}
+
+.check-item.failed .chk-icon {
+    color: var(--accent-red);
+}
+
+.validation-errors-box {
+    margin-top: 8px;
+    padding: 6px 10px;
+    background: rgba(235, 87, 87, 0.1);
+    border: 1px solid var(--accent-red);
+    border-radius: 4px;
+    color: var(--accent-red);
+    font-size: 0.8rem;
+}
+
+/* ==========================================================================
+   7. Risk Summary & Exposure State Display
+   ========================================================================== */
+.basket-summary-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-md);
+}
+
+@media (max-width: 900px) {
+    .basket-summary-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.summary-card {
+    padding: var(--spacing-sm) var(--spacing-md);
+}
+
+.summary-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-xs);
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 4px;
+}
+
+.summary-card-header h4 {
+    margin: 0;
+    font-size: 0.85rem;
+}
+
+.summary-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.s-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.82rem;
+}
+
+.s-row .lbl {
+    color: var(--text-muted);
+}
+
+.s-row .val {
+    color: var(--text-primary);
+}
+
+/* ==========================================================================
+   8. Execution Bar & Real-Time Execution Monitor
+   ========================================================================== */
+.basket-execution-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-sm) var(--spacing-md);
+}
+
+.exec-left {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    font-size: 0.85rem;
+}
+
+.exec-right {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.basket-exec-monitor {
+    padding: var(--spacing-md);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    background: var(--bg-card);
+    border: 2px solid var(--accent-primary);
+    border-radius: var(--border-radius-sm);
+}
+
+.monitor-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.monitor-header h4 {
+    margin: 0;
+    font-size: 0.95rem;
+}
+
+.monitor-status-text {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.monitor-legs-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.monitor-leg-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 10px;
+    background: var(--bg-secondary);
+    border-radius: 4px;
+    font-size: 0.8rem;
+}
+
+.monitor-actions {
+    display: flex;
+    justify-content: flex-end;
+}
+
+/* ==========================================================================
+   9. Docked Bottom Basket Drawer
+   ========================================================================== */
+.basket-drawer {
+    position: fixed;
+    bottom: 30px; /* Above terminal footer */
+    left: 0;
+    right: 0;
+    z-index: 40;
+    background: var(--bg-card);
+    border-top: 2px solid var(--border-color);
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.4);
+    transition: transform 0.25s ease;
+}
+
+.basket-drawer.collapsed .basket-drawer-body {
+    display: none;
+}
+
+.basket-drawer.collapsed {
+    border-top-color: var(--accent-primary);
+}
+
+.basket-drawer-handle {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px var(--spacing-md);
+    background: var(--bg-secondary);
+    cursor: pointer;
+    user-select: none;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.drawer-handle-left {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.drawer-handle-right {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    font-size: 0.8rem;
+}
+
+.drawer-strat-tag {
+    font-size: 0.7rem;
+    color: var(--accent-primary);
+    background: rgba(27, 115, 232, 0.1);
+    padding: 1px 6px;
+    border-radius: 3px;
+}
+
+.basket-drawer-body {
+    padding: var(--spacing-sm) var(--spacing-md);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--spacing-md);
+    max-height: 120px;
+    overflow-y: auto;
+}
+
+.drawer-legs-compact {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    flex: 1;
+}
+
+.drawer-leg-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    background: var(--bg-secondary);
+    border-radius: 4px;
+    font-size: 0.75rem;
+    border: 1px solid var(--border-color);
+}
+
+.drawer-leg-chip.buy {
+    border-left: 3px solid var(--accent-green);
+}
+
+.drawer-leg-chip.sell {
+    border-left: 3px solid var(--accent-red);
+}
+
+.drawer-actions-bar {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+/* ==========================================================================
+   10. Compact Mode Overrides (.compact-mode)
+   ========================================================================== */
+#app-root.compact-mode .oc-table-container {
+    max-height: calc(100vh - 230px);
+}
+
+#app-root.compact-mode .oc-matrix-table td,
+#app-root.compact-mode .oc-matrix-table th {
+    padding: 3px 6px;
+    font-size: 0.75rem;
+}
+
+#app-root.compact-mode .oc-sentiment-bar {
+    padding: 2px var(--spacing-sm);
+    gap: 4px;
+}
+
+#app-root.compact-mode .sentiment-item .val {
+    font-size: 0.8rem;
+}
+
+#app-root.compact-mode .template-btn {
+    padding: 4px 4px;
+}
+
+#app-root.compact-mode .template-btn .tpl-icon {
+    font-size: 0.9rem;
+}
+
+#app-root.compact-mode .template-btn .tpl-name {
+    font-size: 0.7rem;
+}
+
+#app-root.compact-mode .template-btn .tpl-desc {
+    display: none;
+}
+
+#app-root.compact-mode .basket-drawer {
+    bottom: 24px;
+}

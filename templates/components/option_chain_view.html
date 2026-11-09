@@ -1,0 +1,158 @@
+<!-- Phase 11D: Option Chain Workbench Component -->
+<div class="option-chain-container" id="option-chain-container">
+    <!-- 1. Master Control Header -->
+    <div class="option-chain-header card">
+        <div class="oc-header-left">
+            <h3>Option Chain Workbench</h3>
+            <div class="oc-spot-badge">
+                <span class="spot-lbl">SPOT:</span>
+                <span class="font-numeric font-bold" id="oc-spot-price">24,500.00</span>
+                <span class="font-numeric" id="oc-spot-change">+0.00 (+0.00%)</span>
+            </div>
+            <button class="btn btn-xs btn-ghost" id="oc-fav-btn" title="Toggle favourite underlying">
+                <span id="oc-fav-star">☆</span> Favourite
+            </button>
+        </div>
+
+        <div class="oc-header-controls">
+            <!-- Underlying Selector -->
+            <div class="control-group">
+                <label for="oc-underlying-select">Underlying:</label>
+                <select class="input-select" id="oc-underlying-select">
+                    <option value="NIFTY">NIFTY 50</option>
+                    <option value="BANKNIFTY">BANKNIFTY</option>
+                    <option value="FINNIFTY">FINNIFTY</option>
+                    <option value="MIDCPNIFTY">MIDCPNIFTY</option>
+                    <option value="SENSEX">SENSEX</option>
+                    <option value="RELIANCE">RELIANCE</option>
+                    <option value="HDFCBANK">HDFCBANK</option>
+                    <option value="TCS">TCS</option>
+                    <option value="INFY">INFY</option>
+                </select>
+            </div>
+
+            <!-- Expiry Selector -->
+            <div class="control-group">
+                <label for="oc-expiry-select">Expiry:</label>
+                <select class="input-select" id="oc-expiry-select">
+                    <option value="">Loading expiries...</option>
+                </select>
+            </div>
+
+            <!-- Symmetrical Strike Presets -->
+            <div class="control-group">
+                <label for="oc-preset-select">Strikes:</label>
+                <select class="input-select" id="oc-preset-select">
+                    <option value="ATM_5">ATM ±5 (11 Strikes)</option>
+                    <option value="ATM_10" selected>ATM ±10 (21 Strikes)</option>
+                    <option value="ATM_15">ATM ±15 (31 Strikes)</option>
+                    <option value="ATM_20">ATM ±20 (41 Strikes)</option>
+                </select>
+            </div>
+
+            <button class="btn btn-sm btn-secondary" id="oc-refresh-btn" title="Force refresh option chain touchlines">
+                <span class="refresh-icon">🔄</span> Refresh
+            </button>
+        </div>
+    </div>
+
+    <!-- 2. PCR & Max Pain Sentiment Strip -->
+    <div class="oc-sentiment-bar card">
+        <div class="sentiment-item">
+            <span class="lbl">Total Call OI</span>
+            <span class="val font-numeric" id="oc-total-call-oi">0</span>
+        </div>
+        <div class="sentiment-item">
+            <span class="lbl">Total Put OI</span>
+            <span class="val font-numeric" id="oc-total-put-oi">0</span>
+        </div>
+        <div class="sentiment-item">
+            <span class="lbl">PCR (Open Interest)</span>
+            <span class="val font-numeric font-bold" id="oc-pcr-oi">1.00</span>
+            <span class="badge badge-neutral" id="oc-pcr-sentiment">NEUTRAL</span>
+        </div>
+        <div class="sentiment-item">
+            <span class="lbl">PCR (Volume)</span>
+            <span class="val font-numeric" id="oc-pcr-vol">1.00</span>
+        </div>
+        <div class="sentiment-item">
+            <span class="lbl">Max Pain Strike</span>
+            <span class="val font-numeric font-bold text-warning" id="oc-max-pain">—</span>
+        </div>
+        <div class="sentiment-item">
+            <span class="lbl">Key Support / Resistance</span>
+            <span class="val font-numeric">
+                <span class="text-success font-bold" id="oc-key-support" title="Highest Put OI Strike">S: —</span> / 
+                <span class="text-danger font-bold" id="oc-key-resistance" title="Highest Call OI Strike">R: —</span>
+            </span>
+        </div>
+    </div>
+
+    <!-- 3. Quick Strategy Builder Shortcuts Bar -->
+    <div class="oc-strategy-shortcuts-bar card">
+        <span class="shortcuts-lbl">Quick Strategies:</span>
+        <button class="btn btn-xs btn-outline-primary" data-oc-strat="BULL_CALL_SPREAD" title="Buy ATM Call + Sell OTM Call">
+            🐂 Bull Call
+        </button>
+        <button class="btn btn-xs btn-outline-primary" data-oc-strat="BEAR_PUT_SPREAD" title="Buy ATM Put + Sell OTM Put">
+            🐻 Bear Put
+        </button>
+        <button class="btn btn-xs btn-outline-primary" data-oc-strat="STRADDLE" title="Buy ATM Call + ATM Put">
+            🎯 Straddle
+        </button>
+        <button class="btn btn-xs btn-outline-primary" data-oc-strat="STRANGLE" title="Buy OTM Call + Buy OTM Put">
+            ⚡ Strangle
+        </button>
+        <button class="btn btn-xs btn-outline-primary" data-oc-strat="IRON_CONDOR" title="Buy Wings + Sell Body">
+            🦅 Iron Condor
+        </button>
+        <button class="btn btn-xs btn-outline-primary" data-oc-strat="IRON_BUTTERFLY" title="Buy Wings + Sell ATM Straddle">
+            🦋 Iron Butterfly
+        </button>
+        <button class="btn btn-xs btn-secondary" id="oc-open-basket-btn" title="Toggle Basket Drawer (Alt+B)">
+            🧺 View Basket (<span id="oc-basket-legs-badge">0</span>)
+        </button>
+    </div>
+
+    <!-- 4. Symmetrical Strike Matrix Table Container -->
+    <div class="card table-container oc-table-container">
+        <div class="table-responsive">
+            <table class="data-table oc-matrix-table" id="oc-matrix-table">
+                <thead>
+                    <tr class="super-header">
+                        <th colspan="5" class="text-center call-super-header">CALLS (CE)</th>
+                        <th class="text-center strike-super-header">STRIKE</th>
+                        <th colspan="5" class="text-center put-super-header">PUTS (PE)</th>
+                        <th class="text-center">PIN</th>
+                    </tr>
+                    <tr>
+                        <!-- Calls -->
+                        <th class="text-right">OI (Lots)</th>
+                        <th class="text-right">dOI</th>
+                        <th class="text-right">Vol (k)</th>
+                        <th class="text-right">LTP (₹)</th>
+                        <th class="text-center">Trade</th>
+                        <!-- Strike -->
+                        <th class="text-center strike-col-header">Strike (₹)</th>
+                        <!-- Puts -->
+                        <th class="text-center">Trade</th>
+                        <th class="text-right">LTP (₹)</th>
+                        <th class="text-right">Vol (k)</th>
+                        <th class="text-right">dOI</th>
+                        <th class="text-right">OI (Lots)</th>
+                        <!-- Pin -->
+                        <th class="text-center">WL</th>
+                    </tr>
+                </thead>
+                <tbody id="oc-matrix-tbody">
+                    <!-- Populated dynamically via option_chain.js -->
+                </tbody>
+            </table>
+        </div>
+        <div class="empty-state hidden" id="oc-empty-state">
+            <span class="empty-icon">⛓️</span>
+            <h4>No Option Contracts Loaded</h4>
+            <p>Select a valid underlying and expiry above to load the symmetrical strike matrix.</p>
+        </div>
+    </div>
+</div>

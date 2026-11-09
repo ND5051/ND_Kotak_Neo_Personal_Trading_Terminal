@@ -1,0 +1,305 @@
+<!-- Phase 11D: Multi-Leg Strategy & Basket Builder Component -->
+<div class="basket-builder-container" id="basket-builder-container">
+    <!-- 1. Header with Metadata, Auto-Save Status & Global Actions -->
+    <div class="basket-header card">
+        <div class="basket-header-left">
+            <h3>Basket Builder</h3>
+            <div class="basket-name-wrap">
+                <input type="text" class="input-text input-sm font-bold" id="basket-name-input" value="Strategy Basket 1" placeholder="Basket Name" />
+            </div>
+            <span class="badge badge-primary" id="basket-strategy-badge">CUSTOM</span>
+            <span class="badge badge-neutral" id="basket-target-expiry">NO EXPIRY</span>
+            <span class="basket-autosave-info" id="basket-draft-status">
+                Draft Auto-Saved: <span class="font-numeric" id="basket-draft-saved-time">--:--:--</span>
+            </span>
+        </div>
+
+        <div class="basket-header-actions">
+            <button class="btn btn-sm btn-ghost text-danger" id="basket-clear-btn" title="Clear all legs (Alt+C)">
+                🗑️ Clear All
+            </button>
+            <button class="btn btn-sm btn-secondary" id="basket-add-manual-leg-btn" title="Add manual custom leg (Ctrl+L)">
+                ➕ Add Leg
+            </button>
+            <button class="btn btn-sm btn-secondary" id="basket-refresh-btn" title="Refresh touchlines and margin">
+                <span class="refresh-icon">🔄</span> Refresh
+            </button>
+        </div>
+    </div>
+
+    <!-- 2. Strategy Template Selector (8 Invariant Patterns) -->
+    <div class="card basket-templates-card">
+        <div class="templates-header">
+            <h4>Strategy Templates (1-Click Scaffolding)</h4>
+            <span class="text-muted font-sm">Auto-selects strikes relative to spot price</span>
+        </div>
+        <div class="templates-grid">
+            <button class="template-btn" data-template="BULL_CALL_SPREAD" title="Debit Directional Bullish: Buy ATM Call + Sell OTM Call">
+                <span class="tpl-icon">🐂</span>
+                <span class="tpl-name">Bull Call Spread</span>
+                <span class="tpl-desc">Debit Bullish</span>
+            </button>
+            <button class="template-btn" data-template="BEAR_PUT_SPREAD" title="Debit Directional Bearish: Buy ATM Put + Sell OTM Put">
+                <span class="tpl-icon">🐻</span>
+                <span class="tpl-name">Bear Put Spread</span>
+                <span class="tpl-desc">Debit Bearish</span>
+            </button>
+            <button class="template-btn" data-template="STRADDLE" title="Volatility Breakout: Buy ATM Call + Buy ATM Put">
+                <span class="tpl-icon">🎯</span>
+                <span class="tpl-name">Long Straddle</span>
+                <span class="tpl-desc">Vol Breakout</span>
+            </button>
+            <button class="template-btn" data-template="STRANGLE" title="Volatility Expansion: Buy OTM Call + Buy OTM Put">
+                <span class="tpl-icon">⚡</span>
+                <span class="tpl-name">Long Strangle</span>
+                <span class="tpl-desc">Vol Expansion</span>
+            </button>
+            <button class="template-btn" data-template="IRON_CONDOR" title="Defined Risk Credit: Buy Outer Wings + Sell Inner Body">
+                <span class="tpl-icon">🦅</span>
+                <span class="tpl-name">Iron Condor</span>
+                <span class="tpl-desc">Defined Risk Credit</span>
+            </button>
+            <button class="template-btn" data-template="IRON_BUTTERFLY" title="Defined Risk High Credit: Buy Outer Wings + Sell ATM Straddle">
+                <span class="tpl-icon">🦋</span>
+                <span class="tpl-name">Iron Butterfly</span>
+                <span class="tpl-desc">Max Premium Credit</span>
+            </button>
+            <button class="template-btn" data-template="COVERED_CALL" title="Income on Demat Stock: Long Equity + Short OTM Call">
+                <span class="tpl-icon">🛡️</span>
+                <span class="tpl-name">Covered Call</span>
+                <span class="tpl-desc">Holdings Income</span>
+            </button>
+            <button class="template-btn" data-template="PROTECTIVE_PUT" title="Downside Insurance: Long Equity + Long ATM/OTM Put">
+                <span class="tpl-icon">☂️</span>
+                <span class="tpl-name">Protective Put</span>
+                <span class="tpl-desc">Downside Hedge</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 3. Global Lot Multiplier & Synchronizer Bar -->
+    <div class="basket-lot-bar card">
+        <div class="lot-bar-left">
+            <span class="lbl">Combined Strategy Multiplier:</span>
+            <div class="lot-stepper">
+                <button class="btn btn-xs btn-secondary" id="lot-mult-down">-</button>
+                <span class="lot-mult-val font-numeric font-bold" id="lot-multiplier-display">1x</span>
+                <button class="btn btn-xs btn-secondary" id="lot-mult-up">+</button>
+            </div>
+            <span class="text-muted font-sm" id="lot-units-caption">(All legs scaled by 1x)</span>
+        </div>
+        <div class="lot-bar-right">
+            <span>Legs: <strong class="font-numeric" id="basket-legs-count">0</strong> / 10 max</span>
+        </div>
+    </div>
+
+    <!-- 4. Leg Grid Editor Table -->
+    <div class="card table-container">
+        <div class="table-responsive">
+            <table class="data-table" id="basket-legs-table">
+                <thead>
+                    <tr>
+                        <th class="text-center">#</th>
+                        <th class="text-center">Stage</th>
+                        <th>Side</th>
+                        <th>Instrument Symbol</th>
+                        <th>Product</th>
+                        <th>Order Type</th>
+                        <th class="text-right">Lots</th>
+                        <th class="text-right">Qty</th>
+                        <th class="text-right">Price (₹)</th>
+                        <th class="text-center">MP %</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="basket-legs-tbody">
+                    <!-- Injected dynamically via basket_builder.js -->
+                </tbody>
+            </table>
+        </div>
+        <div class="empty-state" id="basket-empty-state">
+            <span class="empty-icon">🧺</span>
+            <h4>No Strategy Legs in Basket</h4>
+            <p>Add legs from the <strong>Option Chain Workbench</strong> using <code>[➕ Leg]</code> or pick a <strong>Strategy Template</strong> above.</p>
+        </div>
+    </div>
+
+    <!-- 5. Dependency Execution Graph (DAG) -->
+    <div class="card basket-dag-card" id="basket-dag-card">
+        <div class="dag-header">
+            <h4>Dependency Execution Graph (Sequential DAG)</h4>
+            <span class="badge badge-neutral" id="dag-stage-badge">SEQUENTIAL EXECUTION</span>
+        </div>
+        <div class="dag-pipeline" id="dag-pipeline-container">
+            <div class="dag-stage" id="dag-stage-1">
+                <div class="stage-header">
+                    <span class="stage-tag">STAGE 1: LONG HEDGES</span>
+                    <span class="stage-desc text-muted">Executes first to guarantee exchange margin relief</span>
+                </div>
+                <div class="stage-nodes" id="dag-stage-1-nodes">
+                    <span class="text-muted font-sm">No hedge legs in Stage 1</span>
+                </div>
+            </div>
+            <div class="dag-arrow">&rarr;</div>
+            <div class="dag-stage" id="dag-stage-2">
+                <div class="stage-header">
+                    <span class="stage-tag">STAGE 2: SHORT BODY / WRITES</span>
+                    <span class="stage-desc text-muted">Executes under reduced margin block after Stage 1 confirms</span>
+                </div>
+                <div class="stage-nodes" id="dag-stage-2-nodes">
+                    <span class="text-muted font-sm">No short legs in Stage 2</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 6. Pre-Flight Validation Panel -->
+    <div class="card basket-validation-panel" id="basket-validation-card">
+        <div class="validation-header">
+            <h4>Pre-Flight Invariant Validation Checklist</h4>
+            <span class="badge badge-neutral" id="validation-overall-badge">NOT VALIDATED</span>
+        </div>
+        <div class="validation-checklist" id="validation-checklist-items">
+            <div class="check-item" id="chk-syntax">
+                <span class="chk-icon">⚪</span> <span>1. NSE Tick Size (0.05) &amp; Lot Multipliers</span>
+            </div>
+            <div class="check-item" id="chk-expiry">
+                <span class="chk-icon">⚪</span> <span>2. Single-Expiry Spread Invariant</span>
+            </div>
+            <div class="check-item" id="chk-ratio">
+                <span class="chk-icon">⚪</span> <span>3. Strategy Ratio &amp; Wing Symmetry</span>
+            </div>
+            <div class="check-item" id="chk-margin">
+                <span class="chk-icon">⚪</span> <span>4. Account Margin Sufficiency</span>
+            </div>
+            <div class="check-item" id="chk-risk">
+                <span class="chk-icon">⚪</span> <span>5. Exposure Ceiling &amp; Risk Limits</span>
+            </div>
+        </div>
+        <div class="validation-errors-box hidden" id="validation-errors-box">
+            <!-- Specific failure codes injected here -->
+        </div>
+    </div>
+
+    <!-- 7. Risk, Margin & Exposure State Grids -->
+    <div class="basket-summary-grid">
+        <!-- Margin & Financial Summary -->
+        <div class="card summary-card">
+            <div class="summary-card-header">
+                <h4>Margin &amp; Capital Summary</h4>
+                <span class="badge badge-success" id="margin-status-badge">SAFE</span>
+            </div>
+            <div class="summary-rows">
+                <div class="s-row">
+                    <span class="lbl">Individual Leg Gross Margin:</span>
+                    <span class="val font-numeric" id="risk-gross-margin">₹0.00</span>
+                </div>
+                <div class="s-row">
+                    <span class="lbl">Combined Basket Relief Margin:</span>
+                    <span class="val font-numeric font-bold" id="risk-combined-margin">₹0.00</span>
+                </div>
+                <div class="s-row text-success">
+                    <span class="lbl">Margin Relief Savings:</span>
+                    <span class="val font-numeric font-bold" id="risk-margin-savings">₹0.00</span>
+                </div>
+                <div class="s-row">
+                    <span class="lbl">Available Realized Cash:</span>
+                    <span class="val font-numeric" id="risk-avail-cash">₹0.00</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Exposure State Display -->
+        <div class="card summary-card">
+            <div class="summary-card-header">
+                <h4>Exposure State Display</h4>
+                <span class="badge badge-neutral" id="exposure-risk-type">DEFINED RISK</span>
+            </div>
+            <div class="summary-rows">
+                <div class="s-row">
+                    <span class="lbl">Net Premium Flow:</span>
+                    <span class="val font-numeric font-bold" id="risk-net-premium">₹0.00 (0.00 pts)</span>
+                </div>
+                <div class="s-row">
+                    <span class="lbl">Gross Notional Commitment:</span>
+                    <span class="val font-numeric" id="risk-gross-notional">₹0.00</span>
+                </div>
+                <div class="s-row">
+                    <span class="lbl">Max Defined Profit / Loss:</span>
+                    <span class="val font-numeric">
+                        <span class="text-success font-bold" id="risk-max-profit">+₹0.00</span> / 
+                        <span class="text-danger font-bold" id="risk-max-loss">-₹0.00</span>
+                    </span>
+                </div>
+                <div class="s-row">
+                    <span class="lbl">Break-Even Range:</span>
+                    <span class="val font-numeric font-bold" id="risk-breakeven">—</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 8. Execution Controls & Mode Banner -->
+    <div class="card basket-execution-bar">
+        <div class="exec-left">
+            <span class="lbl">Execution Mode:</span>
+            <span class="badge badge-paper font-numeric" id="basket-mode-indicator">{{ execution_mode }}</span>
+            <span class="text-muted font-sm" id="basket-mode-notice">Wire orders simulated safely in paper mode</span>
+        </div>
+        <div class="exec-right">
+            <button class="btn btn-secondary" id="btn-validate-basket">
+                🔍 Validate Basket
+            </button>
+            <button class="btn btn-primary btn-lg" id="btn-execute-basket" disabled>
+                🚀 EXECUTE BASKET (Ctrl+Enter)
+            </button>
+        </div>
+    </div>
+
+    <!-- 9. Real-Time Basket Execution Monitor (Shows during execution) -->
+    <div class="card basket-exec-monitor hidden" id="basket-exec-monitor">
+        <div class="monitor-header">
+            <h4>Basket Execution Monitor: <span class="font-numeric" id="monitor-basket-id">bsk_...</span></h4>
+            <span class="badge badge-primary font-numeric" id="monitor-progress-pct">0%</span>
+        </div>
+        <div class="progress-track">
+            <div class="progress-bar-fill" id="monitor-progress-bar" style="width: 0%;"></div>
+        </div>
+        <div class="monitor-status-text font-numeric" id="monitor-status-text">
+            Initializing sequential DAG pipeline...
+        </div>
+        <div class="monitor-legs-list" id="monitor-legs-list">
+            <!-- Dynamic leg FSM progress rows -->
+        </div>
+        <div class="monitor-actions">
+            <button class="btn btn-danger" id="btn-abort-basket">
+                🛑 ABORT REMAINING LEGS
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Unsaved Changes Warning -->
+<div class="modal-backdrop hidden" id="unsaved-changes-modal">
+    <div class="modal-dialog">
+        <div class="modal-header">
+            <h3 class="text-warning">⚠️ Unsaved Changes Warning</h3>
+            <button class="btn btn-sm btn-icon" id="unsaved-modal-close">✕</button>
+        </div>
+        <div class="modal-body">
+            <p>
+                You have an active strategy basket draft with configured legs. 
+                Switching templates or clearing the basket will discard your current modifications.
+            </p>
+            <div class="card p-sm font-sm">
+                <strong>Current Strategy:</strong> <span id="unsaved-current-strat">CUSTOM</span> &bull; 
+                <span id="unsaved-legs-count">0</span> Active Legs
+            </div>
+            <p class="font-bold text-danger">Do you want to discard your draft and proceed?</p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="unsaved-modal-cancel">Keep Editing</button>
+            <button class="btn btn-danger" id="unsaved-modal-confirm">Discard Changes</button>
+        </div>
+    </div>
+</div>

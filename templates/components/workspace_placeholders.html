@@ -71,34 +71,14 @@
         {% include "components/positions_view.html" %}
     </section>
 
-    <!-- View: Option Chain (Phase 11D Target) -->
+    <!-- View: Option Chain (Phase 11D Component) -->
     <section class="workspace-view" id="view-option-chain" role="tabpanel" aria-labelledby="tab-option-chain">
-        <div class="card view-container">
-            <div class="view-header">
-                <h3>Option Chain Workbench</h3>
-                <span class="badge badge-neutral">Phase 11D Target</span>
-            </div>
-            <div class="empty-state">
-                <span class="empty-icon">⛓️</span>
-                <h4>Option Chain Matrix Engine Verified (Phase 10)</h4>
-                <p>Symmetrical strike filters (ATM ±5 to ±20), OI/PCR engine, and Max Pain analytics will render here in Sub-Phase 11D.</p>
-            </div>
-        </div>
+        {% include "components/option_chain_view.html" %}
     </section>
 
-    <!-- View: Baskets (Phase 11D Target) -->
+    <!-- View: Baskets (Phase 11D Component) -->
     <section class="workspace-view" id="view-baskets" role="tabpanel" aria-labelledby="tab-baskets">
-        <div class="card view-container">
-            <div class="view-header">
-                <h3>Multi-Leg Strategy &amp; Basket Builder</h3>
-                <span class="badge badge-neutral">Phase 11D Target</span>
-            </div>
-            <div class="empty-state">
-                <span class="empty-icon">🧺</span>
-                <h4>Phase 9 Multi-Leg Basket Engine Verified</h4>
-                <p>Strategy templates (Bull Call, Iron Condor, etc.), dependency execution DAGs, and basket idempotency will mount here in Sub-Phase 11D.</p>
-            </div>
-        </div>
+        {% include "components/basket_builder_view.html" %}
     </section>
 
     <!-- View: Funds Full Tab (Phase 11C Expanded) -->

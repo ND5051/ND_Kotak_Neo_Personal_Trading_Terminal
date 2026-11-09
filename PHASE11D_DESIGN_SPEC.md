@@ -438,6 +438,32 @@ Integrated with the Phase 11A UI density engine:
 
 ---
 
+### 2.16. Basket Draft Auto-Save Architecture
+
+To protect options traders from accidental data loss during active spread modeling:
+- **Persistence Storage:** Working basket state is automatically serialized to `localStorage` under `kotak_neo_basket_draft_v1`.
+- **Payload Schema:** Stores `client_basket_id`, `name`, `strategy_type`, `underlying`, `expiry_date`, `lot_multiplier`, and full array of `legs`.
+- **Auto-Save Frequency:** Debounced auto-save triggers on every modification:
+  - Leg addition, deletion, or sequence adjustment.
+  - Price, order type, product, or lot size change.
+  - Template scaffolding instantiation.
+- **Visual Feedback:** Header displays real-time auto-save label: `"Draft Auto-Saved: HH:mm:ss"`.
+- **Session Restoration:** Automatically restores uncommitted basket draft upon workspace tab activation or browser refresh.
+
+---
+
+### 2.17. Unsaved Changes Warning System
+
+Prevents inadvertent destruction of complex multi-leg strategy configurations:
+- **Dirty State Tracking:** The Basket Controller maintains `isDirty` and `hasUnsavedChanges()` flags. A draft is considered "dirty" when it contains $\ge 1$ legs that have not yet been executed.
+- **Protected Actions:**
+  1. **Clear All Basket Action (`[Clear All]` or `Alt + C`):** Intercepts reset and prompts confirmation dialog:
+     *"⚠️ DISCARD BASKET: You have active strategy legs in your draft basket. Are you sure you want to discard all changes?"*
+  2. **Strategy Template Switching:** If legs exist and the operator selects a different strategy template, warns before overwriting current leg grid.
+  3. **Browser Unload / Tab Navigation:** Binds `window.addEventListener('beforeunload', ...)` when dirty, triggering standard browser confirmation.
+
+---
+
 ## 3. Data Models & Front-End State Contracts
 
 ```typescript

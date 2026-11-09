@@ -1,0 +1,29 @@
+<!-- Phase 11D: Docked Bottom Basket Drawer Component -->
+<div class="basket-drawer collapsed" id="basket-docked-drawer">
+    <div class="basket-drawer-handle" id="basket-drawer-toggle" title="Click to expand/collapse basket drawer (Alt+B)">
+        <div class="drawer-handle-left">
+            <span class="drawer-icon">🧺</span>
+            <span class="drawer-title">Active Strategy Basket</span>
+            <span class="badge badge-primary font-numeric" id="drawer-legs-badge">0 Legs</span>
+            <span class="drawer-strat-tag" id="drawer-strat-name">CUSTOM</span>
+        </div>
+        <div class="drawer-handle-right">
+            <span class="drawer-margin-pill font-numeric">
+                Est. Margin: <strong id="drawer-margin-val">₹0.00</strong>
+            </span>
+            <span class="drawer-toggle-arrow" id="drawer-arrow-icon">▲</span>
+        </div>
+    </div>
+
+    <div class="basket-drawer-body" id="basket-drawer-body">
+        <div class="drawer-legs-compact" id="drawer-legs-container">
+            <!-- Compact leg chips injected via basket_builder.js -->
+            <span class="text-muted font-sm" id="drawer-empty-hint">No legs added yet. Click [➕ Leg] on any strike row.</span>
+        </div>
+        <div class="drawer-actions-bar">
+            <button class="btn btn-xs btn-ghost text-danger" id="drawer-clear-btn">Clear</button>
+            <button class="btn btn-xs btn-secondary" id="drawer-goto-basket-btn">Open Full Workbench (Alt+6)</button>
+            <button class="btn btn-xs btn-primary font-bold" id="drawer-execute-btn" disabled>Execute Basket</button>
+        </div>
+    </div>
+</div>
