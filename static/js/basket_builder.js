@@ -1007,3 +1007,4 @@
     // Export singleton instance
     window.basketBuilderController = new BasketBuilderController();
 })(window, document);
+
