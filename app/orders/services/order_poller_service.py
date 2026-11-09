@@ -236,6 +236,9 @@ class OrderPollerService:
                         return order
 
             except Exception as e:
+                err_str = str(e).lower()
+                if "no such table" in err_str or "closed file" in err_str:
+                    return order
                 logger.warning(f"Poller attempt {attempt} failed for {broker_id}: {str(e)}")
 
             delay = min(delay * 1.5, 1.0)

@@ -300,8 +300,9 @@ class KotakOrderAdapter(KotakOrderAdapterInterface):
     # 5. Order Book
     def get_order_book(self, credentials: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
         """Retrieve daily order book from Kotak Neo."""
-        if self._is_mock():
-            return []
+        with self._lock:
+            if self._is_mock():
+                return list(self._simulated_orders.values())
         try:
             resp = self.client.order_report()
             if isinstance(resp, list):
@@ -317,8 +318,19 @@ class KotakOrderAdapter(KotakOrderAdapterInterface):
     # 6. Trade Book
     def get_trade_book(self, credentials: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
         """Retrieve daily trade book (executed fills) from Kotak Neo."""
-        if self._is_mock():
-            return []
+        with self._lock:
+            simulated_trades = []
+            for ord_id, ord_data in self._simulated_orders.items():
+                if ord_data.get("ordSt") == "complete":
+                    simulated_trades.append({
+                        "nOrdNo": ord_id,
+                        "trdId": f"TRD_{ord_id[-6:]}",
+                        "trdPrc": ord_data.get("avgPrc", "100.0"),
+                        "trdQty": ord_data.get("fldQty", "1"),
+                        "trdDt": datetime.now(timezone.utc).strftime("%d/%m/%Y %H:%M:%S"),
+                    })
+            if self._is_mock():
+                return simulated_trades
         try:
             resp = self.client.trade_report()
             if isinstance(resp, list):

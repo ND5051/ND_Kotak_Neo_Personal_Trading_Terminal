@@ -165,3 +165,4 @@ def test_uat_non_destructive_depth_cache():
     assert len(retrieved.depth_bids) == 1
     assert len(retrieved.depth_asks) == 1
     assert retrieved.depth_bids[0]["price"] == 51990.0
+
