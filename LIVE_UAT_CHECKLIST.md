@@ -74,6 +74,14 @@ All tests conform to the **Project Constitution**:
 |     [ ] 5.10 Verify Positions view displays Net Qty = 1, product = CNC/MIS.                             |
 |     [ ] 5.11 Square off position via [Exit] button; verify net position returns to 0.                   |
 +---------------------------------------------------------------------------------------------------------+
+| [ ] 5A. Live Equity Roundtrip Verification                                                              |
+|     [ ] 5A.1 Buy 1 Share: Place 1 share BUY Limit/MP order on liquid cash scrip (e.g. INFY/ITC).       |
+|     [ ] 5A.2 Verify Fill: Confirm order transitions to TRADED with valid broker trade number.           |
+|     [ ] 5A.3 Sell Same Share: Place 1 share SELL order for exact scrip and product type.                |
+|     [ ] 5A.4 Verify Net Position = 0: Ensure Open/Intraday Positions view confirms Net Qty = 0.         |
+|     [ ] 5A.5 Verify Holdings Reconcile: Ensure Demat/CNC settled holdings remain completely unaffected. |
+|     [ ] 5A.6 Verify Trade Book Matches Broker: Confirm both Buy & Sell fills match broker ledger.       |
++---------------------------------------------------------------------------------------------------------+
 | [ ] 6. Live Option Order Verification (Micro-Lot: 1 Lot)                                                |
 |     [ ] 6.1 Select liquid derivative contract on nse_fo (e.g. NIFTY Current Expiry OTM Call).           |
 |     [ ] 6.2 Validate lot size invariant: Quantity must be integer multiple of benchmark lot (50 Qty).  |
@@ -117,6 +125,7 @@ All tests conform to the **Project Constitution**:
 | **3. LIVE Mode** | ________ | ________ | ________ | ________ | ________________________ |
 | **4. Kill-Switch** | ________ | ________ | ________ | ________ | ________________________ |
 | **5. Equity Order** | ________ | ________ | ________ | ________ | ________________________ |
+| **5A. Equity Roundtrip** | ________ | ________ | ________ | ________ | ________________________ |
 | **6. Option Order** | ________ | ________ | ________ | ________ | ________________________ |
 | **7. Basket Order** | ________ | ________ | ________ | ________ | ________________________ |
 | **8. EOD Reconciliation** | ________ | ________ | ________ | ________ | ________________________ |
@@ -124,3 +133,52 @@ All tests conform to the **Project Constitution**:
 **Primary Operator Signature:** ___________________________  
 **Trading Terminal Version:** Milestone M7 (Phase 12B v1.0.0)  
 **Broker Environment:** Kotak Neo Broker API (`kotakneoapi>=3.0.13`)  
+
+---
+
+## 4. Section 5A Operational Runbook: Live Equity Roundtrip Verification
+
+This section governs the mandatory live capital micro-lot roundtrip execution drill prior to multi-lot or derivative trading.
+
+### 4.1. Objective
+Confirm that the terminal executes a clean complete roundtrip (Buy $\to$ Fill $\to$ Sell $\to$ Flat) without leaving orphan positions, margin blocks, Demat delivery custody misallocations, or ledger desynchronizations.
+
+### 4.2. Step-by-Step Execution Protocol
+
+```
++---------------------------------------------------------------------------------------------------------+
+|                                SECTION 5A: LIVE EQUITY ROUNDTRIP PROTOCOL                               |
++---------------------------------------------------------------------------------------------------------+
+| Step 1: Buy 1 Share                                                                                     |
+|   - Select high-liquidity large-cap equity scrip (e.g., INFY, ITC, TCS) on exchange nse_cm.             |
+|   - Set ProductType to MIS (Intraday) or CNC (Cash Delivery).                                           |
+|   - Place 1 share BUY Limit order with Market Protection collar (+2% above Ask) or active touchline.    |
+|   - Capture client_order_id and assert successful broker wire transmission.                            |
+|                                                                                                         |
+| Step 2: Verify Fill                                                                                     |
+|   - Ensure Order Book updates order status to TRADED (Alt+2).                                           |
+|   - Confirm broker order ID (nOrdNo) and trade execution timestamp are populated.                       |
+|   - Verify Trade Book records execution price, fill quantity = 1, and turnover.                         |
+|                                                                                                         |
+| Step 3: Sell Same Share                                                                                 |
+|   - From Positions view (Alt+4) or Order Ticket, initiate SELL order for exact 1 share.                 |
+|   - Keep identical product type (MIS or CNC) and exchange segment (nse_cm).                             |
+|   - Submit SELL order with Market Protection collar (-2% below Bid).                                    |
+|   - Confirm order transitions from ACKNOWLEDGED to TRADED.                                              |
+|                                                                                                         |
+| Step 4: Verify Net Position = 0                                                                         |
+|   - Inspect Open Positions dashboard: Assert Net Quantity == 0 for the traded symbol.                   |
+|   - Verify Realized PnL is computed as (Sell Price - Buy Price) * 1.                                    |
+|   - Verify Unrealized MTM flips to ₹0.00 / — with status CLOSED.                                        |
+|                                                                                                         |
+| Step 5: Verify Holdings Reconcile                                                                       |
+|   - Inspect Holdings view (Alt+3): Assert settled Demat holdings remain intact and unmodified.          |
+|   - Confirm zero unauthorized deductions or collateral locks occurred against Demat shares.             |
+|                                                                                                         |
+| Step 6: Verify Trade Book Matches Broker                                                                |
+|   - Fetch Kotak Neo broker trade report via GET /api/orders/trades or broker mobile/web terminal.       |
+|   - Verify both Buy and Sell trades match broker exchange timestamps, prices, and trade reference IDs.  |
++---------------------------------------------------------------------------------------------------------+
+```
+
+

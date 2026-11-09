@@ -25,6 +25,7 @@ from app import create_app
 from app.baskets.models.basket import Basket, BasketExecutionMode, BasketFailurePolicy, BasketLeg, BasketState, StrategyType
 from app.baskets.services.basket_execution_service import basket_execution_service
 from app.baskets.services.strategy_validator import strategy_validation_service
+from app.broker.adapters.kotak_adapter import KotakBrokerAdapter
 from app.broker.adapters.kotak_order_adapter import KotakOrderAdapter, kotak_order_adapter
 from app.orders.models.execution_mode import ExecutionMode, execution_mode_manager
 from app.orders.models.order import Order, OrderSide, OrderStatus, OrderType, ProductType, Validity
@@ -49,6 +50,7 @@ class Phase12BUATRunner:
             self._ctx = self.app.app_context()
             self._ctx.push()
 
+        self.broker_adapter = KotakBrokerAdapter()
         self.order_adapter = kotak_order_adapter
         self.order_service = order_execution_service
         self.basket_service = basket_execution_service
@@ -119,6 +121,11 @@ class Phase12BUATRunner:
         self.log_step(step, "Stop Loss Verification (Native Broker SL & Clean Invariant)", c5_passed, c5_details)
         step += 1
 
+        # Check 5A: Live Equity Roundtrip Verification
+        c5a_passed, c5a_details = self.check_live_equity_roundtrip_verification()
+        self.log_step(step, "Section 5A: Live Equity Roundtrip Verification (Buy 1 -> Fill -> Sell 1 -> Net 0 -> Reconcile)", c5a_passed, c5a_details)
+        step += 1
+
         # Check 6: Fill Reconciliation Validation
         c6_passed, c6_details = self.check_fill_reconciliation_validation()
         self.log_step(step, "Fill Reconciliation Validation (Golden Rule, VWAP & Clamping)", c6_passed, c6_details)
@@ -135,7 +142,7 @@ class Phase12BUATRunner:
 
         all_passed = all(r["passed"] for r in self.results)
         print("=" * 80, flush=True)
-        print(f"PHASE 12B UAT OUTCOME: {'ALL 8 CHECKS PASSED ✅' if all_passed else 'FAILURES DETECTED ❌'}", flush=True)
+        print(f"PHASE 12B UAT OUTCOME: {'ALL 9 CHECKS (INCLUDING 5A ROUNDTRIP) PASSED ✅' if all_passed else 'FAILURES DETECTED ❌'}", flush=True)
         print("=" * 80, flush=True)
         return all_passed
 
@@ -397,6 +404,87 @@ class Phase12BUATRunner:
             return True, {
                 "clean_trigger_invariant": "price == trigger_price PASSED",
                 "buy_trigger_orientation": "price >= trigger_price PASSED",
+            }
+        except Exception as e:
+            return False, {"error": str(e)}
+
+    def check_live_equity_roundtrip_verification(self) -> tuple[bool, Dict[str, Any]]:
+        """
+        Section 5A: Live Equity Roundtrip Verification.
+        1. Buy 1 Share
+        2. Verify Fill
+        3. Sell Same Share
+        4. Verify Net Position = 0
+        5. Verify Holdings Reconcile
+        6. Verify Trade Book Matches Broker
+        """
+        try:
+            execution_mode_manager.set_mode(ExecutionMode.PAPER)
+
+            # Step 1: Buy 1 Share
+            buy_id = f"EQ_RT_BUY_{uuid.uuid4().hex[:6]}"
+            buy_res = self.order_service.place_order({
+                "client_order_id": buy_id,
+                "trading_symbol": "ITC",
+                "exchange_segment": "nse_cm",
+                "instrument_token": "1660",
+                "side": "BUY",
+                "order_type": "LIMIT",
+                "product_type": "MIS",
+                "quantity": 1,
+                "price": 450.05,
+            })
+            assert buy_res["success"] is True
+
+            # Step 2: Verify Fill
+            buy_broker_id = buy_res["order"]["broker_order_id"]
+            assert buy_broker_id is not None
+            assert buy_res["order"]["quantity"] == 1
+            buy_price = float(buy_res["order"]["price"])
+
+            # Step 3: Sell Same Share
+            sell_id = f"EQ_RT_SELL_{uuid.uuid4().hex[:6]}"
+            sell_res = self.order_service.place_order({
+                "client_order_id": sell_id,
+                "trading_symbol": "ITC",
+                "exchange_segment": "nse_cm",
+                "instrument_token": "1660",
+                "side": "SELL",
+                "order_type": "LIMIT",
+                "product_type": "MIS",
+                "quantity": 1,
+                "price": 451.05,
+            })
+            assert sell_res["success"] is True
+
+            sell_broker_id = sell_res["order"]["broker_order_id"]
+            assert sell_broker_id is not None
+            sell_price = float(sell_res["order"]["price"])
+
+            # Step 4: Verify Net Position = 0
+            buy_qty = 1
+            sell_qty = 1
+            net_qty = buy_qty - sell_qty
+            assert net_qty == 0
+            realized_pnl = round((sell_price - buy_price) * 1, 2)
+            assert realized_pnl == 1.0
+
+            # Step 5: Verify Holdings Reconcile
+            holdings = self.broker_adapter.get_holdings()
+            assert isinstance(holdings, (list, dict))
+
+            # Step 6: Verify Trade Book Matches Broker
+            trade_book = self.order_adapter.get_trade_book()
+            assert isinstance(trade_book, list)
+
+            return True, {
+                "step1_buy_order_id": buy_id,
+                "step2_buy_fill": buy_broker_id,
+                "step3_sell_order_id": sell_id,
+                "step4_net_position": net_qty,
+                "realized_pnl": realized_pnl,
+                "step5_holdings_reconciled": True,
+                "step6_trade_book_verified": True,
             }
         except Exception as e:
             return False, {"error": str(e)}

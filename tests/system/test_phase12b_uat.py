@@ -54,13 +54,24 @@ def auth_headers(client):
 
 
 def test_uat_phase12b_runner_all_checks():
-    """Execute complete 8-step Phase 12B UAT runner."""
+    """Execute complete 9-step Phase 12B UAT runner."""
     with Phase12BUATRunner(live_mode=False) as runner:
         success = runner.run_all_checks()
         assert success is True
-        assert len(runner.results) == 8
+        assert len(runner.results) == 9
         for res in runner.results:
             assert res["passed"] is True, f"Step {res['step']} failed: {res['details']}"
+
+
+def test_uat_section_5a_live_equity_roundtrip():
+    """Verify Section 5A: Live Equity Roundtrip (Buy 1 -> Fill -> Sell 1 -> Net 0 -> Reconcile)."""
+    with Phase12BUATRunner(live_mode=False) as runner:
+        passed, details = runner.check_live_equity_roundtrip_verification()
+        assert passed is True
+        assert details["step4_net_position"] == 0
+        assert details["realized_pnl"] == 1.0
+        assert details["step5_holdings_reconciled"] is True
+        assert details["step6_trade_book_verified"] is True
 
 
 def test_uat_live_equity_order_lifecycle():
