@@ -1,3 +1,4 @@
+import os
 import re
 from typing import Optional, Tuple
 
@@ -68,6 +69,36 @@ class AuthService:
             details={"user_id": saved.id, "username": clean_username},
         )
         return saved
+
+    def ensure_default_operator(
+        self,
+        username: Optional[str] = None,
+        email: Optional[str] = None,
+        password: Optional[str] = None,
+    ) -> Optional[User]:
+        """
+        Ensure at least one default authorized operator account exists.
+        Does NOT authenticate or establish any session. Operator must explicitly login.
+        """
+        op_user = username or os.getenv("DEFAULT_OPERATOR_USERNAME", "admin")
+        op_email = email or os.getenv("DEFAULT_OPERATOR_EMAIL", "admin@kotakneo.local")
+        op_pass = password or os.getenv("DEFAULT_OPERATOR_PASSWORD", "AdminPassword123!")
+
+        try:
+            if not self.user_repo.get_by_username(op_user) and not self.user_repo.get_by_email(op_email):
+                user = self.register_user(
+                    username=op_user,
+                    email=op_email,
+                    password=op_pass,
+                )
+                logger.info(
+                    f"Default terminal operator '{op_user}' created. Explicit login required.",
+                    event="DEFAULT_OPERATOR_CREATED",
+                )
+                return user
+        except Exception as e:
+            logger.debug(f"Default operator check skipped: {str(e)}")
+        return None
 
     def authenticate_user(
         self, username_or_email: str, password: str

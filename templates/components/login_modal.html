@@ -1,0 +1,43 @@
+<!-- Operator Login Modal (Explicit Terminal Authentication) -->
+<div class="modal-backdrop {% if authenticated %}hidden{% endif %}" id="operator-login-modal">
+    <div class="modal-card login-modal-card">
+        <div class="modal-header">
+            <div class="modal-title">
+                <span class="modal-icon">🛡️</span>
+                <h3>Operator Authentication Required</h3>
+            </div>
+        </div>
+
+        <form id="operator-login-form" autocomplete="on">
+            <div class="modal-body">
+                <p class="modal-desc">
+                    Authorized operator credentials are required to activate terminal execution modes, order dispatch, and portfolio monitoring.
+                </p>
+
+                <div class="form-group mb-3">
+                    <label for="login-username" class="form-label">Username or Email</label>
+                    <input type="text" id="login-username" class="input-text w-100" placeholder="admin" autocomplete="username" required autofocus>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label for="login-password" class="form-label">Password</label>
+                    <input type="password" id="login-password" class="input-text w-100" placeholder="••••••••••••" autocomplete="current-password" required>
+                </div>
+
+                <div class="modal-error text-danger hidden" id="login-modal-error"></div>
+
+                <div class="login-credential-hint">
+                    <span>Default Operator: <code>admin</code> / <code>AdminPassword123!</code></span>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="submit" class="btn btn-primary w-100" id="login-submit-btn">
+                    <span id="login-btn-text">Authenticate Operator</span>
+                    <span class="spinner-small hidden" id="login-spinner"></span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+

@@ -72,12 +72,13 @@ def login():
             message="Authentication successful",
             status_code=200,
         )
-        # Set session cookie
+        # Set session cookie across root path
         response.set_cookie(
             "session_id",
             session.session_id,
             httponly=True,
-            samesite="Strict",
+            samesite="Lax",
+            path="/",
         )
         return response, code
     except ValidationException as e:
@@ -107,7 +108,7 @@ def logout():
         data={"status": "logged_out"},
         message="Session terminated successfully",
     )
-    response.delete_cookie("session_id")
+    response.delete_cookie("session_id", path="/")
     return response, code
 
 

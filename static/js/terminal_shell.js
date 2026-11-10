@@ -6,10 +6,56 @@
 (function (window, document) {
     'use strict';
 
+    /* ==========================================================================
+       0. Centralized Authenticated Fetch Wrapper & Interceptor
+       ========================================================================== */
+    const _originalFetch = window.fetch;
+
+    window.apiFetch = async function (url, options = {}) {
+        options = Object.assign({}, options);
+        options.credentials = options.credentials || 'same-origin';
+        options.headers = Object.assign({}, options.headers || {});
+
+        const token = window.sessionStorage.getItem('terminal_token') || window.localStorage.getItem('terminal_token');
+        if (token && !options.headers['Authorization']) {
+            options.headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        if (options.body && typeof options.body === 'object' && !(options.body instanceof FormData)) {
+            options.headers['Content-Type'] = options.headers['Content-Type'] || 'application/json';
+            options.body = JSON.stringify(options.body);
+        }
+
+        try {
+            const response = await _originalFetch(url, options);
+            if (response.status === 401) {
+                console.warn(`[apiFetch] 401 Unauthorized encountered on ${url}`);
+                if (window.terminalShell && typeof window.terminalShell.handleUnauthorized === 'function') {
+                    window.terminalShell.handleUnauthorized();
+                }
+            }
+            return response;
+        } catch (err) {
+            console.error(`[apiFetch] Fetch failure for ${url}:`, err);
+            throw err;
+        }
+    };
+
+    // Transparently wrap window.fetch for /api/ calls
+    window.fetch = function (resource, init = {}) {
+        const urlStr = typeof resource === 'string' ? resource : (resource && resource.url ? resource.url : '');
+        if (urlStr.startsWith('/api/')) {
+            return window.apiFetch(resource, init);
+        }
+        return _originalFetch.apply(this, arguments);
+    };
+
     class TerminalShell {
         constructor() {
             this.ws = window.workspaceManager;
             this.currentExecutionMode = 'DISABLED';
+            this.isAuthenticated = false;
+            this.operatorUser = null;
             this.init();
         }
 
@@ -18,14 +64,14 @@
             this.bindCompactModeToggle();
             this.bindWorkspaceReset();
             this.bindExecutionModeModal();
+            this.bindAuthModal();
             this.bindKeyboardShortcuts();
             this.bindWidgets();
 
-            // Initial telemetry and funds refresh
-            this.refreshHealth();
-            this.refreshFunds();
+            // Initial auth status check
+            this.checkAuthStatus();
 
-            console.log('[TerminalShell] Phase 11A Shell Initialized.');
+            console.log('[TerminalShell] Phase 11A Shell Initialized with Operator Auth.');
         }
 
         /* ==========================================================================
@@ -108,6 +154,208 @@
         }
 
         /* ==========================================================================
+           3B. Operator Authentication Controller
+           ========================================================================== */
+        bindAuthModal() {
+            const loginForm = document.getElementById('operator-login-form');
+            const authBtn = document.getElementById('operator-auth-btn');
+
+            if (loginForm) {
+                loginForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.submitLogin();
+                });
+            }
+
+            if (authBtn) {
+                authBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (this.isAuthenticated) {
+                        this.logout();
+                    } else {
+                        this.showLoginModal();
+                    }
+                });
+            }
+        }
+
+        async checkAuthStatus() {
+            try {
+                const resp = await _originalFetch('/api/auth/status', {
+                    credentials: 'same-origin',
+                    headers: this.getAuthHeaders(),
+                });
+                if (resp.ok) {
+                    const data = await resp.json();
+                    if (data && data.data && data.data.authenticated) {
+                        this.updateAuthUI(true, data.data.user);
+                        this.refreshHealth();
+                        this.refreshFunds();
+                        return;
+                    }
+                }
+            } catch (err) {
+                console.warn('[TerminalShell] Auth status check error:', err.message);
+            }
+
+            // Unauthenticated state -> explicitly require login
+            this.updateAuthUI(false, null);
+            this.showLoginModal();
+        }
+
+        async submitLogin() {
+            const usernameInput = document.getElementById('login-username');
+            const passwordInput = document.getElementById('login-password');
+            const errorBox = document.getElementById('login-modal-error');
+            const spinner = document.getElementById('login-spinner');
+            const btnText = document.getElementById('login-btn-text');
+            const submitBtn = document.getElementById('login-submit-btn');
+
+            const username = (usernameInput ? usernameInput.value : '').trim();
+            const password = passwordInput ? passwordInput.value : '';
+
+            if (!username || !password) {
+                if (errorBox) {
+                    errorBox.textContent = 'Username/email and password are required.';
+                    errorBox.classList.remove('hidden');
+                }
+                return;
+            }
+
+            if (errorBox) errorBox.classList.add('hidden');
+            if (spinner) spinner.classList.remove('hidden');
+            if (btnText) btnText.textContent = 'Authenticating...';
+            if (submitBtn) submitBtn.disabled = true;
+
+            try {
+                const resp = await _originalFetch('/api/auth/login', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password }),
+                });
+                const resData = await resp.json();
+
+                if (resp.ok && resData.status === 'success') {
+                    const token = resData.data && resData.data.token;
+                    if (token) {
+                        sessionStorage.setItem('terminal_token', token);
+                    }
+                    this.updateAuthUI(true, resData.data.user);
+                    this.hideLoginModal();
+                    this.showToast(`Operator ${resData.data.user.username} authenticated.`);
+                    this.refreshHealth();
+                    this.refreshFunds();
+                } else {
+                    const msg = (resData && resData.message) ? resData.message : 'Invalid credentials.';
+                    if (errorBox) {
+                        errorBox.textContent = msg;
+                        errorBox.classList.remove('hidden');
+                    }
+                }
+            } catch (err) {
+                if (errorBox) {
+                    errorBox.textContent = `Authentication error: ${err.message}`;
+                    errorBox.classList.remove('hidden');
+                }
+            } finally {
+                if (spinner) spinner.classList.add('hidden');
+                if (btnText) btnText.textContent = 'Authenticate Operator';
+                if (submitBtn) submitBtn.disabled = false;
+            }
+        }
+
+        async logout() {
+            try {
+                await _originalFetch('/api/auth/logout', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: this.getAuthHeaders(),
+                });
+            } catch (err) {
+                console.warn('[TerminalShell] Logout API notice:', err.message);
+            }
+            sessionStorage.removeItem('terminal_token');
+            localStorage.removeItem('terminal_token');
+            this.updateAuthUI(false, null);
+            this.updateExecutionModeUI('DISABLED');
+            this.showToast('Operator logged out.');
+            this.showLoginModal();
+        }
+
+        handleUnauthorized() {
+            if (this.isAuthenticated) {
+                this.updateAuthUI(false, null);
+                this.showLoginModal('Session expired. Please re-authenticate.');
+            }
+        }
+
+        showLoginModal(errMsg = null) {
+            const modal = document.getElementById('operator-login-modal');
+            const errorBox = document.getElementById('login-modal-error');
+            if (modal) modal.classList.remove('hidden');
+            if (errorBox) {
+                if (errMsg) {
+                    errorBox.textContent = errMsg;
+                    errorBox.classList.remove('hidden');
+                } else {
+                    errorBox.classList.add('hidden');
+                }
+            }
+            const userInput = document.getElementById('login-username');
+            if (userInput) userInput.focus();
+        }
+
+        hideLoginModal() {
+            const modal = document.getElementById('operator-login-modal');
+            const errorBox = document.getElementById('login-modal-error');
+            const passInput = document.getElementById('login-password');
+            if (modal) modal.classList.add('hidden');
+            if (errorBox) errorBox.classList.add('hidden');
+            if (passInput) passInput.value = '';
+        }
+
+        updateAuthUI(authenticated, user) {
+            this.isAuthenticated = !!authenticated;
+            this.operatorUser = user;
+
+            const badge = document.getElementById('operator-badge');
+            const nameEl = document.getElementById('operator-name');
+            const actionEl = document.getElementById('operator-auth-action');
+            const authBtn = document.getElementById('operator-auth-btn');
+
+            if (badge) {
+                badge.className = `operator-badge ${this.isAuthenticated ? 'logged-in' : 'logged-out'}`;
+            }
+            if (nameEl) {
+                nameEl.textContent = this.isAuthenticated && user ? user.username : 'UNAUTHENTICATED';
+            }
+            if (actionEl) {
+                actionEl.textContent = this.isAuthenticated ? 'Logout' : 'Login';
+            }
+            if (authBtn) {
+                authBtn.title = this.isAuthenticated ? 'Click to Logout' : 'Click to Login';
+            }
+
+            const brokerStatusPill = document.getElementById('broker-status-pill');
+            if (brokerStatusPill) {
+                if (!this.isAuthenticated) {
+                    brokerStatusPill.className = 'status-pill status-danger';
+                    brokerStatusPill.textContent = 'UNAUTHENTICATED';
+                }
+            }
+        }
+
+        getAuthHeaders() {
+            const headers = {};
+            const token = sessionStorage.getItem('terminal_token') || localStorage.getItem('terminal_token');
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+            return headers;
+        }
+
+        /* ==========================================================================
            4. Execution Mode Controller & Modal
            ========================================================================== */
         bindExecutionModeModal() {
@@ -120,6 +368,10 @@
 
             if (badge && modal) {
                 badge.addEventListener('click', () => {
+                    if (!this.isAuthenticated) {
+                        this.showLoginModal('Operator authentication required to modify execution mode.');
+                        return;
+                    }
                     modal.classList.remove('hidden');
                 });
             }
@@ -170,8 +422,17 @@
                 }
             }
 
+            if (!this.isAuthenticated) {
+                if (errorBox) {
+                    errorBox.textContent = 'Operator authentication required. Please log in.';
+                    errorBox.classList.remove('hidden');
+                }
+                this.showLoginModal('Operator authentication required.');
+                return;
+            }
+
             try {
-                const response = await fetch('/api/orders/mode', {
+                const response = await window.apiFetch('/api/orders/mode', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ mode: targetMode })
@@ -191,11 +452,11 @@
                     }
                 }
             } catch (err) {
-                // If unauthenticated or network error, update local UI gracefully in shell preview
-                console.warn('[TerminalShell] API mode switch notice:', err.message);
-                this.updateExecutionModeUI(targetMode);
-                if (modal) modal.classList.add('hidden');
-                this.showToast(`Preview: Execution Mode set to ${targetMode}`);
+                console.warn('[TerminalShell] API mode switch error:', err.message);
+                if (errorBox) {
+                    errorBox.textContent = `Mode switch error: ${err.message}`;
+                    errorBox.classList.remove('hidden');
+                }
             }
         }
 

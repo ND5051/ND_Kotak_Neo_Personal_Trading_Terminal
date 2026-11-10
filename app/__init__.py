@@ -74,6 +74,13 @@ def create_app(
     if app.config.get("DEBUG") or app.config.get("TESTING"):
         create_all_tables()
 
+    # Ensure default operator account exists (requires explicit login)
+    try:
+        from app.auth.services.auth_service import auth_service
+        auth_service.ensure_default_operator()
+    except Exception as e:
+        logger.debug(f"Default operator initialization skipped: {str(e)}")
+
     # 6. Initialize WebSocket Framework
     socket_manager.init_app(app)
 

@@ -38,6 +38,19 @@
             <span class="reset-label">Reset View</span>
         </button>
 
+        <!-- Operator Authentication Badge -->
+        <div class="operator-badge-container" id="operator-badge-container">
+            <div class="operator-badge {% if authenticated %}logged-in{% else %}logged-out{% endif %}" id="operator-badge" title="Terminal Operator Status">
+                <span class="operator-icon">👤</span>
+                <span class="operator-name font-numeric" id="operator-name">
+                    {% if authenticated and operator %}{{ operator.username }}{% else %}UNAUTHENTICATED{% endif %}
+                </span>
+                <button class="btn btn-xs btn-ghost operator-auth-btn" id="operator-auth-btn" title="{% if authenticated %}Logout{% else %}Login{% endif %}">
+                    <span id="operator-auth-action">{% if authenticated %}Logout{% else %}Login{% endif %}</span>
+                </button>
+            </div>
+        </div>
+
         <!-- ExecutionMode Master Badge -->
         <div class="mode-badge-container">
             <button class="mode-badge mode-{{ execution_mode|lower }}" id="execution-mode-badge" title="Click to change Execution Mode">
