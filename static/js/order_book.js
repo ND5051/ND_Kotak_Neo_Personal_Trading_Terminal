@@ -562,10 +562,14 @@
                 return new Date(ts < 1e11 ? ts * 1000 : ts);
             }
             if (typeof ts === 'string') {
-                const trimmed = ts.trim();
+                let trimmed = ts.trim();
                 if (!trimmed.includes('-') && !trimmed.includes('T') && !isNaN(trimmed)) {
                     const num = parseFloat(trimmed);
                     return new Date(num < 1e11 ? num * 1000 : num);
+                }
+                // Normalize naive ISO strings without timezone to UTC
+                if (trimmed.includes('T') && !trimmed.endsWith('Z') && !/[+-]\d{2}:?\d{2}$/.test(trimmed)) {
+                    trimmed += 'Z';
                 }
                 return new Date(trimmed);
             }

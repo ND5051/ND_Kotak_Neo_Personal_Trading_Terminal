@@ -5,6 +5,7 @@ Provides full lifecycle live & paper order execution, modification, cancellation
 dry-run pre-flight validation, and status tracking governed by ExecutionMode.
 """
 
+from datetime import timezone
 from typing import Any, Dict
 import uuid
 from flask import Blueprint, g, request
@@ -402,7 +403,10 @@ def get_order_detail(client_order_id: str):
                     "from_status": ev.from_status,
                     "to_status": ev.to_status,
                     "reason": ev.reason,
-                    "timestamp": ev.created_at.isoformat() if ev.created_at else None,
+                    "timestamp": (
+                        (ev.created_at.replace(tzinfo=timezone.utc) if ev.created_at.tzinfo is None else ev.created_at).isoformat()
+                        if ev.created_at else None
+                    ),
                 }
                 for ev in events
             ],
