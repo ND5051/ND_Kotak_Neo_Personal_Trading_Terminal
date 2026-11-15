@@ -9,7 +9,7 @@ import threading
 import time
 from typing import Any, Dict, List, Optional
 
-from app.broker.adapters.kotak_adapter import KotakBrokerAdapter
+from app.broker.adapters.kotak_adapter import KotakBrokerAdapter, kotak_adapter
 from app.broker.cache.broker_cache import BrokerCache, broker_cache
 from app.core.audit import AuditCategory, audit_logger
 from app.core.request_context import get_correlation_id, get_request_id
@@ -64,7 +64,7 @@ class PortfolioService:
         self.margin_service = margins or margin_service
         self.mtm_engine = mtm or mtm_engine
         self.cache = cache or broker_cache
-        self.adapter = adapter or KotakBrokerAdapter()
+        self.adapter = adapter or kotak_adapter
         self._lock = threading.RLock()
 
         # In-memory working copies
@@ -105,16 +105,24 @@ class PortfolioService:
                 if cached is not None:
                     return cached
 
-            # Query adapter
-            try:
-                raw = self.adapter.get_positions()
-            except Exception as e:
-                logger.warning(f"Failed to fetch positions from broker adapter: {str(e)}")
-                raw = []
+            from app.orders.models.execution_mode import execution_mode_manager, ExecutionMode
 
-            positions = self.positions_service.parse_positions(
-                raw, position_type=position_type
-            )
+            mode = execution_mode_manager.get_mode()
+            if mode == ExecutionMode.PAPER:
+                positions = self.positions_service.compute_paper_positions(
+                    position_type=position_type
+                )
+            else:
+                # Query adapter
+                try:
+                    raw = self.adapter.get_positions()
+                except Exception as e:
+                    logger.warning(f"Failed to fetch positions from broker adapter: {str(e)}")
+                    raw = []
+
+                positions = self.positions_service.parse_positions(
+                    raw, position_type=position_type
+                )
             # Register in MTMEngine for live tick tracking
             self.mtm_engine.set_positions(positions)
             self.cache.set(cache_key, positions, ttl_seconds=self.TTL_POSITIONS)

@@ -1,3 +1,4 @@
+from unittest.mock import MagicMock
 import pytest
 
 from app.broker.adapters.kotak_adapter import KotakBrokerAdapter
@@ -17,7 +18,9 @@ def clean_cache():
 
 def test_health_monitoring_states():
     """Verify health service accurately reports DISCONNECTED, AUTHENTICATED, and EXPIRED."""
-    adapter = KotakBrokerAdapter()
+    mock_client = MagicMock()
+    mock_client.__is_mock__ = True
+    adapter = KotakBrokerAdapter(client=mock_client)
     svc = BrokerHealthService(adapter=adapter)
 
     # 1. Initially DISCONNECTED
@@ -26,7 +29,7 @@ def test_health_monitoring_states():
     assert svc.broker_status() in (BrokerStatus.DISCONNECTED.value, BrokerStatus.LOGIN_REQUIRED.value)
 
     # 2. Login -> AUTHENTICATED
-    adapter.login({"consumer_key": "k", "consumer_secret": "s"})
+    adapter.login({"consumer_key": "k"})
     assert svc.is_connected() is True
     assert svc.is_authenticated() is True
     assert svc.broker_status() == BrokerStatus.AUTHENTICATED.value

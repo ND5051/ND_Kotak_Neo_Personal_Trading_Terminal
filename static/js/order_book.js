@@ -155,9 +155,10 @@
             let reconcilingCount = 0;
 
             // Compute counts
+            const openStatuses = ['OPEN', 'PENDING', 'SUBMITTED', 'VALIDATED', 'ACKNOWLEDGED', 'TRIGGER_PENDING'];
             this.orders.forEach(o => {
                 const s = (o.status || '').toUpperCase();
-                if (s === 'OPEN' || s === 'PENDING' || s === 'SUBMITTED' || s === 'VALIDATED') openCount++;
+                if (openStatuses.includes(s)) openCount++;
                 else if (s === 'TRADED' || s === 'FILLED') executedCount++;
                 else if (s === 'CANCELLED') cancelledCount++;
                 else if (s === 'REJECTED' || s === 'FAILED') rejectedCount++;
@@ -191,7 +192,7 @@
                 const s = (o.status || '').toUpperCase();
                 // Filter tab
                 if (this.statusFilter === 'OPEN') {
-                    if (s !== 'OPEN' && s !== 'PENDING' && s !== 'SUBMITTED' && s !== 'VALIDATED') return false;
+                    if (!openStatuses.includes(s)) return false;
                 } else if (this.statusFilter === 'TRADED') {
                     if (s !== 'TRADED' && s !== 'FILLED') return false;
                 } else if (this.statusFilter === 'CANCELLED') {
@@ -220,13 +221,13 @@
 
                 filtered.forEach(o => {
                     const statusUpper = (o.status || 'OPEN').toUpperCase();
-                    const isOpen = statusUpper === 'OPEN' || statusUpper === 'PENDING';
+                    const isOpen = openStatuses.includes(statusUpper);
                     const sideClass = (o.order_side || o.side || 'BUY').toUpperCase() === 'BUY' ? 'text-success font-bold' : 'text-danger font-bold';
 
                     let timeDisplay = '--:--:--';
-                    if (o.created_at) {
-                        const d = new Date(o.created_at);
-                        timeDisplay = isNaN(d.getTime()) ? o.created_at : d.toLocaleTimeString('en-IN', { hour12: false });
+                    const rawTime = o.created_at_iso || o.created_at || o.source_timestamp || o.exchange_timestamp;
+                    if (rawTime) {
+                        timeDisplay = this.formatSecTime(rawTime);
                     }
 
                     const badgeClass = this.getStatusBadgeClass(statusUpper);
@@ -286,6 +287,8 @@
                 case 'PENDING':
                 case 'SUBMITTED':
                 case 'VALIDATED':
+                case 'ACKNOWLEDGED':
+                case 'TRIGGER_PENDING':
                     return 'badge-status-open';
                 case 'TRADED':
                 case 'FILLED':
@@ -553,14 +556,36 @@
             }
         }
 
+        parseDate(ts) {
+            if (!ts) return null;
+            if (typeof ts === 'number') {
+                return new Date(ts < 1e11 ? ts * 1000 : ts);
+            }
+            if (typeof ts === 'string') {
+                const trimmed = ts.trim();
+                if (!trimmed.includes('-') && !trimmed.includes('T') && !isNaN(trimmed)) {
+                    const num = parseFloat(trimmed);
+                    return new Date(num < 1e11 ? num * 1000 : num);
+                }
+                return new Date(trimmed);
+            }
+            return new Date(ts);
+        }
+
         formatMsTime(ts) {
-            const d = new Date(ts);
-            if (isNaN(d.getTime())) return ts;
+            const d = this.parseDate(ts);
+            if (!d || isNaN(d.getTime())) return ts || '--:--:--';
             const hh = String(d.getHours()).padStart(2, '0');
             const mm = String(d.getMinutes()).padStart(2, '0');
             const ss = String(d.getSeconds()).padStart(2, '0');
             const ms = String(d.getMilliseconds()).padStart(3, '0');
             return `${hh}:${mm}:${ss}.${ms}`;
+        }
+
+        formatSecTime(ts) {
+            const d = this.parseDate(ts);
+            if (!d || isNaN(d.getTime())) return ts || '--:--:--';
+            return d.toLocaleTimeString('en-IN', { hour12: false });
         }
 
         /* ==========================================================================
@@ -606,7 +631,7 @@
                 if (empty) empty.classList.add('hidden');
 
                 this.trades.forEach(t => {
-                    const qty = t.quantity || 0;
+                    const qty = t.fill_quantity !== undefined ? t.fill_quantity : (t.quantity || 0);
                     const price = t.fill_price || t.price || 0;
                     const tradeVal = qty * price;
                     totalTurnover += tradeVal;
@@ -615,8 +640,9 @@
                     const sideClass = sideUpper === 'BUY' ? 'text-success font-bold' : 'text-danger font-bold';
 
                     let timeDisplay = '--:--:--';
-                    if (t.created_at || t.trade_timestamp) {
-                        timeDisplay = this.formatMsTime(t.created_at || t.trade_timestamp);
+                    const rawTime = t.created_at || t.trade_timestamp || t.exchange_timestamp || t.retrieved_timestamp;
+                    if (rawTime) {
+                        timeDisplay = this.formatMsTime(rawTime);
                     }
 
                     const tr = document.createElement('tr');

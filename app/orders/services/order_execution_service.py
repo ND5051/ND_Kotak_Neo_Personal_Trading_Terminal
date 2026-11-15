@@ -226,6 +226,19 @@ class OrderExecutionService:
             # Step 8: Circuit Breaker Inspection
             self.circuit_breaker.allow_request()
 
+            # Step 8B: LIVE Mode Safety Guard (never allow mock/disconnected adapter in LIVE mode)
+            if active_mode == ExecutionMode.LIVE:
+                adapter_client = getattr(self.adapter, "client", None)
+                is_mock_fn = getattr(self.adapter, "_is_mock", None)
+                if adapter_client is None or (callable(is_mock_fn) and is_mock_fn()):
+                    self.idempotency.release(client_order_id)
+                    raise BrokerException(
+                        "LIVE mode blocked: Kotak Neo SDK client is not connected or is in mock mode. "
+                        "Real authenticated broker client is required for LIVE execution.",
+                        error_code="BROKER_CLIENT_NOT_CONNECTED",
+                        status_code=503,
+                    )
+
             # Step 9: FSM Transitions to VALIDATED then SUBMITTED
             self.state_machine.transition_to(order, OrderStatus.VALIDATED, reason="Pre-flight and risk checks passed")
             self.state_machine.transition_to(order, OrderStatus.SUBMITTED, reason="Dispatching to broker gateway")
@@ -240,7 +253,7 @@ class OrderExecutionService:
             else:
                 raise ExecutionModeException("Execution refused: Mode is DISABLED.")
 
-        except (OrderValidationException, OrderRiskException, BrokerCircuitBreakerOpenException):
+        except (OrderValidationException, OrderRiskException, BrokerCircuitBreakerOpenException, BrokerException):
             raise
         except Exception as e:
             self.idempotency.release(client_order_id)
@@ -380,6 +393,15 @@ class OrderExecutionService:
     # Internal Live Order Wire Dispatch
     def _execute_live_order(self, order: Order) -> Dict[str, Any]:
         """Dispatch order to live Kotak Neo API gateway."""
+        adapter_client = getattr(self.adapter, "client", None)
+        is_mock_fn = getattr(self.adapter, "_is_mock", None)
+        if adapter_client is None or (callable(is_mock_fn) and is_mock_fn()):
+            raise BrokerException(
+                "LIVE mode blocked: Kotak Neo SDK client is not connected or is in mock mode.",
+                error_code="BROKER_CLIENT_NOT_CONNECTED",
+                status_code=503,
+            )
+
         try:
             wire_resp = self.adapter.place_order(order)
             stat = wire_resp.get("stat")
@@ -457,22 +479,71 @@ class OrderExecutionService:
 
     # Internal Paper Order Execution
     def _execute_paper_order(self, order: Order) -> Dict[str, Any]:
-        """Simulate execution in paper trading mode."""
+        """Simulate execution in paper trading mode respecting market prices and limit barriers."""
         time.sleep(0.02)  # Simulate 20ms network latency
         paper_order_id = f"PAPER_{datetime.now().strftime('%m%d%H%M%S')}{random.randint(100, 999)}"
         order.broker_order_id = paper_order_id
 
-        # Register simulated paper execution with adapter strictly matching requested quantity
-        if hasattr(self.adapter, "register_simulated_order"):
-            self.adapter.register_simulated_order(
-                paper_order_id,
-                quantity=int(order.quantity),
-                price=float(order.price or 100.0),
-                status="complete",
-            )
+        from app.market_watch.services.price_engine import price_engine
+        from app.orders.models.order import OrderType, OrderSide
 
-        self.state_machine.transition_to(order, OrderStatus.ACKNOWLEDGED, reason="Paper Gateway Ingestion")
-        self.repository.save_order(order)
+        quote = price_engine.get_quote(order.instrument_token, order.exchange_segment)
+        ltp = float(quote.ltp) if (quote and quote.ltp > 0) else 0.0
+
+        should_fill = False
+        exec_price = float(order.price or 0.0)
+
+        if order.order_type == OrderType.MARKET:
+            should_fill = True
+            exec_price = ltp if ltp > 0 else (exec_price or 100.0)
+        elif order.order_type == OrderType.LIMIT:
+            if ltp > 0:
+                if order.side == OrderSide.BUY:
+                    # Buy limit: fills only if limit price >= current market LTP
+                    if order.price >= ltp:
+                        should_fill = True
+                        exec_price = ltp
+                    else:
+                        should_fill = False
+                else:
+                    # Sell limit: fills only if limit price <= current market LTP
+                    if order.price <= ltp:
+                        should_fill = True
+                        exec_price = ltp
+                    else:
+                        should_fill = False
+            else:
+                # No live quote feed attached (e.g. unit tests without live price engine)
+                should_fill = True
+                exec_price = float(order.price or 100.0)
+        elif order.order_type in (OrderType.SL, OrderType.SL_M):
+            # Stop loss orders rest until trigger price is crossed
+            should_fill = False
+
+        if should_fill:
+            # Register simulated complete execution with adapter
+            if hasattr(self.adapter, "register_simulated_order"):
+                self.adapter.register_simulated_order(
+                    paper_order_id,
+                    quantity=int(order.quantity),
+                    price=exec_price,
+                    status="complete",
+                )
+            self.state_machine.transition_to(order, OrderStatus.ACKNOWLEDGED, reason="Paper Gateway Ingestion")
+            self.repository.save_order(order)
+            # Spawn background poller to transition to FILLED and record trade fill
+            self.poller.spawn_async_poll(order)
+        else:
+            # Order rests in the order book as open / acknowledged
+            if hasattr(self.adapter, "register_simulated_order"):
+                self.adapter.register_simulated_order(
+                    paper_order_id,
+                    quantity=int(order.quantity),
+                    price=exec_price,
+                    status="open",
+                )
+            self.state_machine.transition_to(order, OrderStatus.ACKNOWLEDGED, reason="Paper Limit Resting on Exchange Book")
+            self.repository.save_order(order)
 
         # Audit & Event
         audit_logger.record(
@@ -481,18 +552,26 @@ class OrderExecutionService:
             actor="paper_execution_engine",
             correlation_id=get_correlation_id(),
             request_id=get_request_id(),
-            details={"client_order_id": order.client_order_id, "broker_order_id": paper_order_id, "mode": "PAPER"},
+            details={
+                "client_order_id": order.client_order_id,
+                "broker_order_id": paper_order_id,
+                "mode": "PAPER",
+                "simulated_outcome": "FILLED" if should_fill else "RESTING_OPEN",
+                "ltp": ltp,
+                "limit_price": order.price,
+            },
         )
         publish(ORDER_ACKNOWLEDGED, {"order": order.to_dict()})
-
-        # Spawn background poller (which simulates fill for paper orders)
-        self.poller.spawn_async_poll(order)
 
         return {
             "success": True,
             "mode": "PAPER",
             "order": order.to_dict(),
-            "execution": {"stat": "Ok", "nOrdNo": paper_order_id, "message": "Paper order placed"},
+            "execution": {
+                "stat": "Ok",
+                "nOrdNo": paper_order_id,
+                "message": "Paper order executed" if should_fill else "Paper limit order resting on book",
+            },
         }
 
 

@@ -15,7 +15,7 @@ class StrategyValidationService:
 
     # Major index lot sizes (standard benchmark contracts)
     BENCHMARK_LOT_SIZES: Dict[str, int] = {
-        "NIFTY": 25,
+        "NIFTY": 65,
         "BANKNIFTY": 15,
         "FINNIFTY": 25,
         "MIDCPNIFTY": 50,

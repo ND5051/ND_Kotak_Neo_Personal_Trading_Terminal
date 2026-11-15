@@ -298,7 +298,7 @@
             const spot = window.optionChainController ? window.optionChainController.spotPrice : 24500.0;
             const step = this.underlying.includes('BANKNIFTY') ? 100 : 50;
             const atm = Math.round(spot / step) * step;
-            const lot = this.underlying.includes('BANKNIFTY') ? 15 : 25;
+            const lot = this.underlying.includes('BANKNIFTY') ? 15 : (this.underlying.includes('SENSEX') ? 10 : 65);
             const expToken = '28NOV';
 
             this.legs = [];
@@ -445,9 +445,9 @@
                 side: legData.side || 'BUY',
                 product_type: legData.product_type || 'NRML',
                 order_type: legData.order_type || 'LIMIT',
-                lot_size: legData.lot_size || 25,
+                lot_size: legData.lot_size || 65,
                 lots: legData.lots || 1,
-                quantity: (legData.lot_size || 25) * (legData.lots || 1),
+                quantity: (legData.lot_size || 65) * (legData.lots || 1),
                 price: legData.price || 100.0,
                 trigger_price: 0.0,
                 market_protection_percent: 2.0,
@@ -820,6 +820,19 @@
 
             if (execBtn) execBtn.disabled = !isValid || this.legs.length === 0;
             if (drawerExec) drawerExec.disabled = !isValid || this.legs.length === 0;
+
+            if (window.terminalShell) {
+                if (isValid) {
+                    window.terminalShell.showToast('✅ Basket Validation Passed: All 5 pre-flight checks verified.');
+                } else {
+                    window.terminalShell.showToast('❌ Basket Validation Failed: Check violations in panel.');
+                }
+            }
+
+            const panel = document.getElementById('basket-validation-card');
+            if (panel) {
+                panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
         }
 
         resetValidationChecklist(passed) {

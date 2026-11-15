@@ -191,6 +191,7 @@
                 const data = json.data || {};
 
                 this.spotPrice = data.spot_price || this.spotPrice;
+                this.atmStrike = data.atm_strike !== undefined ? data.atm_strike : null;
                 this.strikes = data.strikes || [];
                 this.pcrData = {
                     pcr_oi: data.pcr_oi,
@@ -270,18 +271,29 @@
             // Find max OI across all strikes for horizontal visual bar scaling
             let maxOI = 1;
             this.strikes.forEach(s => {
-                if (s.call && s.call.open_interest > maxOI) maxOI = s.call.open_interest;
-                if (s.put && s.put.open_interest > maxOI) maxOI = s.put.open_interest;
+                const c = s.call || s.call_quote;
+                const p = s.put || s.put_quote;
+                if (c && c.open_interest > maxOI) maxOI = c.open_interest;
+                if (p && p.open_interest > maxOI) maxOI = p.open_interest;
             });
 
             this.strikes.forEach(row => {
                 const k = row.strike_price;
-                const isAtm = row.is_atm || Math.abs(k - this.spotPrice) <= 25;
-                const c = row.call || {};
-                const p = row.put || {};
+                const isAtm = row.is_atm === true || (this.atmStrike !== null && Math.abs(k - this.atmStrike) < 0.01);
+                const c = row.call || row.call_quote || {};
+                const p = row.put || row.put_quote || {};
 
-                const cOiPct = Math.min(100, Math.max(0, ((c.open_interest || 0) / maxOI) * 100));
-                const pOiPct = Math.min(100, Math.max(0, ((p.open_interest || 0) / maxOI) * 100));
+                const cLtp = c.ltp !== undefined ? c.ltp : (c.last_price || 0);
+                const pLtp = p.ltp !== undefined ? p.ltp : (p.last_price || 0);
+                const cOi = c.open_interest || 0;
+                const pOi = p.open_interest || 0;
+                const cChgOi = c.change_in_oi !== undefined ? c.change_in_oi : (c.change_oi || 0);
+                const pChgOi = p.change_in_oi !== undefined ? p.change_in_oi : (p.change_oi || 0);
+                const cVol = c.volume || 0;
+                const pVol = p.volume || 0;
+
+                const cOiPct = Math.min(100, Math.max(0, (cOi / maxOI) * 100));
+                const pOiPct = Math.min(100, Math.max(0, (pOi / maxOI) * 100));
 
                 const tr = document.createElement('tr');
                 if (isAtm) tr.className = 'strike-atm';
@@ -293,17 +305,17 @@
                     <!-- Calls Section -->
                     <td class="text-right font-numeric oi-cell ${isCallItm ? 'itm-call' : ''}">
                         <div class="oi-bar call" style="width: ${cOiPct.toFixed(1)}%;"></div>
-                        <span class="oi-text">${c.open_interest ? c.open_interest.toLocaleString('en-IN') : '—'}</span>
-                        ${c.is_key_resistance ? '<span class="badge-resistance" title="Key Resistance">R</span>' : ''}
+                        <span class="oi-text">${cOi ? cOi.toLocaleString('en-IN') : '—'}</span>
+                        ${c.is_max_oi ? '<span class="badge-resistance" title="Key Resistance (Max OI)">R</span>' : ''}
                     </td>
-                    <td class="text-right font-numeric ${(c.change_oi || 0) >= 0 ? 'text-success' : 'text-danger'} ${isCallItm ? 'itm-call' : ''}">
-                        ${c.change_oi ? ((c.change_oi >= 0 ? '+' : '') + c.change_oi.toLocaleString('en-IN')) : '—'}
+                    <td class="text-right font-numeric ${cChgOi >= 0 ? 'text-success' : 'text-danger'} ${isCallItm ? 'itm-call' : ''}">
+                        ${cChgOi ? ((cChgOi >= 0 ? '+' : '') + cChgOi.toLocaleString('en-IN')) : '—'}
                     </td>
                     <td class="text-right font-numeric ${isCallItm ? 'itm-call' : ''}">
-                        ${c.volume ? (c.volume / 1000).toFixed(1) : '—'}
+                        ${cVol ? (cVol / 1000).toFixed(1) + 'k' : '—'}
                     </td>
-                    <td class="text-right font-numeric font-bold ${isCallItm ? 'itm-call' : ''}">
-                        ₹${c.last_price ? c.last_price.toFixed(2) : '—'}
+                    <td class="text-right font-numeric font-bold ${isCallItm ? 'itm-call' : ''}" style="cursor: pointer;" data-action="click-call-ltp" title="Click to Buy Call @ ₹${cLtp.toFixed(2)}">
+                        ₹${cLtp > 0 ? cLtp.toFixed(2) : '—'}
                     </td>
                     <td class="text-center ${isCallItm ? 'itm-call' : ''}">
                         <div class="table-actions">
@@ -327,19 +339,19 @@
                             <button class="btn btn-xs btn-action-exit" data-action="sell-put" title="Sell Put">S</button>
                         </div>
                     </td>
-                    <td class="text-right font-numeric font-bold ${isPutItm ? 'itm-put' : ''}">
-                        ₹${p.last_price ? p.last_price.toFixed(2) : '—'}
+                    <td class="text-right font-numeric font-bold ${isPutItm ? 'itm-put' : ''}" style="cursor: pointer;" data-action="click-put-ltp" title="Click to Buy Put @ ₹${pLtp.toFixed(2)}">
+                        ₹${pLtp > 0 ? pLtp.toFixed(2) : '—'}
                     </td>
                     <td class="text-right font-numeric ${isPutItm ? 'itm-put' : ''}">
-                        ${p.volume ? (p.volume / 1000).toFixed(1) : '—'}
+                        ${pVol ? (pVol / 1000).toFixed(1) + 'k' : '—'}
                     </td>
-                    <td class="text-right font-numeric ${(p.change_oi || 0) >= 0 ? 'text-success' : 'text-danger'} ${isPutItm ? 'itm-put' : ''}">
-                        ${p.change_oi ? ((p.change_oi >= 0 ? '+' : '') + p.change_oi.toLocaleString('en-IN')) : '—'}
+                    <td class="text-right font-numeric ${pChgOi >= 0 ? 'text-success' : 'text-danger'} ${isPutItm ? 'itm-put' : ''}">
+                        ${pChgOi ? ((pChgOi >= 0 ? '+' : '') + pChgOi.toLocaleString('en-IN')) : '—'}
                     </td>
                     <td class="text-right font-numeric oi-cell ${isPutItm ? 'itm-put' : ''}">
                         <div class="oi-bar put" style="width: ${pOiPct.toFixed(1)}%;"></div>
-                        <span class="oi-text">${p.open_interest ? p.open_interest.toLocaleString('en-IN') : '—'}</span>
-                        ${p.is_key_support ? '<span class="badge-support" title="Key Support">S</span>' : ''}
+                        <span class="oi-text">${pOi ? pOi.toLocaleString('en-IN') : '—'}</span>
+                        ${p.is_max_oi ? '<span class="badge-support" title="Key Support (Max OI)">S</span>' : ''}
                     </td>
 
                     <!-- Watchlist Pin -->
@@ -352,19 +364,23 @@
                 const btnBuyCall = tr.querySelector('[data-action="buy-call"]');
                 const btnSellCall = tr.querySelector('[data-action="sell-call"]');
                 const btnBasketCall = tr.querySelector('[data-action="basket-call"]');
+                const clickCallLtp = tr.querySelector('[data-action="click-call-ltp"]');
 
                 const btnBuyPut = tr.querySelector('[data-action="buy-put"]');
                 const btnSellPut = tr.querySelector('[data-action="sell-put"]');
                 const btnBasketPut = tr.querySelector('[data-action="basket-put"]');
+                const clickPutLtp = tr.querySelector('[data-action="click-put-ltp"]');
                 const btnPin = tr.querySelector('[data-action="pin-strike"]');
 
                 if (btnBuyCall) btnBuyCall.addEventListener('click', () => this.tradeContract(c, 'BUY'));
                 if (btnSellCall) btnSellCall.addEventListener('click', () => this.tradeContract(c, 'SELL'));
                 if (btnBasketCall) btnBasketCall.addEventListener('click', () => this.addContractToBasket(c, 'BUY'));
+                if (clickCallLtp) clickCallLtp.addEventListener('click', () => this.tradeContract(c, 'BUY'));
 
                 if (btnBuyPut) btnBuyPut.addEventListener('click', () => this.tradeContract(p, 'BUY'));
                 if (btnSellPut) btnSellPut.addEventListener('click', () => this.tradeContract(p, 'SELL'));
                 if (btnBasketPut) btnBasketPut.addEventListener('click', () => this.addContractToBasket(p, 'BUY'));
+                if (clickPutLtp) clickPutLtp.addEventListener('click', () => this.tradeContract(p, 'BUY'));
 
                 if (btnPin) btnPin.addEventListener('click', () => this.pinToWatchlist(c, p, k));
 
@@ -377,15 +393,27 @@
            ========================================================================== */
         tradeContract(contract, side = 'BUY') {
             if (!window.orderTicketController || !contract.trading_symbol) return;
-            window.orderTicketController.openTicket(contract, side, {
+            const ltp = contract.ltp !== undefined ? contract.ltp : (contract.last_price || 0);
+            const lot = this.symbol.includes('BANKNIFTY') ? 15 : (this.symbol.includes('SENSEX') ? 10 : 65);
+            window.orderTicketController.openTicket({
+                trading_symbol: contract.trading_symbol,
+                instrument_token: contract.instrument_token || '0',
+                exchange_segment: contract.exchange_segment || 'nse_fo',
+                ltp: ltp,
+                last_price: ltp,
+                lot_size: lot
+            }, side, {
                 product: 'NRML',
-                price: contract.last_price || 0,
-                notice: `${side} ${contract.trading_symbol} @ ₹${(contract.last_price || 0).toFixed(2)}`
+                price: ltp,
+                quantity: lot,
+                notice: `${side} ${contract.trading_symbol} @ ₹${ltp.toFixed(2)}`
             });
         }
 
         addContractToBasket(contract, side = 'BUY') {
             if (!window.basketBuilderController || !contract.trading_symbol) return;
+            const ltp = contract.ltp !== undefined ? contract.ltp : (contract.last_price || 100.0);
+            const lot = this.symbol.includes('BANKNIFTY') ? 15 : (this.symbol.includes('SENSEX') ? 10 : 65);
             const leg = {
                 instrument_token: contract.instrument_token || '0',
                 trading_symbol: contract.trading_symbol,
@@ -393,10 +421,10 @@
                 side: side,
                 product_type: 'NRML',
                 order_type: 'LIMIT',
-                price: contract.last_price || 100.0,
-                lot_size: this.symbol.includes('BANKNIFTY') ? 15 : 25,
+                price: ltp,
+                lot_size: lot,
                 lots: 1,
-                quantity: this.symbol.includes('BANKNIFTY') ? 15 : 25,
+                quantity: lot,
                 execution_stage: side === 'BUY' ? 1 : 2
             };
 

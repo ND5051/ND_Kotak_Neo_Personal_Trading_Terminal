@@ -21,7 +21,7 @@ if __name__ == "__main__":
     )
 
     if socket_manager.socketio is not None:
-        socket_manager.socketio.run(app, host=host, port=port, debug=debug)
+        socket_manager.socketio.run(app, host=host, port=port, debug=debug, allow_unsafe_werkzeug=True)
     else:
         app.run(host=host, port=port, debug=debug)
 

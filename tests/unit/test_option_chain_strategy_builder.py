@@ -29,7 +29,7 @@ def test_build_bull_call_spread_compliance(builder, validator):
         expiry_token="26NOV",
         buy_strike=24500.0,
         sell_strike=24700.0,
-        lot_size=25,
+        lot_size=65,
         lots=2,
         buy_price=150.0,
         sell_price=60.0,
@@ -37,8 +37,8 @@ def test_build_bull_call_spread_compliance(builder, validator):
 
     assert payload["strategy_type"] == "BULL_CALL_SPREAD"
     assert len(payload["legs"]) == 2
-    assert payload["legs"][0]["quantity"] == 50
-    assert payload["legs"][1]["quantity"] == 50
+    assert payload["legs"][0]["quantity"] == 130
+    assert payload["legs"][1]["quantity"] == 130
 
     # Test compliance against Phase 9 StrategyValidationService
     basket = Basket(
@@ -60,7 +60,7 @@ def test_build_bear_put_spread_compliance(builder, validator):
         expiry_token="26NOV",
         buy_strike=24700.0,
         sell_strike=24500.0,
-        lot_size=25,
+        lot_size=65,
         lots=1,
     )
 
@@ -120,7 +120,7 @@ def test_build_iron_condor_compliance(builder, validator):
         put_sell_strike=24300.0,
         call_sell_strike=24700.0,
         call_buy_strike=24900.0,
-        lot_size=25,
+        lot_size=65,
         lots=1,
     )
 

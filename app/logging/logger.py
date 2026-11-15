@@ -7,6 +7,17 @@ from typing import Any, Optional
 from app.logging.formatters import JSONFormatter
 
 
+class SafeRotatingFileHandler(RotatingFileHandler):
+    """Windows-resilient RotatingFileHandler that avoids crashing when file locking delays rollover."""
+
+    def doRollover(self) -> None:
+        try:
+            super().doRollover()
+        except PermissionError:
+            # On Windows, active readers or concurrent handles can temporarily delay log rename.
+            pass
+
+
 class AppLogger:
     """Wrapper around standard Python logging to enforce structured log payloads."""
 
@@ -63,6 +74,10 @@ def setup_logging(
 
     # Avoid adding duplicate handlers on multiple setup calls
     for handler in list(root_logger.handlers):
+        try:
+            handler.close()
+        except Exception:
+            pass
         root_logger.removeHandler(handler)
 
     # Console Handler (stdout/stderr)
@@ -77,7 +92,7 @@ def setup_logging(
         target_dir.mkdir(parents=True, exist_ok=True)
         file_path = target_dir / log_filename
 
-        file_handler = RotatingFileHandler(
+        file_handler = SafeRotatingFileHandler(
             file_path,
             maxBytes=max_bytes,
             backupCount=backup_count,

@@ -77,6 +77,13 @@ class WebSocketSupervisor:
         telemetry: Optional[WebSocketTelemetryTracker] = None,
     ) -> None:
         self.adapter = adapter or KotakStreamAdapter()
+        # Wire adapter tick dispatch directly to PriceEngine by default
+        try:
+            from app.market_watch.services.price_engine import price_engine
+            self.adapter.set_message_handler(price_engine.ingest_tick)
+        except Exception:
+            pass
+
         self.circuit_breaker = circuit_breaker or broker_circuit_breaker
         self.sub_manager = sub_manager or subscription_manager
         self.telemetry = telemetry or ws_telemetry_tracker
@@ -330,8 +337,31 @@ class WebSocketSupervisor:
             except Exception as e:
                 logger.error(f"Error in heartbeat watchdog loop: {str(e)}", exc_info=True)
 
+    def subscribe_live_tokens(self, tokens: List[Dict[str, str]], is_depth: bool = False) -> bool:
+        """
+        Dynamically transmit subscription frames across active socket from any thread.
+        """
+        with self._lock:
+            if not self.is_connected() or not self._loop or not self._loop.is_running():
+                return False
+            try:
+                asyncio.run_coroutine_threadsafe(
+                    self.adapter.send_subscription(tokens, is_depth=is_depth),
+                    self._loop,
+                )
+                return True
+            except Exception as e:
+                logger.warning(f"Failed to schedule live subscription frame: {str(e)}")
+                return False
+
     async def _replay_subscriptions(self) -> None:
         """Replay all active instruments from SubscriptionManager upon connection."""
+        try:
+            from app.market_watch.services.watchlist_service import watchlist_service
+            watchlist_service.populate_subscription_manager()
+        except Exception as e:
+            logger.warning(f"Error populating subscriptions before replay: {str(e)}")
+
         batches = self.sub_manager.get_token_batches(batch_size=500)
         total_tokens = self.sub_manager.get_token_count()
 
@@ -412,3 +442,17 @@ class WebSocketSupervisor:
 
 # Global singleton supervisor instance
 ws_supervisor = WebSocketSupervisor()
+
+
+def _handle_ws_sub_added(event: Any) -> None:
+    data = event.data if hasattr(event, "data") else (event or {})
+    token = data.get("token_id")
+    seg = data.get("exchange_segment")
+    if token and seg:
+        ws_supervisor.subscribe_live_tokens([{"token_id": str(token), "exchange_segment": seg}])
+
+
+from app.events.event_bus import subscribe as evt_sub
+from app.events.event_types import WS_SUBSCRIPTION_ADDED
+evt_sub(WS_SUBSCRIPTION_ADDED, _handle_ws_sub_added)
+

@@ -302,6 +302,134 @@ class PositionsService:
         # Symbol was not found in response: Return None (Undetermined), NEVER 0!
         return None
 
+    def compute_paper_positions(
+        self,
+        user_id: Optional[int] = None,
+        position_type: PositionType = PositionType.NET,
+    ) -> List[Position]:
+        """
+        Synthesize trading positions from local paper orders and trade executions.
+        Aggregates filled paper orders, computes weighted average execution prices,
+        binds live quotes from PriceEngine, and calculates open MTM and realized PnL.
+        """
+        from app.orders.models.order import OrderStatus, OrderSide
+        from app.orders.repositories.order_repository import order_repository
+
+        try:
+            orders = order_repository.find_orders(user_id=user_id, limit=500)
+        except Exception as e:
+            logger.warning(f"Error querying orders for paper positions: {str(e)}")
+            return []
+
+        # Filter strictly for FILLED paper orders (broker_order_id starts with PAPER_ or mode == PAPER)
+        paper_filled = [
+            o for o in orders
+            if o.status == OrderStatus.FILLED
+            and (str(o.broker_order_id or "").startswith("PAPER_") or getattr(o, "mode", "") == "PAPER")
+        ]
+
+        if not paper_filled:
+            return []
+
+        # Group by (instrument_token, exchange_segment, trading_symbol, product_type)
+        grouped: Dict[Tuple[str, str, str, str], List[Any]] = {}
+        for o in paper_filled:
+            tok = str(o.instrument_token or "").strip()
+            seg = str(o.exchange_segment or "nse_cm").strip().lower()
+            sym = str(o.trading_symbol or "").strip()
+            prod = str(o.product_type.value if hasattr(o.product_type, "value") else (o.product_type or "MIS")).strip().upper()
+            grp_key = (tok, seg, sym, prod)
+            grouped.setdefault(grp_key, []).append(o)
+
+        positions: List[Position] = []
+        retrieved_ts = datetime.now(timezone.utc).isoformat()
+        now_epoch = time.time()
+
+        for (token, segment, symbol, prod_str), ord_list in grouped.items():
+            buy_qty = 0
+            buy_amt = 0.0
+            sell_qty = 0
+            sell_amt = 0.0
+
+            for o in ord_list:
+                side_val = o.side.value if hasattr(o.side, "value") else str(o.side).upper()
+                fill_qty = int(o.filled_quantity or 0)
+                fill_prc = float(o.average_price or o.price or 0.0)
+
+                if side_val in ("BUY", OrderSide.BUY.value):
+                    buy_qty += fill_qty
+                    buy_amt += fill_qty * fill_prc
+                else:
+                    sell_qty += fill_qty
+                    sell_amt += fill_qty * fill_prc
+
+            net_qty = buy_qty - sell_qty
+            avg_buy = (buy_amt / buy_qty) if buy_qty > 0 else 0.0
+            avg_sell = (sell_amt / sell_qty) if sell_qty > 0 else 0.0
+
+            # Realized PnL on closed quantity
+            closed_qty = min(buy_qty, sell_qty)
+            realized_pnl = (avg_sell - avg_buy) * closed_qty if closed_qty > 0 else 0.0
+
+            # Current price from live PriceEngine
+            quote = self.price_engine.get_quote(token, segment)
+            if quote and quote.ltp > 0:
+                current_price = quote.ltp
+            elif avg_buy > 0:
+                current_price = avg_buy
+            elif avg_sell > 0:
+                current_price = avg_sell
+            else:
+                current_price = 0.0
+
+            # Floating MTM on open quantity
+            is_open = net_qty != 0
+            if is_open:
+                if net_qty > 0:
+                    unrealized_pnl = (current_price - avg_buy) * net_qty
+                else:
+                    unrealized_pnl = (avg_sell - current_price) * abs(net_qty)
+            else:
+                unrealized_pnl = 0.0
+
+            total_pnl = realized_pnl + unrealized_pnl
+
+            # Product enum mapping
+            if prod_str in ("CNC", "DELIVERY"):
+                product_code = ProductCode.CNC
+            elif prod_str in ("MIS", "INTRADAY"):
+                product_code = ProductCode.MIS
+            else:
+                product_code = ProductCode.NRML
+
+            pos = Position(
+                instrument_token=token,
+                exchange_segment=segment,
+                trading_symbol=symbol,
+                product=product_code,
+                position_type=position_type,
+                buy_quantity=buy_qty,
+                buy_amount=buy_amt,
+                average_buy_price=avg_buy,
+                sell_quantity=sell_qty,
+                sell_amount=sell_amt,
+                average_sell_price=avg_sell,
+                net_quantity=net_qty,
+                multiplier=1,
+                close_price=avg_buy if net_qty > 0 else avg_sell,
+                current_price=current_price,
+                realized_pnl=realized_pnl,
+                unrealized_pnl=unrealized_pnl,
+                total_pnl=total_pnl,
+                is_open=is_open,
+                source_timestamp=retrieved_ts,
+                retrieved_timestamp=retrieved_ts,
+                updated_at=now_epoch,
+            )
+            positions.append(pos)
+
+        return positions
+
     def _extract_records(self, payload: Any) -> List[Dict[str, Any]]:
         """Polymorphic unpacker for Kotak Neo positions responses."""
         if isinstance(payload, list):

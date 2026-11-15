@@ -72,9 +72,43 @@
 .control-group {
     display: flex;
     align-items: center;
-    gap: 6px;
-    font-size: 0.8rem;
-    color: var(--text-muted);
+    gap: 8px;
+    font-size: 0.85rem;
+}
+
+.control-group label {
+    color: #e2e8f0;
+    font-weight: 600;
+    font-size: 0.82rem;
+    letter-spacing: 0.02em;
+}
+
+.oc-header-controls .input-select {
+    background-color: #1e293b;
+    color: #f8fafc;
+    border: 1px solid #475569;
+    padding: 6px 12px;
+    font-size: 0.82rem;
+    font-weight: 500;
+    border-radius: 4px;
+    cursor: pointer;
+    outline: none;
+}
+
+.oc-header-controls .input-select:hover {
+    border-color: #64748b;
+}
+
+.oc-header-controls .input-select:focus {
+    border-color: var(--color-primary, #3b82f6);
+    box-shadow: 0 0 0 1px var(--color-primary, #3b82f6);
+}
+
+.oc-header-controls .input-select option {
+    background-color: #0f172a;
+    color: #f8fafc;
+    padding: 8px 12px;
+    font-size: 0.82rem;
 }
 
 /* Sentiment & PCR Bar */

@@ -56,6 +56,7 @@
             this.currentExecutionMode = 'DISABLED';
             this.isAuthenticated = false;
             this.operatorUser = null;
+            this.brokerSessionStatus = null;
             this.init();
         }
 
@@ -65,13 +66,15 @@
             this.bindWorkspaceReset();
             this.bindExecutionModeModal();
             this.bindAuthModal();
+            this.bindBrokerModal();
             this.bindKeyboardShortcuts();
             this.bindWidgets();
 
-            // Initial auth status check
+            // Initial auth & broker session status check
             this.checkAuthStatus();
+            this.refreshBrokerSessionStatus();
 
-            console.log('[TerminalShell] Phase 11A Shell Initialized with Operator Auth.');
+            console.log('[TerminalShell] Phase 11A Shell Initialized with Operator Auth & Broker Session Status.');
         }
 
         /* ==========================================================================
@@ -105,6 +108,17 @@
                 tabBtn.classList.add('active');
                 tabBtn.setAttribute('aria-selected', 'true');
                 viewPane.classList.add('active');
+
+                // Trigger view-specific refreshes
+                if (tabKey === 'positions' && window.portfolioController) {
+                    window.portfolioController.fetchPositions();
+                    window.portfolioController.fetchPnl();
+                } else if (tabKey === 'orders' && window.orderBookController) {
+                    window.orderBookController.fetchOrders();
+                    window.orderBookController.fetchTrades();
+                } else if (tabKey === 'funds' && window.portfolioController) {
+                    window.portfolioController.fetchMargins();
+                }
 
                 // Persist to workspace state
                 if (this.ws) {
@@ -246,6 +260,7 @@
                     this.showToast(`Operator ${resData.data.user.username} authenticated.`);
                     this.refreshHealth();
                     this.refreshFunds();
+                    this.refreshBrokerSessionStatus();
                 } else {
                     const msg = (resData && resData.message) ? resData.message : 'Invalid credentials.';
                     if (errorBox) {
@@ -353,6 +368,288 @@
                 headers['Authorization'] = `Bearer ${token}`;
             }
             return headers;
+        }
+
+        /* ==========================================================================
+           3C. Broker Session Status Widget & Login Validation Panel
+           ========================================================================== */
+        bindBrokerModal() {
+            const widget = document.getElementById('broker-session-widget');
+            const modal = document.getElementById('broker-login-modal');
+            const closeBtn = document.getElementById('broker-modal-close');
+            const cancelBtn = document.getElementById('broker-modal-cancel');
+            const useEnvChk = document.getElementById('broker-use-env');
+            const manualFields = document.getElementById('broker-manual-fields');
+            const loginForm = document.getElementById('broker-login-form');
+            const validateBtn = document.getElementById('btn-broker-validate');
+            const restoreBtn = document.getElementById('btn-broker-restore');
+            const streamBtn = document.getElementById('btn-broker-stream-toggle');
+            const logoutBtn = document.getElementById('btn-broker-logout');
+
+            if (widget) {
+                widget.addEventListener('click', () => this.showBrokerModal());
+            }
+            if (closeBtn) {
+                closeBtn.addEventListener('click', () => this.hideBrokerModal());
+            }
+            if (cancelBtn) {
+                cancelBtn.addEventListener('click', () => this.hideBrokerModal());
+            }
+            if (modal) {
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) this.hideBrokerModal();
+                });
+            }
+            if (useEnvChk && manualFields) {
+                useEnvChk.addEventListener('change', () => {
+                    manualFields.classList.toggle('hidden', useEnvChk.checked);
+                });
+            }
+            if (loginForm) {
+                loginForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.submitBrokerLogin();
+                });
+            }
+            if (validateBtn) {
+                validateBtn.addEventListener('click', () => this.refreshBrokerSessionStatus(true));
+            }
+            if (restoreBtn) {
+                restoreBtn.addEventListener('click', () => this.restoreBrokerSession());
+            }
+            if (streamBtn) {
+                streamBtn.addEventListener('click', () => this.toggleBrokerStream());
+            }
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', () => this.logoutBroker());
+            }
+        }
+
+        showBrokerModal() {
+            if (!this.isAuthenticated) {
+                this.showToast('Please authenticate as Operator first.');
+                this.showLoginModal();
+                return;
+            }
+            const modal = document.getElementById('broker-login-modal');
+            if (modal) {
+                modal.classList.remove('hidden');
+                this.refreshBrokerSessionStatus();
+            }
+        }
+
+        hideBrokerModal() {
+            const modal = document.getElementById('broker-login-modal');
+            if (modal) {
+                modal.classList.add('hidden');
+            }
+        }
+
+        setBrokerModalFeedback(message, isError = false) {
+            const box = document.getElementById('broker-modal-feedback');
+            if (!box) return;
+            if (!message) {
+                box.classList.add('hidden');
+                box.textContent = '';
+                return;
+            }
+            box.textContent = message;
+            box.className = isError ? 'modal-error' : 'modal-success';
+        }
+
+        formatShortTime(isoStr) {
+            if (!isoStr) return '—';
+            try {
+                const d = new Date(isoStr);
+                if (isNaN(d.getTime())) return isoStr;
+                return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            } catch (e) {
+                return isoStr;
+            }
+        }
+
+        async refreshBrokerSessionStatus(showToastMsg = false) {
+            try {
+                const resp = await _originalFetch('/api/broker/session-status', {
+                    credentials: 'same-origin',
+                    headers: this.getAuthHeaders(),
+                });
+                if (!resp.ok) return;
+                const payload = await resp.json();
+                const data = payload && payload.data ? payload.data : null;
+                if (data) {
+                    this.brokerSessionStatus = data;
+                    this.updateBrokerSessionUI(data);
+                    if (showToastMsg) {
+                        this.showToast(`Broker validation synced: ${data.broker_connected ? 'CONNECTED' : 'DISCONNECTED'}`);
+                    }
+                }
+            } catch (err) {
+                console.debug('[TerminalShell] Broker session status check failed:', err.message);
+            }
+        }
+
+        updateBrokerSessionUI(data) {
+            const connected = !!data.broker_connected;
+            const authenticated = !!data.authenticated;
+            const profileLoaded = !!data.profile_loaded;
+            const ucc = data.ucc || '—';
+            const expiryShort = this.formatShortTime(data.session_expiry);
+            const syncShort = this.formatShortTime(data.last_broker_sync);
+
+            // Header Widget
+            const widget = document.getElementById('broker-session-widget');
+            const dot = document.getElementById('header-conn-dot');
+            const connText = document.getElementById('header-conn-text');
+            const uccEl = document.getElementById('header-broker-ucc');
+            const profEl = document.getElementById('header-broker-profile');
+            const expEl = document.getElementById('header-broker-expiry');
+            const syncEl = document.getElementById('header-broker-sync');
+
+            if (widget) {
+                widget.className = `broker-session-widget ${connected ? 'connected' : 'disconnected'}`;
+            }
+            if (dot) {
+                dot.className = `pulse-dot ${connected ? 'connected' : 'disconnected'}`;
+            }
+            if (connText) {
+                connText.textContent = connected ? 'BROKER: CONNECTED' : 'BROKER: DISCONNECTED';
+            }
+            if (uccEl) uccEl.textContent = `UCC: ${ucc}`;
+            if (profEl) profEl.textContent = `PROF: ${profileLoaded ? 'YES' : 'NO'}`;
+            if (expEl) expEl.textContent = `EXP: ${expiryShort}`;
+            if (syncEl) syncEl.textContent = `SYNC: ${syncShort}`;
+
+            // Validation Panel Grid
+            const setVal = (id, text, okState = null) => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.textContent = text;
+                el.className = 'bv-val font-numeric';
+                if (okState === true) el.classList.add('ok');
+                if (okState === false) el.classList.add('warn');
+            };
+
+            setVal('bv-broker-connected', connected ? 'CONNECTED' : 'DISCONNECTED', connected);
+            setVal('bv-authenticated', authenticated ? 'YES' : 'NO', authenticated);
+            setVal('bv-ucc', ucc, ucc !== '—');
+            setVal('bv-profile-loaded', profileLoaded ? 'LOADED' : 'NOT LOADED', profileLoaded);
+            setVal('bv-session-expiry', expiryShort);
+            setVal('bv-last-sync', syncShort);
+
+            // Toggle Logout & Stream Buttons
+            const logoutBtn = document.getElementById('btn-broker-logout');
+            if (logoutBtn) {
+                logoutBtn.classList.toggle('hidden', !authenticated);
+            }
+            const streamBtn = document.getElementById('btn-broker-stream-toggle');
+            if (streamBtn) {
+                const isStreaming = data.stream_state === 'CONNECTED' || data.stream_state === 'CONNECTING';
+                streamBtn.textContent = isStreaming ? '⏹ Stop SFeed' : '📡 Start SFeed';
+            }
+        }
+
+        async submitBrokerLogin() {
+            this.setBrokerModalFeedback('');
+            const useEnv = document.getElementById('broker-use-env')?.checked;
+            const payload = {};
+
+            if (!useEnv) {
+                const ucc = document.getElementById('broker-ucc')?.value.trim();
+                const mobile = document.getElementById('broker-mobile')?.value.trim();
+                const mpin = document.getElementById('broker-mpin')?.value.trim();
+                const totp = document.getElementById('broker-totp')?.value.trim();
+                const cKey = document.getElementById('broker-consumer-key')?.value.trim();
+                const cSec = document.getElementById('broker-consumer-secret')?.value.trim();
+
+                if (ucc) payload.ucc = ucc;
+                if (mobile) payload.mobile_number = mobile;
+                if (mpin) payload.mpin = mpin;
+                if (totp) payload.totp_secret = totp;
+                if (cKey) payload.consumer_key = cKey;
+                if (cSec) payload.consumer_secret = cSec;
+            }
+
+            const submitBtn = document.getElementById('broker-login-submit-btn');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Authenticating Kotak Neo...';
+            }
+
+            try {
+                const resp = await window.apiFetch('/api/broker/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+                const resData = await resp.json();
+                if (resp.ok && resData.status === 'success') {
+                    this.setBrokerModalFeedback('Kotak Neo Broker authenticated and profile loaded.', false);
+                    this.showToast('Kotak Neo Broker connected.');
+                    await this.refreshBrokerSessionStatus();
+                } else {
+                    const msg = resData?.message || 'Broker login failed.';
+                    this.setBrokerModalFeedback(msg, true);
+                }
+            } catch (err) {
+                this.setBrokerModalFeedback(`Broker login error: ${err.message}`, true);
+            } finally {
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Authenticate Kotak Neo';
+                }
+            }
+        }
+
+        async restoreBrokerSession() {
+            this.setBrokerModalFeedback('');
+            try {
+                const resp = await window.apiFetch('/api/broker/restore', { method: 'POST' });
+                const resData = await resp.json();
+                if (resp.ok && resData.status === 'success') {
+                    this.setBrokerModalFeedback('Saved broker session restored successfully.', false);
+                    this.showToast('Broker session restored.');
+                    await this.refreshBrokerSessionStatus();
+                } else {
+                    this.setBrokerModalFeedback(resData?.message || 'Unable to restore broker session.', true);
+                }
+            } catch (err) {
+                this.setBrokerModalFeedback(`Restore error: ${err.message}`, true);
+            }
+        }
+
+        async toggleBrokerStream() {
+            this.setBrokerModalFeedback('');
+            const isStreaming = this.brokerSessionStatus &&
+                (this.brokerSessionStatus.stream_state === 'CONNECTED' || this.brokerSessionStatus.stream_state === 'CONNECTING');
+            const endpoint = isStreaming ? '/api/broker/stream/stop' : '/api/broker/stream/start';
+
+            try {
+                const resp = await window.apiFetch(endpoint, { method: 'POST' });
+                const resData = await resp.json();
+                if (resp.ok && resData.status === 'success') {
+                    this.setBrokerModalFeedback(isStreaming ? 'SFeed stream stopped.' : 'SFeed stream started.', false);
+                    await this.refreshBrokerSessionStatus();
+                } else {
+                    this.setBrokerModalFeedback(resData?.message || 'Stream toggle failed.', true);
+                }
+            } catch (err) {
+                this.setBrokerModalFeedback(`Stream error: ${err.message}`, true);
+            }
+        }
+
+        async logoutBroker() {
+            this.setBrokerModalFeedback('');
+            try {
+                const resp = await window.apiFetch('/api/broker/logout', { method: 'POST' });
+                if (resp.ok) {
+                    this.setBrokerModalFeedback('Broker session disconnected.', false);
+                    this.showToast('Broker logged out.');
+                    await this.refreshBrokerSessionStatus();
+                }
+            } catch (err) {
+                this.setBrokerModalFeedback(`Logout error: ${err.message}`, true);
+            }
         }
 
         /* ==========================================================================
@@ -473,6 +770,11 @@
             }
             if (label) label.textContent = `MODE: ${mode}`;
             if (footerMode) footerMode.textContent = mode;
+            const heroMode = document.getElementById('hero-execution-mode');
+            if (heroMode) {
+                heroMode.textContent = mode;
+                heroMode.className = `stat-val font-numeric mode-text ${mode === 'LIVE' ? 'text-success' : (mode === 'PAPER' ? 'text-warning' : '')}`;
+            }
             if (healthPill) {
                 healthPill.className = `mode-pill mode-${mode.toLowerCase()}`;
                 healthPill.textContent = mode;
@@ -569,9 +871,15 @@
                     .then(r => r.json())
                     .then(data => {
                         this.showToast('Emergency cancel command dispatched.');
+                        if (window.orderBookController) {
+                            window.orderBookController.fetchOrders();
+                        }
                     })
                     .catch(err => {
                         this.showToast('Cancel-all dispatched.');
+                        if (window.orderBookController) {
+                            window.orderBookController.fetchOrders();
+                        }
                     });
             }
         }

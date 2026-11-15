@@ -138,8 +138,8 @@ def test_basket_execution_refused_when_disabled():
         "client_basket_id": "bkt_disabled_test",
         "strategy_type": "BULL_CALL_SPREAD",
         "legs": [
-            {"trading_symbol": "NIFTY26NOV24500CE", "side": "BUY", "quantity": 50, "price": 100.0},
-            {"trading_symbol": "NIFTY26NOV24700CE", "side": "SELL", "quantity": 50, "price": 40.0},
+            {"trading_symbol": "NIFTY26NOV24500CE", "side": "BUY", "quantity": 65, "price": 100.0},
+            {"trading_symbol": "NIFTY26NOV24700CE", "side": "SELL", "quantity": 65, "price": 40.0},
         ],
     })
 
@@ -157,8 +157,8 @@ def test_basket_execution_sequential_paper_success():
         "basket_execution_mode": "SEQUENTIAL",
         "failure_policy": "ABORT_REMAINING",
         "legs": [
-            {"trading_symbol": "NIFTY26NOV24500CE", "side": "BUY", "quantity": 50, "price": 100.0},
-            {"trading_symbol": "NIFTY26NOV24700CE", "side": "SELL", "quantity": 50, "price": 40.0},
+            {"trading_symbol": "NIFTY26NOV24500CE", "side": "BUY", "quantity": 65, "price": 100.0},
+            {"trading_symbol": "NIFTY26NOV24700CE", "side": "SELL", "quantity": 65, "price": 40.0},
         ],
     })
 
@@ -250,8 +250,8 @@ def test_golden_rule_reconciling_exposure():
         "strategy_type": "BULL_CALL_SPREAD",
         "basket_execution_mode": "SEQUENTIAL",
         "legs": [
-            {"trading_symbol": "NIFTY26NOV24500CE", "side": "BUY", "quantity": 50, "price": 100.0},
-            {"trading_symbol": "NIFTY26NOV24700CE", "side": "SELL", "quantity": 50, "price": 40.0},
+            {"trading_symbol": "NIFTY26NOV24500CE", "side": "BUY", "quantity": 65, "price": 100.0},
+            {"trading_symbol": "NIFTY26NOV24700CE", "side": "SELL", "quantity": 65, "price": 40.0},
         ],
     })
 
@@ -268,8 +268,8 @@ def test_basket_level_idempotency_deduplication():
         "client_basket_id": "bkt_double_click_test",
         "strategy_type": "BULL_CALL_SPREAD",
         "legs": [
-            {"trading_symbol": "NIFTY26NOV24500CE", "side": "BUY", "quantity": 50, "price": 100.0},
-            {"trading_symbol": "NIFTY26NOV24700CE", "side": "SELL", "quantity": 50, "price": 40.0},
+            {"trading_symbol": "NIFTY26NOV24500CE", "side": "BUY", "quantity": 65, "price": 100.0},
+            {"trading_symbol": "NIFTY26NOV24700CE", "side": "SELL", "quantity": 65, "price": 40.0},
         ],
     })
 

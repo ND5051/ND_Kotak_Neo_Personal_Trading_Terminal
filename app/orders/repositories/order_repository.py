@@ -6,6 +6,7 @@ Provides relational database access for orders, order transition events, and tra
 
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
+import time
 from typing import Any, Dict, List, Optional
 from sqlalchemy import desc, select
 from sqlalchemy.orm import Session as DbSession
@@ -326,6 +327,26 @@ class OrderRepository(BaseRepository[OrderModel], OrderRepositoryInterface):
         except (ValueError, KeyError):
             val_enum = Validity.DAY
 
+        created_at_val = time.time()
+        if getattr(e, "created_at", None):
+            if isinstance(e.created_at, datetime):
+                if e.created_at.tzinfo is None:
+                    created_at_val = e.created_at.replace(tzinfo=timezone.utc).timestamp()
+                else:
+                    created_at_val = e.created_at.timestamp()
+            elif isinstance(e.created_at, (int, float)):
+                created_at_val = float(e.created_at)
+
+        updated_at_val = time.time()
+        if getattr(e, "updated_at", None):
+            if isinstance(e.updated_at, datetime):
+                if e.updated_at.tzinfo is None:
+                    updated_at_val = e.updated_at.replace(tzinfo=timezone.utc).timestamp()
+                else:
+                    updated_at_val = e.updated_at.timestamp()
+            elif isinstance(e.updated_at, (int, float)):
+                updated_at_val = float(e.updated_at)
+
         order = Order(
             client_order_id=e.client_order_id,
             user_id=e.user_id,
@@ -350,6 +371,8 @@ class OrderRepository(BaseRepository[OrderModel], OrderRepositoryInterface):
             exchange_timestamp=e.exchange_timestamp,
             source_timestamp=e.source_timestamp,
             retrieved_timestamp=e.retrieved_timestamp,
+            created_at=created_at_val,
+            updated_at=updated_at_val,
         )
         return order
 

@@ -27,8 +27,17 @@
 
             // Initial load
             this.loadAll();
+            this.startPolling();
 
             console.log('[PortfolioController] Phase 11C Initialized.');
+        }
+
+        startPolling() {
+            if (this.pollTimer) clearInterval(this.pollTimer);
+            this.pollTimer = setInterval(() => {
+                this.fetchPositions();
+                this.fetchPnl();
+            }, 3000);
         }
 
         bindEvents() {
@@ -425,9 +434,20 @@
                 filtered.forEach(pos => {
                     const netQty = pos.net_quantity || 0;
                     const isOpen = netQty !== 0;
-                    const buyAvg = pos.buy_average || 0;
-                    const sellAvg = pos.sell_average || 0;
-                    const ltp = pos.last_price || 0;
+                    const buyAvg = pos.buy_average !== undefined ? pos.buy_average : (pos.average_buy_price || 0);
+                    const sellAvg = pos.sell_average !== undefined ? pos.sell_average : (pos.average_sell_price || 0);
+                    let ltp = pos.last_price !== undefined ? pos.last_price : (pos.current_price || 0);
+
+                    // If ltp is 0, check quoteCache from marketWatchController
+                    if (ltp === 0 && window.marketWatchController && window.marketWatchController.quoteCache) {
+                        const cached = window.marketWatchController.quoteCache[String(pos.instrument_token)];
+                        if (cached && cached.ltp > 0) {
+                            ltp = Number(cached.ltp);
+                        }
+                    }
+                    if (ltp === 0 && buyAvg > 0) {
+                        ltp = buyAvg;
+                    }
 
                     let realized = pos.realized_pnl || 0;
                     let mtm = 0;
@@ -452,9 +472,10 @@
                     const tr = document.createElement('tr');
                     const qtyClass = netQty > 0 ? 'text-success font-bold' : (netQty < 0 ? 'text-danger font-bold' : 'text-muted');
                     const qtyFormatted = netQty > 0 ? `+${netQty}` : `${netQty}`;
+                    const prodTag = pos.product_type || pos.product || 'MIS';
 
                     tr.innerHTML = `
-                        <td><span class="badge badge-product">${pos.product_type || 'MIS'}</span></td>
+                        <td><span class="badge badge-product">${prodTag}</span></td>
                         <td>
                             <div class="scrip-symbol-block">
                                 <span class="font-bold">${pos.trading_symbol}</span>
@@ -539,7 +560,7 @@
             if (!window.orderTicketController) return;
             const side = pos.net_quantity > 0 ? 'BUY' : 'SELL';
             const isFo = (pos.exchange_segment || '').toLowerCase().includes('fo');
-            const defaultQty = isFo ? (pos.trading_symbol.includes('BANKNIFTY') ? 15 : 25) : 1;
+            const defaultQty = isFo ? (pos.trading_symbol.includes('BANKNIFTY') ? 15 : (pos.trading_symbol.includes('SENSEX') ? 10 : 65)) : 1;
 
             window.orderTicketController.openTicket(pos, side, {
                 product: pos.product_type || 'MIS',

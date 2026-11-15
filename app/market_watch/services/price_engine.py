@@ -45,12 +45,44 @@ class MarketWatchPriceEngine:
         self._lock = threading.RLock()
         # Key: (instrument_token, exchange_segment), Value: MarketQuote
         self._quotes: Dict[Tuple[str, str], MarketQuote] = {}
+        self._last_tick_timestamp: Optional[float] = None
+        self._last_tick_symbol: Optional[str] = None
 
     def get_quote(self, token: str, segment: str) -> Optional[MarketQuote]:
         """Fetch quote snapshot for an instrument."""
         key = (str(token).strip(), str(segment).strip().lower())
         with self._lock:
             return self._quotes.get(key)
+
+    def get_touchline(self, segment: str, token: str) -> Optional[MarketQuote]:
+        """Convenience alias for retrieving quotes via (segment, token) or (token, segment)."""
+        with self._lock:
+            q = self.get_quote(token=token, segment=segment)
+            if q is not None:
+                return q
+            return self.get_quote(token=segment, segment=token)
+
+    def get_all_quotes(self) -> Dict[str, Dict[str, Any]]:
+        """Fetch all cached quotes formatted as token key map: 'segment:token' -> quote dict."""
+        with self._lock:
+            return {f"{k[1]}:{k[0]}": v.to_dict() for k, v in self._quotes.items()}
+
+    def get_quotes_count(self) -> int:
+        """Return total number of distinct quotes currently cached."""
+        with self._lock:
+            return len(self._quotes)
+
+    def get_last_tick_timestamp(self) -> Optional[str]:
+        """Return ISO timestamp of the most recent price tick ingested."""
+        with self._lock:
+            if self._last_tick_timestamp:
+                return datetime.fromtimestamp(self._last_tick_timestamp, tz=timezone.utc).isoformat()
+            return None
+
+    def get_last_tick_symbol(self) -> Optional[str]:
+        """Return trading symbol of the most recent price tick ingested."""
+        with self._lock:
+            return self._last_tick_symbol
 
     def get_quotes_batch(
         self, tokens: List[Tuple[str, str]]
@@ -76,6 +108,8 @@ class MarketWatchPriceEngine:
         # Check if this is an Index packet (identified by index name or explicit index indicator)
         index_name = (
             packet.get("index_name")
+            or packet.get("name")
+            or packet.get("trading_symbol")
             or packet.get("indexSymbol")
             or packet.get("pIndexName")
             or ""
@@ -129,25 +163,39 @@ class MarketWatchPriceEngine:
             except (ValueError, TypeError):
                 return 0.0
 
-        ltp = scale(packet.get("ltp") or packet.get("last_price") or packet.get("iv") or 0.0)
+        ltp = scale(
+            packet.get("ltp")
+            or packet.get("last_traded_price")
+            or packet.get("last_price")
+            or packet.get("iv")
+            or 0.0
+        )
         open_px = scale(packet.get("open") or packet.get("open_price") or ltp)
         high_px = scale(packet.get("high") or packet.get("high_price") or ltp)
         low_px = scale(packet.get("low") or packet.get("low_price") or ltp)
         close_px = scale(packet.get("close") or packet.get("close_price") or ltp)
-        volume = int(packet.get("volume") or packet.get("v") or 0)
+        volume = int(packet.get("volume") or packet.get("volume_traded_today") or packet.get("v") or 0)
 
         # In SFeed, price change can be named net_change or change
         net_change = scale(packet.get("net_change") or packet.get("change") or (ltp - close_px if close_px else 0.0))
         pct_change = float(
             packet.get("percent_change")
+            or packet.get("net_change_percent")
             or packet.get("per_change")
             or ((net_change / close_px * 100.0) if close_px > 0 else 0.0)
         )
 
-        bid = scale(packet.get("bid") or packet.get("buy_price") or 0.0)
-        ask = scale(packet.get("ask") or packet.get("sell_price") or 0.0)
-        bid_qty = int(packet.get("bid_qty") or packet.get("buy_qty") or 0)
-        ask_qty = int(packet.get("ask_qty") or packet.get("sell_qty") or 0)
+        buy_list = packet.get("buy")
+        sell_list = packet.get("sell")
+        first_buy_px = (buy_list[0].get("price") if isinstance(buy_list[0], dict) else getattr(buy_list[0], "price", 0.0)) if buy_list else 0.0
+        first_sell_px = (sell_list[0].get("price") if isinstance(sell_list[0], dict) else getattr(sell_list[0], "price", 0.0)) if sell_list else 0.0
+        first_buy_qty = (buy_list[0].get("quantity") if isinstance(buy_list[0], dict) else getattr(buy_list[0], "quantity", 0)) if buy_list else 0
+        first_sell_qty = (sell_list[0].get("quantity") if isinstance(sell_list[0], dict) else getattr(sell_list[0], "quantity", 0)) if sell_list else 0
+
+        bid = scale(packet.get("bid") or packet.get("buy_price") or first_buy_px)
+        ask = scale(packet.get("ask") or packet.get("sell_price") or first_sell_px)
+        bid_qty = int(packet.get("bid_qty") or packet.get("buy_qty") or first_buy_qty)
+        ask_qty = int(packet.get("ask_qty") or packet.get("sell_qty") or first_sell_qty)
         ltt = packet.get("last_trade_time") or packet.get("ltt")
 
         key = (token, segment)
@@ -201,6 +249,9 @@ class MarketWatchPriceEngine:
                     quote.last_trade_time = str(ltt)
                 quote.updated_at = time.time()
 
+            self._last_tick_timestamp = quote.updated_at
+            self._last_tick_symbol = quote.trading_symbol
+
         publish(
             PRICE_TICK_INGESTED,
             {
@@ -211,6 +262,13 @@ class MarketWatchPriceEngine:
                 "timestamp": quote.updated_at,
             },
         )
+        try:
+            from app.websocket.socket_manager import socket_manager
+            if socket_manager.socketio is not None:
+                socket_manager.emit("tick", quote.to_dict())
+        except Exception:
+            pass
+
         return quote
 
     def _process_index_tick(
@@ -240,7 +298,13 @@ class MarketWatchPriceEngine:
             except (ValueError, TypeError):
                 return 0.0
 
-        ltp = scale(packet.get("ltp") or packet.get("iv") or packet.get("last_price") or 0.0)
+        ltp = scale(
+            packet.get("ltp")
+            or packet.get("last_traded_price")
+            or packet.get("iv")
+            or packet.get("last_price")
+            or 0.0
+        )
         open_px = scale(packet.get("open") or packet.get("open_price") or ltp)
         high_px = scale(packet.get("high") or packet.get("high_price") or ltp)
         low_px = scale(packet.get("low") or packet.get("low_price") or ltp)
@@ -250,6 +314,7 @@ class MarketWatchPriceEngine:
         net_change = scale(packet.get("change") or packet.get("net_change") or (ltp - close_px if close_px else 0.0))
         pct_change = float(
             packet.get("percent_change")
+            or packet.get("net_change_percent")
             or packet.get("per_change")
             or ((net_change / close_px * 100.0) if close_px > 0 else 0.0)
         )
@@ -287,6 +352,26 @@ class MarketWatchPriceEngine:
                 quote.net_change = net_change
                 quote.percent_change = pct_change
                 quote.updated_at = time.time()
+
+            self._last_tick_timestamp = quote.updated_at
+            self._last_tick_symbol = quote.trading_symbol
+
+        publish(
+            PRICE_TICK_INGESTED,
+            {
+                "instrument_token": token,
+                "exchange_segment": segment,
+                "ltp": ltp,
+                "percent_change": pct_change,
+                "timestamp": quote.updated_at,
+            },
+        )
+        try:
+            from app.websocket.socket_manager import socket_manager
+            if socket_manager.socketio is not None:
+                socket_manager.emit("tick", quote.to_dict())
+        except Exception:
+            pass
 
         return quote
 

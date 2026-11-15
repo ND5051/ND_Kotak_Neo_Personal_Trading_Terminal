@@ -1,0 +1,105 @@
+<!-- Broker Login & Session Validation Panel Modal -->
+<div class="modal-backdrop hidden" id="broker-login-modal">
+    <div class="modal-card broker-modal-card">
+        <div class="modal-header">
+            <div class="modal-title">
+                <span class="modal-icon">🔌</span>
+                <h3>Kotak Neo Broker Login &amp; Validation Panel</h3>
+            </div>
+            <button type="button" class="modal-close-btn" id="broker-modal-close">&times;</button>
+        </div>
+
+        <div class="modal-body">
+            <!-- Live Broker Validation Telemetry Grid -->
+            <div class="broker-validation-grid" id="broker-validation-grid">
+                <div class="bv-item">
+                    <span class="bv-label">Broker Connected</span>
+                    <span class="bv-val font-numeric" id="bv-broker-connected">NO</span>
+                </div>
+                <div class="bv-item">
+                    <span class="bv-label">Authenticated</span>
+                    <span class="bv-val font-numeric" id="bv-authenticated">NO</span>
+                </div>
+                <div class="bv-item">
+                    <span class="bv-label">UCC</span>
+                    <span class="bv-val font-numeric" id="bv-ucc">—</span>
+                </div>
+                <div class="bv-item">
+                    <span class="bv-label">Profile Loaded</span>
+                    <span class="bv-val font-numeric" id="bv-profile-loaded">NO</span>
+                </div>
+                <div class="bv-item">
+                    <span class="bv-label">Session Expiry</span>
+                    <span class="bv-val font-numeric" id="bv-session-expiry">—</span>
+                </div>
+                <div class="bv-item">
+                    <span class="bv-label">Last Broker Sync</span>
+                    <span class="bv-val font-numeric" id="bv-last-sync">—</span>
+                </div>
+            </div>
+
+            <!-- Quick Session Lifecycle Controls -->
+            <div class="broker-quick-actions">
+                <button type="button" class="btn btn-sm btn-ghost" id="btn-broker-validate">↻ Validate Status</button>
+                <button type="button" class="btn btn-sm btn-ghost" id="btn-broker-restore">⟳ Restore Session</button>
+                <button type="button" class="btn btn-sm btn-ghost" id="btn-broker-stream-toggle">📡 Start SFeed</button>
+                <button type="button" class="btn btn-sm btn-danger hidden" id="btn-broker-logout">⏻ Broker Logout</button>
+            </div>
+
+            <hr class="modal-divider">
+
+            <!-- Broker Login Form -->
+            <form id="broker-login-form" autocomplete="off">
+                <div class="form-check mb-3">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="broker-use-env" checked>
+                        <span>Use server <code>.env</code> Kotak Neo credentials (<code>NEO_*</code>)</span>
+                    </label>
+                </div>
+
+                <div id="broker-manual-fields" class="broker-manual-fields hidden">
+                    <div class="form-row-2">
+                        <div class="form-group mb-2">
+                            <label for="broker-ucc" class="form-label">UCC</label>
+                            <input type="text" id="broker-ucc" class="input-text w-100" placeholder="Client UCC">
+                        </div>
+                        <div class="form-group mb-2">
+                            <label for="broker-mobile" class="form-label">Mobile Number</label>
+                            <input type="text" id="broker-mobile" class="input-text w-100" placeholder="+9198XXXXXXXX">
+                        </div>
+                    </div>
+                    <div class="form-row-2">
+                        <div class="form-group mb-2">
+                            <label for="broker-mpin" class="form-label">MPIN</label>
+                            <input type="password" id="broker-mpin" class="input-text w-100" placeholder="6-digit MPIN">
+                        </div>
+                        <div class="form-group mb-2">
+                            <label for="broker-totp" class="form-label">TOTP Secret</label>
+                            <input type="password" id="broker-totp" class="input-text w-100" placeholder="Base32 TOTP Secret">
+                        </div>
+                    </div>
+                    <div class="form-row-2">
+                        <div class="form-group mb-2">
+                            <label for="broker-consumer-key" class="form-label">Consumer Key (Optional)</label>
+                            <input type="password" id="broker-consumer-key" class="input-text w-100" placeholder="Override NEO_CONSUMER_KEY">
+                        </div>
+                        <div class="form-group mb-2">
+                            <label for="broker-consumer-secret" class="form-label">Consumer Secret (Optional)</label>
+                            <input type="password" id="broker-consumer-secret" class="input-text w-100" placeholder="Override NEO_CONSUMER_SECRET">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-error hidden" id="broker-modal-feedback"></div>
+
+                <div class="modal-footer mt-3">
+                    <button type="button" class="btn btn-ghost" id="broker-modal-cancel">Close</button>
+                    <button type="submit" class="btn btn-primary" id="broker-login-submit-btn">
+                        Authenticate Kotak Neo
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+

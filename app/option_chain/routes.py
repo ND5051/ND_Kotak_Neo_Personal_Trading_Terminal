@@ -147,7 +147,7 @@ def build_strategy():
     strategy_type = payload.get("strategy_type", "BULL_CALL_SPREAD").upper()
     underlying = payload.get("underlying", "NIFTY").upper()
     expiry_token = payload.get("expiry_token", "26NOV")
-    lot_size = int(payload.get("lot_size", 25))
+    lot_size = int(payload.get("lot_size", 65))
     lots = int(payload.get("lots", 1))
 
     try:

@@ -135,8 +135,8 @@ def place_order():
     except BrokerException as e:
         return api_error(
             message=str(e),
-            error_code="BROKER_ERROR",
-            status_code=502,
+            error_code=getattr(e, "error_code", "BROKER_ERROR"),
+            status_code=getattr(e, "status_code", 502),
         )
     except Exception as e:
         logger.error(f"Unexpected error in place_order: {str(e)}", exc_info=True)
@@ -199,6 +199,27 @@ def cancel_all_orders():
         return api_error(error_code="EXECUTION_MODE_DISABLED", message=str(e), status_code=403)
     except Exception as e:
         return api_error(error_code="CANCEL_ALL_FAILED", message=f"Cancel all failed: {str(e)}", status_code=500)
+
+
+# 6B. Reset Paper Test Data (Paper Sandbox Cleansing)
+@orders_bp.route("/reset-paper", methods=["POST"])
+@login_required
+def reset_paper_data():
+    """Reset simulated/paper test data (orders, trades, events) for clean UAT."""
+    from app.models.db import db_session
+    from app.orders.models.order_entity import OrderModel, OrderEventModel, TradeExecutionModel
+    from app.broker.adapters.kotak_order_adapter import kotak_order_adapter
+    from app.orders.services.idempotency_manager import idempotency_manager
+
+    with db_session() as session:
+        session.query(TradeExecutionModel).delete()
+        session.query(OrderEventModel).delete()
+        session.query(OrderModel).delete()
+        session.commit()
+
+    kotak_order_adapter._simulated_orders.clear()
+    idempotency_manager.clear()
+    return api_response(data={"cleared": True, "message": "Paper test data reset successfully."})
 
 
 # 7. Reconcile Unconfirmed Orders

@@ -62,6 +62,10 @@ class KotakOrderAdapterInterface(ABC):
         """Retrieve daily trade book (executed fills) from Kotak Neo."""
         pass
 
+    def is_connected(self) -> bool:
+        """Return True if an authenticated NeoAPI broker client is connected."""
+        ...
+
     def register_simulated_order(
         self, broker_order_id: str, quantity: int, price: float, status: str = "complete"
     ) -> None:
@@ -81,6 +85,10 @@ class KotakOrderAdapter(KotakOrderAdapterInterface):
         self._simulated_orders: Dict[str, Dict[str, Any]] = {}
         self._lock = threading.RLock()
 
+    def is_connected(self) -> bool:
+        """Return True if an authenticated NeoAPI broker client is connected."""
+        ...
+
     def register_simulated_order(
         self, broker_order_id: str, quantity: int, price: float, status: str = "complete"
     ) -> None:
@@ -90,9 +98,13 @@ class KotakOrderAdapter(KotakOrderAdapterInterface):
                 "nOrdNo": str(broker_order_id),
                 "ordSt": status,
                 "avgPrc": str(price if price > 0 else 100.0),
-                "fldQty": str(quantity),
+                "fldQty": "0" if status in ("open", "pending", "trigger_pending") else str(quantity),
                 "rejRsn": "",
             }
+
+    def is_connected(self) -> bool:
+        """Return True if an authenticated live client is active."""
+        return self.client is not None
 
     def _is_mock(self) -> bool:
         if self.client is None:
@@ -216,8 +228,12 @@ class KotakOrderAdapter(KotakOrderAdapterInterface):
             "trigger_price": f"{float(modifications.get('trigger_price', order.trigger_price)):.2f}",
         }
 
-        if self._is_mock():
+        if str(order.broker_order_id).startswith("PAPER_") or self._is_mock():
             time.sleep(0.02)
+            with self._lock:
+                if str(order.broker_order_id) in self._simulated_orders:
+                    if "price" in modifications:
+                        self._simulated_orders[str(order.broker_order_id)]["avgPrc"] = str(modifications["price"])
             return {
                 "stat": "Ok",
                 "nOrdNo": order.broker_order_id,
@@ -244,8 +260,11 @@ class KotakOrderAdapter(KotakOrderAdapterInterface):
             broker_order_id=order.broker_order_id,
         )
 
-        if self._is_mock():
+        if str(order.broker_order_id).startswith("PAPER_") or self._is_mock():
             time.sleep(0.02)
+            with self._lock:
+                if str(order.broker_order_id) in self._simulated_orders:
+                    self._simulated_orders[str(order.broker_order_id)]["ordSt"] = "cancelled"
             return {
                 "stat": "Ok",
                 "nOrdNo": order.broker_order_id,

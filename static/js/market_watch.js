@@ -15,6 +15,7 @@
             this.searchDebounceTimer = null;
             this.selectedSearchResultIndex = -1;
             this.currentDepthToken = null;
+            this.quoteCache = {};
             this.ws = window.workspaceManager;
 
             this.init();
@@ -26,6 +27,7 @@
             this.bindDepthModal();
             this.bindKeyboardShortcuts();
             this.loadWatchlists();
+            this.startQuotePolling();
 
             console.log('[MarketWatchController] Phase 11B Initialized.');
         }
@@ -547,20 +549,32 @@
                 return;
             }
 
+            // Check existing quote from quoteCache or other watchlists
+            let initialQuote = this.quoteCache[String(scrip.instrument_token)] || null;
+            if (!initialQuote) {
+                for (const wl of this.watchlists) {
+                    const match = (wl.items || []).find(it => String(it.instrument_token) === String(scrip.instrument_token));
+                    if (match && match.quote && match.quote.ltp > 0) {
+                        initialQuote = { ...match.quote };
+                        break;
+                    }
+                }
+            }
+
             const newItem = {
                 id: Date.now(),
                 instrument_token: scrip.instrument_token || "1001",
                 exchange_segment: scrip.exchange_segment || "nse_cm",
                 trading_symbol: scrip.trading_symbol || scrip.symbol,
                 display_name: scrip.display_name || scrip.trading_symbol,
-                quote: { ltp: 150.0, change: 1.5, percent_change: 1.01 }
+                quote: initialQuote || { ltp: 0.0, change: 0.0, percent_change: 0.0 }
             };
 
             currentWl.items.push(newItem);
             this.renderActiveWatchlist();
             this.closeSearchModal();
 
-            // API Call
+            // API Call with live quote synchronization
             fetch(`/api/market-watch/watchlists/${currentWl.id}/items`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -570,7 +584,23 @@
                     trading_symbol: newItem.trading_symbol,
                     display_name: newItem.display_name
                 })
-            }).catch(e => console.debug('[MarketWatch] Add synced locally:', e.message));
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data && data.data && data.data.item) {
+                    newItem.id = data.data.item.id;
+                    if (data.data.item.quote && data.data.item.quote.ltp > 0) {
+                        newItem.quote = data.data.item.quote;
+                        this.quoteCache[String(newItem.instrument_token)] = newItem.quote;
+                        this.renderActiveWatchlist();
+                    }
+                }
+                this.pollQuotes();
+            })
+            .catch(e => {
+                console.debug('[MarketWatch] Add synced locally:', e.message);
+                this.pollQuotes();
+            });
 
             if (window.terminalShell) {
                 window.terminalShell.showToast(`Added ${newItem.trading_symbol} to ${currentWl.name}`);
@@ -737,6 +767,140 @@
                             this.openOptionChain(currentWl.items[this.focusedRowIndex]);
                         }
                         return;
+                    }
+                }
+            });
+        }
+
+        /* ==========================================================================
+           5. Real-Time Touchline Quotes Polling & DOM Synchronization
+           ========================================================================== */
+        startQuotePolling() {
+            if (this.quotePollTimer) {
+                clearInterval(this.quotePollTimer);
+            }
+            // Initial poll
+            this.pollQuotes();
+            // 1-second continuous polling interval
+            this.quotePollTimer = setInterval(() => this.pollQuotes(), 1000);
+
+            // Also subscribe to Socket.IO if available
+            if (typeof io !== 'undefined' && window.socket) {
+                window.socket.on('tick', (q) => {
+                    if (q && q.instrument_token) {
+                        const key = `${q.exchange_segment || 'nse_cm'}:${q.instrument_token}`;
+                        this.updateQuotesInUI({ [key]: q });
+                    }
+                });
+            }
+        }
+
+        async pollQuotes() {
+            try {
+                const resp = await fetch('/api/market-watch/quotes');
+                if (!resp.ok) return;
+                const body = await resp.json();
+                if (body && body.data && body.data.quotes) {
+                    this.updateQuotesInUI(body.data.quotes);
+                }
+            } catch (err) {
+                // Silently handle transient network drop
+            }
+        }
+
+        updateQuotesInUI(quotes) {
+            if (!quotes || typeof quotes !== 'object') return;
+
+            Object.values(quotes).forEach(q => {
+                if (!q || !q.instrument_token) return;
+                const token = String(q.instrument_token);
+                const ltp = Number(q.ltp || 0);
+                const chg = Number(q.net_change || 0);
+                const pct = Number(q.percent_change || 0);
+                const isPositive = chg >= 0;
+                const chgSign = isPositive ? '+' : '';
+                const chgClass = isPositive ? 'text-success' : 'text-danger';
+
+                // Cache quote
+                if (ltp > 0) {
+                    this.quoteCache[token] = q;
+                    const seg = String(q.exchange_segment || 'nse_cm').toLowerCase();
+                    this.quoteCache[`${seg}:${token}`] = q;
+                }
+
+                // 1. Update Watchlist Rows in DOM
+                const ltpEl = document.getElementById(`scrip-ltp-${token}`);
+                if (ltpEl) {
+                    const prevLtp = parseFloat(ltpEl.textContent.replace(/,/g, '')) || 0;
+                    ltpEl.textContent = ltp.toFixed(2);
+                    ltpEl.className = `scrip-ltp font-numeric ${chgClass}`;
+                    if (ltp > prevLtp && prevLtp > 0) {
+                        ltpEl.classList.add('flash-green');
+                        setTimeout(() => ltpEl.classList.remove('flash-green'), 300);
+                    } else if (ltp < prevLtp && prevLtp > 0) {
+                        ltpEl.classList.add('flash-red');
+                        setTimeout(() => ltpEl.classList.remove('flash-red'), 300);
+                    }
+                }
+
+                const chgEl = document.getElementById(`scrip-chg-${token}`);
+                if (chgEl) {
+                    chgEl.textContent = `${chgSign}${chg.toFixed(2)} (${chgSign}${pct.toFixed(2)}%)`;
+                    chgEl.className = `scrip-chg font-numeric ${chgClass}`;
+                }
+
+                // 2. Update Header Benchmark Tickers
+                const sym = String(q.trading_symbol || '').toUpperCase();
+                if (token === '26000' || sym.includes('NIFTY 50')) {
+                    const hLtp = document.getElementById('nifty-ltp');
+                    const hChg = document.getElementById('nifty-chg');
+                    if (hLtp) hLtp.textContent = ltp.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    if (hChg) {
+                        hChg.textContent = `${chgSign}${chg.toFixed(2)} (${chgSign}${pct.toFixed(2)}%)`;
+                        hChg.className = `ticker-chg ${chgClass}`;
+                    }
+                } else if (token === '26001' || token === '26009' || sym.includes('BANKNIFTY') || sym.includes('NIFTY BANK')) {
+                    const hLtp = document.getElementById('banknifty-ltp');
+                    const hChg = document.getElementById('banknifty-chg');
+                    if (hLtp) hLtp.textContent = ltp.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    if (hChg) {
+                        hChg.textContent = `${chgSign}${chg.toFixed(2)} (${chgSign}${pct.toFixed(2)}%)`;
+                        hChg.className = `ticker-chg ${chgClass}`;
+                    }
+                } else if (token === '1' || sym.includes('SENSEX')) {
+                    const hLtp = document.getElementById('sensex-ltp');
+                    const hChg = document.getElementById('sensex-chg');
+                    if (hLtp) hLtp.textContent = ltp.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    if (hChg) {
+                        hChg.textContent = `${chgSign}${chg.toFixed(2)} (${chgSign}${pct.toFixed(2)}%)`;
+                        hChg.className = `ticker-chg ${chgClass}`;
+                    }
+                }
+
+                // 3. Update Depth Modal if Open
+                if (this.currentDepthToken === token) {
+                    const depthLtp = document.getElementById('depth-ltp');
+                    const depthChg = document.getElementById('depth-chg');
+                    if (depthLtp) depthLtp.textContent = ltp.toFixed(2);
+                    if (depthChg) {
+                        depthChg.textContent = `${chgSign}${chg.toFixed(2)} (${chgSign}${pct.toFixed(2)}%)`;
+                        depthChg.className = `depth-chg ${chgClass}`;
+                    }
+                }
+
+                // 4. Update in-memory watchlist items
+                if (this.watchlists && this.watchlists.length > 0) {
+                    const activeWl = this.watchlists[this.activeWatchlistIndex];
+                    if (activeWl && activeWl.items) {
+                        const targetItem = activeWl.items.find(i => String(i.instrument_token) === token);
+                        if (targetItem) {
+                            targetItem.quote = {
+                                ltp: ltp,
+                                change: chg,
+                                percent_change: pct,
+                                ...q,
+                            };
+                        }
                     }
                 }
             });

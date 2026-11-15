@@ -12,8 +12,8 @@
             this.side = 'BUY';
             this.product = 'MIS';
             this.orderType = 'LIMIT';
-            this.quantity = 25;
-            this.lotSize = 25;
+            this.quantity = 65;
+            this.lotSize = 65;
             this.price = 142.50;
             this.triggerPrice = 0.0;
             this.disclosedQty = 0;
@@ -117,12 +117,34 @@
                     this.price = parseFloat(priceInput.value) || 0.05;
                     this.debounceValidation();
                 });
+                priceInput.addEventListener('change', () => {
+                    this.snapPriceToTick();
+                });
+                priceInput.addEventListener('blur', () => {
+                    this.snapPriceToTick();
+                });
+                priceInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        this.snapPriceToTick();
+                    }
+                });
             }
 
             if (triggerInput) {
                 triggerInput.addEventListener('input', () => {
                     this.triggerPrice = parseFloat(triggerInput.value) || 0.0;
                     this.debounceValidation();
+                });
+                triggerInput.addEventListener('change', () => {
+                    this.snapTriggerToTick();
+                });
+                triggerInput.addEventListener('blur', () => {
+                    this.snapTriggerToTick();
+                });
+                triggerInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        this.snapTriggerToTick();
+                    }
                 });
             }
 
@@ -211,6 +233,30 @@
             return Math.round(val * 20) / 20;
         }
 
+        snapPriceToTick() {
+            const pInput = document.getElementById('ticket-price-input');
+            if (pInput && this.price > 0) {
+                const snapped = this.roundTick(this.price);
+                if (snapped !== this.price || pInput.value !== snapped.toFixed(2)) {
+                    this.price = snapped;
+                    pInput.value = snapped.toFixed(2);
+                    this.runValidationAndMarginPreview();
+                }
+            }
+        }
+
+        snapTriggerToTick() {
+            const tInput = document.getElementById('ticket-trigger-input');
+            if (tInput && this.triggerPrice > 0) {
+                const snapped = this.roundTick(this.triggerPrice);
+                if (snapped !== this.triggerPrice || tInput.value !== snapped.toFixed(2)) {
+                    this.triggerPrice = snapped;
+                    tInput.value = snapped.toFixed(2);
+                    this.runValidationAndMarginPreview();
+                }
+            }
+        }
+
         /* ==========================================================================
            2. Opening & Hydrating Ticket
            ========================================================================== */
@@ -225,12 +271,27 @@
             const cncWrap = document.getElementById('product-cnc-wrap');
 
             const isFo = (item.exchange_segment || '').toLowerCase().includes('fo');
-            this.lotSize = isFo ? (item.trading_symbol.includes('BANKNIFTY') ? 15 : 25) : 1;
+            this.lotSize = item.lot_size || (isFo ? (item.trading_symbol.includes('BANKNIFTY') ? 15 : (item.trading_symbol.includes('SENSEX') ? 10 : 65)) : 1);
             this.quantity = options.quantity !== undefined ? options.quantity : this.lotSize;
 
-            const q = item.quote || { ltp: 142.50 };
-            const effectivePrice = options.price !== undefined ? options.price : (q.ltp || 142.50);
-            this.price = this.roundTick(effectivePrice);
+            let quoteLtp = 0;
+            if (options.price !== undefined && options.price > 0) {
+                quoteLtp = options.price;
+            } else if (item.ltp > 0) {
+                quoteLtp = item.ltp;
+            } else if (item.quote && item.quote.ltp > 0) {
+                quoteLtp = item.quote.ltp;
+            } else if (item.last_price > 0) {
+                quoteLtp = item.last_price;
+            } else if (item.current_price > 0) {
+                quoteLtp = item.current_price;
+            } else if (window.marketWatchController && window.marketWatchController.quoteCache) {
+                const cached = window.marketWatchController.quoteCache[String(item.instrument_token)];
+                if (cached && cached.ltp > 0) {
+                    quoteLtp = Number(cached.ltp);
+                }
+            }
+            this.price = this.roundTick(quoteLtp);
 
             if (options.product) {
                 this.product = options.product;
@@ -238,11 +299,33 @@
 
             if (symbolEl) symbolEl.textContent = item.trading_symbol;
             if (segEl) segEl.textContent = (item.exchange_segment || 'NSE').toUpperCase();
-            if (ltpEl) ltpEl.textContent = `₹${this.price.toFixed(2)}`;
+            if (ltpEl) ltpEl.textContent = quoteLtp > 0 ? `₹${this.price.toFixed(2)}` : '—';
             if (pInput) pInput.value = this.price.toFixed(2);
             if (qInput) {
                 qInput.value = this.quantity;
-                qInput.step = this.lotSize;
+                qInput.min = '1';
+                qInput.step = '1';
+            }
+
+            // If quote was zero, query latest touchline asynchronously
+            if (quoteLtp === 0 && item.instrument_token) {
+                const seg = item.exchange_segment || 'nse_cm';
+                fetch(`/api/market-watch/quotes?tokens=${seg}:${item.instrument_token}`)
+                    .then(r => r.json())
+                    .then(body => {
+                        if (body && body.data && body.data.quotes) {
+                            const found = Object.values(body.data.quotes)[0];
+                            if (found && found.ltp > 0) {
+                                this.price = this.roundTick(found.ltp);
+                                if (ltpEl) ltpEl.textContent = `₹${this.price.toFixed(2)}`;
+                                if (pInput && (this.orderType === 'LIMIT' || !pInput.value || pInput.value === '0.00')) {
+                                    pInput.value = this.price.toFixed(2);
+                                }
+                                this.runValidationAndMarginPreview();
+                            }
+                        }
+                    })
+                    .catch(() => {});
             }
 
             // CNC allowed only for cash equities
@@ -366,7 +449,16 @@
             clearTimeout(this.validationTimer);
             this.validationTimer = setTimeout(() => {
                 this.runValidationAndMarginPreview();
-            }, 200);
+            }, 150);
+
+            // Auto-snap invalid tick size after typing pause (700ms)
+            clearTimeout(this.snapTimer);
+            this.snapTimer = setTimeout(() => {
+                const tickRem = Math.round((this.price * 100) % 5);
+                if (tickRem !== 0 && this.price > 0 && this.orderType !== 'MARKET' && this.orderType !== 'SL-M') {
+                    this.snapPriceToTick();
+                }
+            }, 700);
         }
 
         async runValidationAndMarginPreview() {
@@ -377,13 +469,24 @@
             const marginBadge = document.getElementById('ticket-margin-status');
             const submitBtn = document.getElementById('ticket-submit-btn');
 
+            if (valBox && !this._valBoxClickBound) {
+                valBox.style.cursor = 'pointer';
+                valBox.title = 'Click to auto-snap to nearest valid tick';
+                valBox.addEventListener('click', () => {
+                    this.snapPriceToTick();
+                    this.snapTriggerToTick();
+                });
+                this._valBoxClickBound = true;
+            }
+
             let error = null;
 
             // 1. Tick Modulo Check
             if (this.orderType !== 'MARKET' && this.orderType !== 'SL-M') {
                 const tickRem = Math.round((this.price * 100) % 5);
                 if (tickRem !== 0) {
-                    error = `Invalid Tick Size: Price must be a multiple of 0.05 (got ${this.price}).`;
+                    const nearest = this.roundTick(this.price).toFixed(2);
+                    error = `Invalid Tick Size: Price must be a multiple of 0.05 (got ${this.price}). Auto-snapping to ₹${nearest}...`;
                 }
             }
 
@@ -482,6 +585,10 @@
         async submitOrder() {
             if (!this.item) return;
 
+            // Enforce exact tick modulo snap before submission
+            this.snapPriceToTick();
+            this.snapTriggerToTick();
+
             const submitBtn = document.getElementById('ticket-submit-btn');
             const spinner = document.getElementById('ticket-submit-spinner');
             const submitText = document.getElementById('ticket-submit-text');
@@ -520,6 +627,14 @@
                         window.terminalShell.showToast(`${this.side} ${this.quantity} ${this.item.trading_symbol} placed successfully!`);
                     }
                     this.closeTicket();
+                    if (window.orderBookController) {
+                        window.orderBookController.fetchOrders();
+                        window.orderBookController.fetchTrades();
+                    }
+                    if (window.portfolioController) {
+                        window.portfolioController.fetchPositions();
+                        window.portfolioController.fetchPnl();
+                    }
                 } else {
                     const msg = (resData && resData.message) ? resData.message : 'Order submission failed.';
                     alert(`Order Error: ${msg}`);
@@ -530,6 +645,14 @@
                     window.terminalShell.showToast(`[Paper Preview] ${this.side} ${this.quantity} ${this.item.trading_symbol} dispatched.`);
                 }
                 this.closeTicket();
+                if (window.orderBookController) {
+                    window.orderBookController.fetchOrders();
+                    window.orderBookController.fetchTrades();
+                }
+                if (window.portfolioController) {
+                    window.portfolioController.fetchPositions();
+                    window.portfolioController.fetchPnl();
+                }
             } finally {
                 if (submitBtn) submitBtn.disabled = false;
                 if (spinner) spinner.classList.add('hidden');

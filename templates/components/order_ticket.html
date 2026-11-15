@@ -15,7 +15,7 @@
     </div>
 
     <!-- Ticket Form Body -->
-    <form class="ticket-body" id="order-ticket-form" onsubmit="return false;">
+    <form class="ticket-body" id="order-ticket-form" onsubmit="return false;" novalidate>
         <!-- Side Selector -->
         <div class="form-row side-selector-row">
             <label class="radio-label buy-radio">
@@ -78,11 +78,11 @@
             <div class="input-block">
                 <div class="block-header">
                     <label for="ticket-qty-input">Quantity</label>
-                    <span class="block-caption" id="ticket-lots-caption">1 Lot (x25)</span>
+                    <span class="block-caption" id="ticket-lots-caption">1 Lot (x65)</span>
                 </div>
                 <div class="stepper-input">
                     <button type="button" class="step-btn" id="qty-step-down">-</button>
-                    <input type="number" id="ticket-qty-input" class="input-numeric font-numeric" value="25" min="1" step="25">
+                    <input type="number" id="ticket-qty-input" class="input-numeric font-numeric" value="65" min="1" step="1">
                     <button type="button" class="step-btn" id="qty-step-up">+</button>
                 </div>
                 <span class="field-hint" id="ticket-freeze-hint">Freeze limit: 1,800</span>

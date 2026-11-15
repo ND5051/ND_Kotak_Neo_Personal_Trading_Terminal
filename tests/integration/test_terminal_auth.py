@@ -104,3 +104,75 @@ def test_default_operator_creation_and_terminal_auth_lifecycle(client):
         content_type="application/json",
     )
     assert post_logout_mode.status_code == 401
+
+
+def test_root_redirects_to_terminal_and_broker_session_status(client, monkeypatch):
+    """
+    Integration test verifying TERMINAL_ENTRYPOINT_REMEDIATION:
+    1. GET / redirects (302) to /terminal and does not serve old Phase 1 skeleton.
+    2. GET /terminal renders Broker Session Status widget and Broker Login Validation panel.
+    3. GET /api/broker/session-status returns required schema before and after broker login.
+    """
+    from unittest.mock import MagicMock
+    mock_sdk = MagicMock()
+    mock_sdk.totp_login.return_value = {"data": {"token": "view_tok", "sid": "view_sid"}}
+    mock_sdk.totp_validate.return_value = {
+        "data": {"token": "trade_tok", "sid": "trade_sid", "ucc": "UAT_UCC_99", "greetingName": "UAT Trader"}
+    }
+    monkeypatch.setattr("app.broker.adapters.kotak_adapter.NeoAPI", MagicMock(return_value=mock_sdk))
+    # 1. Root URL redirects to /terminal
+    root_resp = client.get("/")
+    assert root_resp.status_code == 302
+    assert root_resp.headers["Location"].endswith("/terminal")
+
+    followed_resp = client.get("/", follow_redirects=True)
+    assert followed_resp.status_code == 200
+    html = followed_resp.get_data(as_text=True)
+    assert "Phase 1 - Project Skeleton Ready" not in html
+    assert "broker-session-widget" in html
+    assert "broker-login-modal" in html
+    assert "Kotak Neo Broker Login" in html
+
+    # 2. Initial broker session-status before operator/broker login
+    pre_status = client.get("/api/broker/session-status")
+    assert pre_status.status_code == 200
+    pre_data = pre_status.get_json()["data"]
+    for key in ("authenticated", "profile_loaded", "ucc", "session_expiry", "broker_connected"):
+        assert key in pre_data
+
+    # 3. Operator logs in explicitly
+    login_resp = client.post(
+        "/api/auth/login",
+        data=json.dumps({"username": "admin", "password": "AdminPassword123!"}),
+        content_type="application/json",
+    )
+    assert login_resp.status_code == 200
+
+    # 4. Broker login via /api/broker/login
+    broker_login_resp = client.post(
+        "/api/broker/login",
+        data=json.dumps({
+            "consumer_key": "test_key",
+            "ucc": "UAT_UCC_99",
+            "mobile_number": "9876543210",
+            "mpin": "123456",
+            "totp_secret": "JBSWY3DPEHPK3PXP",
+        }),
+        content_type="application/json",
+    )
+    assert broker_login_resp.status_code == 200
+
+    # 5. Verify GET /api/broker/session-status reflects active broker session
+    post_status = client.get("/api/broker/session-status")
+    assert post_status.status_code == 200
+    post_data = post_status.get_json()["data"]
+    assert post_data["authenticated"] is True
+    assert post_data["broker_connected"] is True
+    assert post_data["profile_loaded"] is True
+    assert post_data["ucc"] is not None
+    assert post_data["session_expiry"] is not None
+    assert post_data["last_broker_sync"] is not None
+
+    # 6. Cleanup broker & operator logout
+    client.post("/api/broker/logout")
+    client.post("/api/auth/logout")

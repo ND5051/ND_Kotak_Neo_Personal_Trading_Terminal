@@ -78,8 +78,11 @@ class OptionContractQuote:
             "option_type": self.option_type,
             "strike_price": self.strike_price,
             "expiry_date": self.expiry_date,
+            "exchange_segment": "nse_fo",
             "ltp": round(self.ltp, 2),
+            "last_price": round(self.ltp, 2),
             "price_change": round(self.price_change, 2),
+            "change": round(self.price_change, 2),
             "percent_change": round(self.percent_change, 2),
             "bid_price": round(self.bid_price, 2),
             "bid_quantity": self.bid_quantity,
@@ -87,6 +90,7 @@ class OptionContractQuote:
             "ask_quantity": self.ask_quantity,
             "open_interest": self.open_interest,
             "change_in_oi": self.change_in_oi,
+            "change_oi": self.change_in_oi,
             "percent_change_in_oi": round(self.percent_change_in_oi, 2),
             "volume": self.volume,
             "total_traded_value": round(self.total_traded_value, 2),
@@ -110,12 +114,16 @@ class OptionStrikeRow:
     put_quote: Optional[OptionContractQuote] = None
 
     def to_dict(self) -> Dict[str, Any]:
+        cq = self.call_quote.to_dict() if self.call_quote else None
+        pq = self.put_quote.to_dict() if self.put_quote else None
         return {
             "strike_price": self.strike_price,
             "is_atm": self.is_atm,
             "distance_from_spot": round(self.distance_from_spot, 2),
-            "call_quote": self.call_quote.to_dict() if self.call_quote else None,
-            "put_quote": self.put_quote.to_dict() if self.put_quote else None,
+            "call_quote": cq,
+            "put_quote": pq,
+            "call": cq,
+            "put": pq,
         }
 
 
@@ -133,7 +141,7 @@ class OptionChainSnapshot:
     expiry_date: str = ""
     atm_strike: float = 0.0
     strike_step: float = 50.0
-    lot_size: int = 25
+    lot_size: int = 65
     preset: StrikeFilterPreset = StrikeFilterPreset.ATM_10
 
     # Aggregated Liquidity & Sentiments

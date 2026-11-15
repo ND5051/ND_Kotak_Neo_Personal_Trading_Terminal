@@ -117,8 +117,11 @@ def test_broker_session_destroy():
 
         mgr.create_session(user_id=user.id, session_token="active_token_123")
 
-        adapter = KotakBrokerAdapter()
-        adapter.login({"consumer_key": "k", "consumer_secret": "s"})
+        from unittest.mock import MagicMock
+        mock_client = MagicMock()
+        mock_client.__is_mock__ = True
+        adapter = KotakBrokerAdapter(client=mock_client)
+        adapter.login({"consumer_key": "k"})
         assert adapter.is_connected() is True
 
         destroyed = mgr.destroy_session(user_id=user.id, adapter=adapter)

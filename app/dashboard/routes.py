@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request
+from flask import Blueprint, redirect, render_template, request, url_for
 from app.auth.repositories.user_repository import UserRepository
 from app.auth.services.session_manager import session_manager
 from app.core.response import api_response
@@ -9,8 +9,8 @@ dashboard_bp = Blueprint("dashboard", __name__)
 
 @dashboard_bp.route("/", methods=["GET"])
 def index():
-    """Terminal root dashboard entry point."""
-    return render_template("index.html")
+    """Redirect root URL directly to the primary Trading Terminal entrypoint."""
+    return redirect(url_for("dashboard.terminal"), code=302)
 
 
 @dashboard_bp.route("/terminal", methods=["GET"])
@@ -49,5 +49,5 @@ def terminal():
 @dashboard_bp.route("/api/system/health", methods=["GET"])
 def system_health():
     """System health check endpoint."""
-    return api_response(data={"status": "online", "phase": "phase_1_skeleton"})
+    return api_response(data={"status": "online", "phase": "production_terminal"})
 

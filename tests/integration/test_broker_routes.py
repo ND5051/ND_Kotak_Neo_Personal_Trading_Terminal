@@ -1,8 +1,24 @@
 import json
+from unittest.mock import MagicMock
 
 
-def test_broker_api_endpoints_flow(client):
+def _mock_neo_api_cls():
+    instance = MagicMock()
+    instance.totp_login.return_value = {"data": {"token": "view_tok_123", "sid": "view_sid_123"}}
+    instance.totp_validate.return_value = {
+        "data": {
+            "token": "trade_tok_123",
+            "sid": "trade_sid_123",
+            "ucc": "NEOUCC",
+            "greetingName": "Broker Operator",
+        }
+    }
+    return MagicMock(return_value=instance)
+
+
+def test_broker_api_endpoints_flow(client, monkeypatch):
     """Integration test: Register local user, query capabilities/status, login broker, restore and logout."""
+    monkeypatch.setattr("app.broker.adapters.kotak_adapter.NeoAPI", _mock_neo_api_cls())
     # 1. Register local operator
     client.post(
         "/api/auth/register",
@@ -44,10 +60,10 @@ def test_broker_api_endpoints_flow(client):
         headers=auth_header,
         data=json.dumps({
             "consumer_key": "neo_cons_key_123",
-            "consumer_secret": "neo_cons_secret_456",
             "mobile_number": "9876543210",
             "ucc": "NEOUCC",
             "mpin": "123456",
+            "totp_secret": "JBSWY3DPEHPK3PXP",
         }),
         content_type="application/json",
     )

@@ -1,8 +1,26 @@
 import json
+from unittest.mock import AsyncMock, MagicMock
 
 
-def test_stream_routes_and_diagnostics(client):
+def _mock_neo_api_cls():
+    ws_mock = MagicMock()
+    ws_mock.connect = AsyncMock(return_value=None)
+    ws_mock.close = AsyncMock(return_value=None)
+    ws_mock.subscribe_scrips = AsyncMock(return_value=None)
+    ws_mock.subscribe_index = AsyncMock(return_value=None)
+
+    instance = MagicMock()
+    instance.totp_login.return_value = {"data": {"token": "view_tok_123", "sid": "view_sid_123"}}
+    instance.totp_validate.return_value = {
+        "data": {"token": "trade_tok_123", "sid": "trade_sid_123", "ucc": "STREAMUCC"}
+    }
+    instance.create_websocket.return_value = ws_mock
+    return MagicMock(return_value=instance)
+
+
+def test_stream_routes_and_diagnostics(client, monkeypatch):
     """Integration test: Register, login, broker login, start/stop stream, and inspect metrics."""
+    monkeypatch.setattr("app.broker.adapters.kotak_adapter.NeoAPI", _mock_neo_api_cls())
     # 1. Register operator
     client.post(
         "/api/auth/register",
@@ -45,7 +63,10 @@ def test_stream_routes_and_diagnostics(client):
         headers=headers,
         data=json.dumps({
             "consumer_key": "stream_key_123",
-            "consumer_secret": "stream_secret_456",
+            "mobile_number": "9876543210",
+            "ucc": "STREAMUCC",
+            "mpin": "123456",
+            "totp_secret": "JBSWY3DPEHPK3PXP",
         }),
         content_type="application/json",
     )

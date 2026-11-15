@@ -112,7 +112,7 @@ class OrderValidationService:
         sym_clean = order.trading_symbol.upper()
         if "NIFTY" in sym_clean and "BANK" not in sym_clean and seg == "nse_fo":
             freeze_limit = 1800
-            lot_size = lot_size if lot_size > 1 else 25
+            lot_size = lot_size if lot_size > 1 else 65
         elif "BANKNIFTY" in sym_clean and seg == "nse_fo":
             freeze_limit = 900
             lot_size = lot_size if lot_size > 1 else 15

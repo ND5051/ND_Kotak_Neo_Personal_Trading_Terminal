@@ -42,14 +42,16 @@ class MarginService:
                 return default
 
         avail_cash = safe_float(
-            data.get("avlCash")
+            data.get("Net")
+            or data.get("net")
+            or data.get("avlCash")
             or data.get("availableCash")
             or data.get("cashBalance")
-            or data.get("net")
             or 0.0
         )
         collateral = safe_float(
-            data.get("collateral")
+            data.get("CollateralValue")
+            or data.get("collateral")
             or data.get("collateralAmount")
             or data.get("pledgeAmount")
             or 0.0
@@ -57,23 +59,53 @@ class MarginService:
         tot_avail = safe_float(
             data.get("totCash")
             or data.get("totalMarginAvailable")
+            or (data.get("CollateralValue") if safe_float(data.get("CollateralValue")) > 0 else None)
             or (avail_cash + collateral)
         )
         if tot_avail == 0.0 and (avail_cash > 0 or collateral > 0):
             tot_avail = avail_cash + collateral
 
-        span = safe_float(data.get("spanMargin") or data.get("span") or 0.0)
-        exposure = safe_float(data.get("exposureMargin") or data.get("exposure") or 0.0)
-        opt_premium = safe_float(data.get("premiumPrsnt") or data.get("premium") or 0.0)
+        span = safe_float(
+            data.get("SpanMarginPrsnt")
+            or data.get("spanMargin")
+            or data.get("span")
+            or 0.0
+        )
+        exposure = safe_float(
+            data.get("ExposureMarginPrsnt")
+            or data.get("exposureMargin")
+            or data.get("exposure")
+            or 0.0
+        )
+        opt_premium = safe_float(
+            data.get("PremiumPrsnt")
+            or data.get("premiumPrsnt")
+            or data.get("premium")
+            or 0.0
+        )
         tot_used = safe_float(
-            data.get("ordMrgn")
+            data.get("MarginUsed")
+            or data.get("MarginUsedPrsnt")
+            or data.get("ordMrgn")
             or data.get("marginUsed")
             or data.get("utilized")
             or (span + exposure + opt_premium)
         )
 
-        unrealized_loss = safe_float(data.get("unrealizedMtmLoss") or data.get("loss") or 0.0)
-        realized_credit = safe_float(data.get("realizedPnlCredit") or data.get("profit") or 0.0)
+        unrealized_loss = safe_float(
+            data.get("UnrealizedMtomPrsnt")
+            or data.get("FoUnRlsMtomPrsnt")
+            or data.get("unrealizedMtmLoss")
+            or data.get("loss")
+            or 0.0
+        )
+        realized_credit = safe_float(
+            data.get("RealizedMtomPrsnt")
+            or data.get("FoRlsMtomPrsnt")
+            or data.get("realizedPnlCredit")
+            or data.get("profit")
+            or 0.0
+        )
         peak_margin = safe_float(data.get("peakMargin") or tot_used)
 
         util_pct = (
@@ -84,6 +116,7 @@ class MarginService:
             source_timestamp
             or data.get("timestamp")
             or data.get("sourceTimestamp")
+            or data.get("TimeStamp")
         )
 
         summary = MarginSummary(
@@ -130,12 +163,20 @@ class MarginService:
         return summary
 
     def _extract_data(self, payload: Any) -> Dict[str, Any]:
-        """Safely extract data mapping from nested Kotak responses."""
+        """Safely extract data mapping from nested Kotak responses (handles dicts and lists)."""
+        if isinstance(payload, list) and payload:
+            return payload[0] if isinstance(payload[0], dict) else {}
         if isinstance(payload, dict):
-            if "data" in payload and isinstance(payload["data"], dict):
-                return payload["data"]
-            if "result" in payload and isinstance(payload["result"], dict):
-                return payload["result"]
+            if "data" in payload:
+                if isinstance(payload["data"], dict):
+                    return payload["data"]
+                if isinstance(payload["data"], list) and payload["data"]:
+                    return payload["data"][0] if isinstance(payload["data"][0], dict) else {}
+            if "result" in payload:
+                if isinstance(payload["result"], dict):
+                    return payload["result"]
+                if isinstance(payload["result"], list) and payload["result"]:
+                    return payload["result"][0] if isinstance(payload["result"][0], dict) else {}
             return payload
         return {}
 

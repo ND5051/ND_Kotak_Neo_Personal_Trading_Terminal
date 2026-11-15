@@ -20,7 +20,10 @@ def test_supervisor_initial_state():
 
 def test_supervisor_start_and_connect():
     """Verify start() launches loop and transitions to CONNECTED."""
-    adapter = KotakStreamAdapter()
+    from unittest.mock import MagicMock
+    mock_client = MagicMock()
+    mock_client.__is_mock__ = True
+    adapter = KotakStreamAdapter(client=mock_client)
     cb = BrokerCircuitBreaker(name="TEST_CB")
     sub = SubscriptionManager()
     sub.subscribe("26000", "nse_cm")
@@ -34,28 +37,29 @@ def test_supervisor_start_and_connect():
         telemetry=telemetry,
     )
 
-    started = sup.start(session_token="test_mock_token_123")
-    assert started is True
+    try:
+        started = sup.start(session_token="test_mock_token_123")
+        assert started is True
 
-    # Allow async thread to process connection
-    for _ in range(20):
-        if sup.state == StreamState.CONNECTED:
-            break
-        time.sleep(0.05)
+        # Allow async thread to process connection
+        for _ in range(20):
+            if sup.state == StreamState.CONNECTED:
+                break
+            time.sleep(0.05)
 
-    assert sup.state == StreamState.CONNECTED
-    assert sup.is_connected() is True
-    assert telemetry.get_metrics()["connection_count"] == 1
+        assert sup.state == StreamState.CONNECTED
+        assert sup.is_connected() is True
+        assert telemetry.get_metrics()["connection_count"] == 1
 
-    diag = sup.get_diagnostics()
-    assert diag["state"] == "CONNECTED"
-    assert diag["subscribed_scrip_count"] == 2
-    assert diag["circuit_breaker"]["state"] == "CLOSED"
-
-    # Clean shutdown
-    stopped = sup.stop()
-    assert stopped is True
-    assert sup.state == StreamState.DISCONNECTED
+        diag = sup.get_diagnostics()
+        assert diag["state"] == "CONNECTED"
+        assert diag["subscribed_scrip_count"] == 2
+        assert diag["circuit_breaker"]["state"] == "CLOSED"
+    finally:
+        # Clean shutdown
+        stopped = sup.stop()
+        assert stopped is True
+        assert sup.state == StreamState.DISCONNECTED
 
 
 def test_supervisor_blocked_by_open_circuit_breaker():

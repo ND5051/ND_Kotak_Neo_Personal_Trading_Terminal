@@ -60,11 +60,22 @@
             </button>
         </div>
 
-        <!-- Connection Pill -->
-        <div class="connection-pill" id="header-connection-pill" title="WebSocket SFeed Stream Status">
-            <span class="pulse-dot connected" id="header-conn-dot"></span>
-            <span class="conn-text" id="header-conn-text">LIVE STREAM</span>
-        </div>
+        <!-- Broker Session Status Widget -->
+        <button class="broker-session-widget disconnected" id="broker-session-widget" type="button" title="Click to open Broker Login & Validation Panel">
+            <div class="broker-widget-top">
+                <span class="pulse-dot disconnected" id="header-conn-dot"></span>
+                <span class="broker-conn-label" id="header-conn-text">BROKER: DISCONNECTED</span>
+            </div>
+            <div class="broker-widget-meta font-numeric">
+                <span id="header-broker-ucc">UCC: —</span>
+                <span class="meta-sep">|</span>
+                <span id="header-broker-profile">PROF: NO</span>
+                <span class="meta-sep">|</span>
+                <span id="header-broker-expiry">EXP: —</span>
+                <span class="meta-sep">|</span>
+                <span id="header-broker-sync">SYNC: —</span>
+            </div>
+        </button>
     </div>
 </header>
 

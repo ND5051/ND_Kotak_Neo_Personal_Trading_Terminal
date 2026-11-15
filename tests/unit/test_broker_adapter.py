@@ -1,9 +1,16 @@
 from datetime import datetime, timedelta, timezone
+from unittest.mock import MagicMock
 import pytest
 
 from app.broker.adapters.kotak_adapter import KotakBrokerAdapter
 from app.broker.cache.broker_cache import broker_cache
 from app.core.exceptions import ValidationException
+
+
+def _make_mock_client():
+    client = MagicMock()
+    client.__is_mock__ = True
+    return client
 
 
 @pytest.fixture(autouse=True)
@@ -15,10 +22,9 @@ def clean_cache():
 
 def test_adapter_login_success():
     """Verify KotakBrokerAdapter login succeeds and populates cache."""
-    adapter = KotakBrokerAdapter()
+    adapter = KotakBrokerAdapter(client=_make_mock_client())
     credentials = {
         "consumer_key": "test_consumer_key",
-        "consumer_secret": "test_consumer_secret",
         "mobile_number": "9876543210",
         "ucc": "TESTUCC",
         "mpin": "123456",
@@ -42,10 +48,9 @@ def test_adapter_login_missing_credentials():
 
 def test_adapter_validate_session():
     """Verify session validation when active and after expiration."""
-    adapter = KotakBrokerAdapter()
+    adapter = KotakBrokerAdapter(client=_make_mock_client())
     adapter.login({
         "consumer_key": "key",
-        "consumer_secret": "secret",
     })
     assert adapter.validate_session() is True
 
@@ -80,8 +85,8 @@ def test_adapter_restore_session():
 
 def test_adapter_logout():
     """Verify logout resets connectivity and clears cache."""
-    adapter = KotakBrokerAdapter()
-    adapter.login({"consumer_key": "k", "consumer_secret": "s"})
+    adapter = KotakBrokerAdapter(client=_make_mock_client())
+    adapter.login({"consumer_key": "k"})
     assert adapter.is_connected() is True
 
     assert adapter.logout() is True

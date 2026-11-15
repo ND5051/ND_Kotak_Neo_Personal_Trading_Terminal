@@ -17,7 +17,7 @@ def test_underlying_catalog_lookup(service):
     """Verify supported benchmark indices and equities exist in catalog."""
     nifty = service.get_underlying("NIFTY")
     assert nifty is not None
-    assert nifty.lot_size == 25
+    assert nifty.lot_size == 65
     assert nifty.strike_step == 50.0
 
     bn = service.get_underlying("BANKNIFTY")

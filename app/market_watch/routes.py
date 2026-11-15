@@ -146,7 +146,10 @@ def add_watchlist_item(watchlist_id: int):
             trading_symbol=symbol,
             display_name=display_name,
         )
-        return api_response(data={"item": item.to_dict()}, status_code=201)
+        item_dict = item.to_dict()
+        quote = price_engine.get_quote(token, segment)
+        item_dict["quote"] = quote.to_dict() if quote else None
+        return api_response(data={"item": item_dict}, status_code=201)
     except (ValidationException, WatchlistQuotaExceededException) as e:
         return api_error(
             error_code=e.error_code, message=str(e), status_code=e.status_code
@@ -202,16 +205,14 @@ def reorder_watchlist_items(watchlist_id: int):
 def get_quotes_batch():
     """
     Fetch live touchline quote snapshots.
-    Query param:
-      tokens: Comma-separated list of 'segment:token', e.g. 'nse_cm:26000,nse_cm:11536'
+    Query param (optional):
+      tokens: Comma-separated list of 'segment:token', e.g. 'nse_cm:26000,nse_cm:11536'.
+      If omitted, returns all cached quotes.
     """
     raw_tokens = request.args.get("tokens", "").strip()
     if not raw_tokens:
-        return api_error(
-            error_code="MISSING_TOKENS",
-            message="Query parameter 'tokens' is required (e.g. ?tokens=nse_cm:26000)",
-            status_code=400,
-        )
+        quotes = price_engine.get_all_quotes()
+        return api_response(data={"quotes": quotes})
 
     parsed_tokens: List[Tuple[str, str]] = []
     for pair in raw_tokens.split(","):
@@ -222,6 +223,23 @@ def get_quotes_batch():
 
     quotes = price_engine.get_quotes_batch(parsed_tokens)
     return api_response(data={"quotes": quotes})
+
+
+@market_watch_bp.route("/stream-status", methods=["GET"])
+def stream_status():
+    """Retrieve market watch streaming and price engine diagnostic status."""
+    from app.broker.services.websocket_supervisor import ws_supervisor
+    from app.broker.services.subscription_manager import subscription_manager
+
+    return api_response(
+        data={
+            "websocket_connected": ws_supervisor.is_connected(),
+            "subscriptions_count": subscription_manager.get_token_count(),
+            "quotes_cached": price_engine.get_quotes_count(),
+            "last_tick_timestamp": price_engine.get_last_tick_timestamp(),
+            "last_tick_symbol": price_engine.get_last_tick_symbol(),
+        }
+    )
 
 
 @market_watch_bp.route("/tick/simulate", methods=["POST"])

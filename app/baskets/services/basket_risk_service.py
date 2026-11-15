@@ -130,7 +130,7 @@ class BasketRiskService:
         # Naked short: standard ₹1.5L per lot estimate
         if strat in (StrategyType.SHORT_STRADDLE, StrategyType.SHORT_STRANGLE):
             total_short_qty = sum(l.quantity for l in basket.legs if l.side == OrderSide.SELL)
-            return (total_short_qty / 25.0) * 150000.0
+            return (total_short_qty / 65.0) * 150000.0
 
         # Default fallback: gross notional / 5 (approx 20% margin)
         return sum(l.quantity * (l.price if l.price > 0 else 100.0) for l in basket.legs) * 0.20

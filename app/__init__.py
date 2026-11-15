@@ -91,6 +91,14 @@ def create_app(
     # 8. Register Blueprints
     _register_blueprints(app)
 
+    # Bind streaming supervisor adapter to PriceEngine
+    try:
+        from app.broker.services.websocket_supervisor import ws_supervisor
+        from app.market_watch.services.price_engine import price_engine
+        ws_supervisor.adapter.set_message_handler(price_engine.ingest_tick)
+    except Exception as e:
+        logger.debug(f"Streaming price engine wiring skipped: {str(e)}")
+
     # 9. Initialize Event Bus and Notify Startup
     publish(
         SYSTEM_INITIALIZED,

@@ -243,6 +243,13 @@ class WatchlistService:
         # Wire subscription hook
         try:
             self.sub_manager.subscribe(token, segment)
+            try:
+                from app.broker.services.websocket_supervisor import ws_supervisor
+                ws_supervisor.subscribe_live_tokens([
+                    {"token_id": token, "exchange_segment": segment, "symbol": symbol}
+                ])
+            except Exception:
+                pass
         except Exception as e:
             logger.warning(
                 f"Failed to register streaming subscription for {token} ({segment}): {str(e)}",
@@ -393,6 +400,45 @@ class WatchlistService:
             watchlist_id=saved.id,
         )
         return saved
+
+    def populate_subscription_manager(self) -> int:
+        """
+        Pre-load all unique instruments from user watchlists and core benchmark symbols
+        into SubscriptionManager for immediate SFeed wire subscription.
+        """
+        count = 0
+        try:
+            # 1. Core benchmark indices
+            benchmarks = [
+                ("26000", "nse_cm"),   # Nifty 50
+                ("26001", "nse_cm"),   # Nifty Bank
+                ("1", "bse_cm"),       # SENSEX
+            ]
+            for tok, seg in benchmarks:
+                try:
+                    if self.sub_manager.subscribe(tok, seg):
+                        count += 1
+                except Exception:
+                    pass
+
+            # 2. All watchlists in DB
+            from app.models.db import get_db_session
+            with get_db_session() as session:
+                items = session.query(WatchlistItem.instrument_token, WatchlistItem.exchange_segment).distinct().all()
+                for tok, seg in items:
+                    try:
+                        if self.sub_manager.subscribe(tok, seg):
+                            count += 1
+                    except Exception:
+                        pass
+        except Exception as e:
+            logger.warning(f"Error populating SubscriptionManager from DB: {str(e)}")
+
+        logger.info(
+            f"Populated SubscriptionManager with {self.sub_manager.get_token_count()} active tokens",
+            event="SUB_POPULATED",
+        )
+        return self.sub_manager.get_token_count()
 
 
 # Global Singleton Watchlist Service

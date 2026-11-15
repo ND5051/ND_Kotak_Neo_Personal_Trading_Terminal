@@ -27,7 +27,7 @@ class UnderlyingService:
             spot_instrument_token="26000",
             spot_index_name="Nifty 50",
             strike_step=50.0,
-            lot_size=25,
+            lot_size=65,
             tick_size=0.05,
             is_index=True,
         ),
@@ -192,23 +192,23 @@ class UnderlyingService:
 
         # Query PriceEngine touchline
         try:
-            touchline = self.price_engine.get_touchline(spec.exchange_segment, spec.spot_instrument_token)
+            touchline = self.price_engine.get_quote(token=spec.spot_instrument_token, segment=spec.exchange_segment)
             if touchline and touchline.ltp > 0:
                 return touchline.ltp
         except Exception:
             pass
 
-        # Reference fallback prices for test / development environments
+        # Reference fallback prices for test / development environments (aligned with live market)
         fallbacks = {
-            "NIFTY": 24512.40,
+            "NIFTY": 25185.45,
             "BANKNIFTY": 51280.00,
             "FINNIFTY": 23450.00,
             "MIDCPNIFTY": 12600.00,
-            "SENSEX": 80420.00,
-            "RELIANCE": 2540.00,
-            "TCS": 3520.00,
-            "INFY": 1580.00,
-            "HDFCBANK": 1680.00,
+            "SENSEX": 81425.46,
+            "RELIANCE": 1339.00,
+            "TCS": 2409.80,
+            "INFY": 1139.90,
+            "HDFCBANK": 1720.00,
         }
         return fallbacks.get(spec.symbol, 100.0)
 

@@ -47,3 +47,35 @@ def test_margin_service_parsing_and_utilization():
     assert margins.source_timestamp == "2026-11-06T06:30:00Z"
     assert margins.retrieved_timestamp is not None
     assert "T" in margins.retrieved_timestamp
+
+
+def test_kotak_neo_native_limits_parsing():
+    """Verify parsing of actual Kotak Neo RMS limits API response with PascalCase keys."""
+    svc = MarginService()
+
+    native_kotak_payload = {
+        "Category": "CLIENT_MTF",
+        "EntityId": "account-W0EZB",
+        "CollateralValue": "201629.05",
+        "MarginUsed": "162831.776586",
+        "Net": "38797.273413999996",
+        "SpanMarginPrsnt": "95512",
+        "ExposureMarginPrsnt": "65778.31",
+        "PremiumPrsnt": "1495",
+        "FoUnRlsMtomPrsnt": "-442",
+        "TimeStamp": "1794552999672",
+    }
+
+    margins = svc.parse_margins(native_kotak_payload)
+
+    assert round(margins.available_cash, 2) == 38797.27
+    assert margins.collateral_value == 201629.05
+    assert margins.total_margin_available == 201629.05
+    assert round(margins.total_margin_used, 2) == 162831.78
+    assert margins.span_margin_used == 95512.0
+    assert margins.exposure_margin_used == 65778.31
+    assert margins.option_premium_used == 1495.0
+    assert round(margins.margin_utilization_percent, 2) == 80.76
+    assert margins.unrealized_mtm_loss == -442.0
+    assert margins.source_timestamp == "1794552999672"
+

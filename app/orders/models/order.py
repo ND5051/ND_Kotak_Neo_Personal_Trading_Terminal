@@ -190,7 +190,10 @@ class Order:
             "source_timestamp": self.source_timestamp,
             "retrieved_timestamp": self.retrieved_timestamp,
             "created_at": round(self.created_at, 3),
+            "created_at_iso": datetime.fromtimestamp(self.created_at, tz=timezone.utc).isoformat(),
+            "trade_timestamp": datetime.fromtimestamp(self.created_at, tz=timezone.utc).isoformat(),
             "updated_at": round(self.updated_at, 3),
+            "updated_at_iso": datetime.fromtimestamp(self.updated_at, tz=timezone.utc).isoformat(),
         }
 
 
@@ -214,14 +217,18 @@ class TradeExecution:
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert trade model to serialized dictionary."""
+        ts = self.exchange_timestamp or self.retrieved_timestamp
         return {
             "trade_id": self.trade_id,
             "client_order_id": self.client_order_id,
             "broker_order_id": self.broker_order_id,
             "fill_quantity": self.fill_quantity,
+            "quantity": self.fill_quantity,
             "fill_price": round(self.fill_price, 2),
             "exchange_segment": self.exchange_segment,
             "trading_symbol": self.trading_symbol,
             "exchange_timestamp": self.exchange_timestamp,
             "retrieved_timestamp": self.retrieved_timestamp,
+            "created_at": ts,
+            "trade_timestamp": ts,
         }

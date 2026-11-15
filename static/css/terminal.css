@@ -1165,3 +1165,157 @@ html, body {
     from { opacity: 0; transform: translateY(12px); }
     to { opacity: 1; transform: translateY(0); }
 }
+
+
+/* ==========================================================================
+   Broker Session Status Widget & Validation Panel
+   ========================================================================== */
+.broker-session-widget {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    padding: 4px 10px;
+    background-color: var(--bg-surface-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: border-color var(--transition-fast), background-color var(--transition-fast);
+    text-align: left;
+}
+
+.broker-session-widget:hover {
+    background-color: var(--bg-surface-hover);
+    border-color: var(--border-prominent);
+}
+
+.broker-session-widget.connected {
+    border-color: rgba(0, 208, 156, 0.45);
+    background-color: rgba(0, 208, 156, 0.08);
+}
+
+.broker-session-widget.disconnected {
+    border-color: rgba(235, 87, 87, 0.4);
+    background-color: rgba(235, 87, 87, 0.06);
+}
+
+.broker-widget-top {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+}
+
+.pulse-dot.disconnected {
+    background-color: var(--market-red);
+    box-shadow: 0 0 0 2px rgba(235, 87, 87, 0.25);
+}
+
+.broker-widget-meta {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 9.5px;
+    color: var(--text-secondary);
+}
+
+.broker-widget-meta .meta-sep {
+    color: var(--border-prominent);
+}
+
+.broker-modal-card {
+    max-width: 580px;
+    border-color: rgba(27, 115, 232, 0.45);
+}
+
+.broker-validation-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.bv-item {
+    background-color: var(--bg-surface-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.bv-label {
+    font-size: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.bv-val {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.bv-val.ok {
+    color: var(--market-green);
+}
+
+.bv-val.warn {
+    color: var(--market-red);
+}
+
+.broker-quick-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.modal-divider {
+    border: 0;
+    border-top: 1px solid var(--border-subtle);
+    margin: 12px 0;
+}
+
+.form-row-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+
+.modal-close-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.modal-close-btn:hover {
+    color: var(--text-primary);
+}
+
+.modal-success {
+    padding: 8px 12px;
+    background-color: rgba(0, 208, 156, 0.12);
+    border: 1px solid var(--market-green);
+    border-radius: var(--radius-sm);
+    color: var(--market-green);
+    font-size: 12px;
+    margin-top: 8px;
+}

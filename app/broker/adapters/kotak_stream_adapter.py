@@ -9,9 +9,17 @@ from app.logging.logger import get_logger
 logger = get_logger("app.broker.adapters.kotak_stream")
 
 try:
-    from kotakneoapi import NeoAPI
+    from neo_api_client import NeoAPI
+    from neo_api_client.websocket.feed import SFeedWebSocket, WsToken
 except ImportError:
-    NeoAPI = None  # type: ignore
+    try:
+        from kotakneoapi import NeoAPI  # type: ignore
+        SFeedWebSocket = None  # type: ignore
+        WsToken = None  # type: ignore
+    except ImportError:
+        NeoAPI = None  # type: ignore
+        SFeedWebSocket = None  # type: ignore
+        WsToken = None  # type: ignore
 
 
 class KotakStreamAdapter:
@@ -69,29 +77,54 @@ class KotakStreamAdapter:
         logger.info("Initiating Kotak Neo SFeed WebSocket connection...", event="WS_CONNECT_INIT")
 
         try:
-            # Check for simulated / test mode
-            is_mock = getattr(self.client, "__is_mock__", False) if self.client else (NeoAPI is None)
+            is_mock = self.client is not None and getattr(self.client, "__is_mock__", False)
 
-            if is_mock or self.client is None:
-                # Simulated socket connection for testing and development
+            if is_mock:
+                # Simulated socket connection ONLY for explicit mock test clients
                 self._connected = True
                 self._last_rx_timestamp = time.time()
-                logger.info("Kotak Neo SFeed connected successfully (simulated)", event="WS_CONNECTED")
+                logger.info("Kotak Neo SFeed connected successfully (mock client)", event="WS_CONNECTED")
                 return True
 
-            # Live Kotak Neo API SDK invocation if available
+            if self.client is None:
+                raise BrokerException(
+                    "Authenticated NeoAPI client is required for SFeed WebSocket connection"
+                )
+
+            # Live Kotak Neo API SDK invocation
             if hasattr(self.client, "create_websocket"):
                 ws_instance = self.client.create_websocket()
+
+                # Bind SFeed message receiver to feed PriceEngine
+                def _on_sfeed_message(msg: Any) -> None:
+                    try:
+                        if hasattr(msg, "model_dump"):
+                            data = msg.model_dump()
+                        elif hasattr(msg, "__dict__"):
+                            data = msg.__dict__
+                        elif isinstance(msg, dict):
+                            data = msg
+                        else:
+                            return
+                        self.ingest_raw_tick(data)
+                    except Exception as err:
+                        logger.warning(f"Error handling SFeed incoming message: {str(err)}")
+
+                ws_instance.on_message = _on_sfeed_message
+
+                if hasattr(ws_instance, "connect"):
+                    await ws_instance.connect()
                 self._socket_handle = ws_instance
                 self._connected = True
                 self._last_rx_timestamp = time.time()
                 logger.info("Kotak Neo SFeed socket opened", event="WS_CONNECTED")
                 return True
 
-            self._connected = True
-            self._last_rx_timestamp = time.time()
-            return True
+            raise BrokerException("Broker client does not support create_websocket()")
 
+        except BrokerException:
+            self._connected = False
+            raise
         except Exception as e:
             self._connected = False
             logger.error(f"Failed to connect Kotak SFeed WebSocket: {str(e)}", event="WS_CONNECT_ERROR", exc_info=True)
@@ -123,7 +156,9 @@ class KotakStreamAdapter:
         try:
             if self._socket_handle and hasattr(self._socket_handle, "ping"):
                 await self._socket_handle.ping()
-            # Update rx timestamp on successful ping dispatch / simulated pong
+            elif SFeedWebSocket is not None and isinstance(self._socket_handle, SFeedWebSocket):
+                if not getattr(self._socket_handle, "is_connected", False):
+                    return False
             self._last_rx_timestamp = time.time()
             return True
         except Exception as e:
@@ -140,8 +175,15 @@ class KotakStreamAdapter:
 
         for t in tokens:
             sym = t.get("symbol") or t.get("trading_symbol") or t.get("token_id") or ""
+            tok = str(t.get("token_id") or t.get("instrument_token") or "")
             if sym in self.INDEX_NAMES:
                 index_tokens.append(sym)
+            elif tok == "26000":
+                index_tokens.append("Nifty 50")
+            elif tok in ("26001", "26009"):
+                index_tokens.append("Nifty Bank")
+            elif tok == "1":
+                index_tokens.append("SENSEX")
             else:
                 regular_tokens.append(t)
 
@@ -150,6 +192,29 @@ class KotakStreamAdapter:
             "regular_tokens": regular_tokens,
             "is_depth": is_depth,
         }
+
+    def _is_sfeed_socket(self) -> bool:
+        return SFeedWebSocket is not None and isinstance(self._socket_handle, SFeedWebSocket)
+
+    def _to_ws_tokens(self, tokens: List[Dict[str, str]]) -> List[Any]:
+        if not self._is_sfeed_socket() or WsToken is None:
+            return tokens
+        ws_tokens = []
+        for t in tokens:
+            seg = t.get("exchange_segment") or "nse_cm"
+            tok = str(t.get("token_id") or t.get("instrument_token") or t.get("symbol") or "")
+            if tok:
+                ws_tokens.append(WsToken(seg, tok))
+        return ws_tokens
+
+    def _to_index_ws_tokens(self, index_names: List[str]) -> List[Any]:
+        if not self._is_sfeed_socket() or WsToken is None:
+            return index_names
+        ws_tokens = []
+        for name in index_names:
+            seg = "bse_cm" if name.upper() == "SENSEX" else "nse_cm"
+            ws_tokens.append(WsToken(seg, name))
+        return ws_tokens
 
     async def send_subscription(self, tokens: List[Dict[str, str]], is_depth: bool = False) -> bool:
         """
@@ -172,7 +237,7 @@ class KotakStreamAdapter:
                     indices=index_tokens,
                 )
                 if self._socket_handle and hasattr(self._socket_handle, "subscribe_index"):
-                    await self._socket_handle.subscribe_index(index_tokens)
+                    await self._socket_handle.subscribe_index(self._to_index_ws_tokens(index_tokens))
 
             if regular_tokens:
                 logger.info(
@@ -182,10 +247,11 @@ class KotakStreamAdapter:
                     is_depth=is_depth,
                 )
                 if self._socket_handle:
+                    payload = self._to_ws_tokens(regular_tokens)
                     if is_depth and hasattr(self._socket_handle, "subscribe_depth"):
-                        await self._socket_handle.subscribe_depth(regular_tokens)
+                        await self._socket_handle.subscribe_depth(payload)
                     elif hasattr(self._socket_handle, "subscribe_scrips"):
-                        await self._socket_handle.subscribe_scrips(regular_tokens)
+                        await self._socket_handle.subscribe_scrips(payload)
 
             self._last_rx_timestamp = time.time()
             return True
@@ -205,7 +271,7 @@ class KotakStreamAdapter:
                 count=len(tokens),
             )
             if self._socket_handle and hasattr(self._socket_handle, "unsubscribe_scrips"):
-                await self._socket_handle.unsubscribe_scrips(tokens)
+                await self._socket_handle.unsubscribe_scrips(self._to_ws_tokens(tokens))
 
             self._last_rx_timestamp = time.time()
             return True
