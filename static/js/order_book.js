@@ -86,14 +86,26 @@
             const refTradesBtn = document.getElementById('refresh-trades-btn');
 
             if (refOrdersBtn) {
-                refOrdersBtn.addEventListener('click', () => {
-                    this.fetchOrders();
-                    if (window.terminalShell) window.terminalShell.showToast('Order book refreshed.');
+                refOrdersBtn.addEventListener('click', async () => {
+                    refOrdersBtn.disabled = true;
+                    try {
+                        await fetch('/api/orders/reconcile', { method: 'POST', credentials: 'same-origin' });
+                    } catch (e) {}
+                    await this.fetchOrders();
+                    await this.fetchTrades();
+                    refOrdersBtn.disabled = false;
+                    if (window.terminalShell) window.terminalShell.showToast('Order book synced with exchange.');
                 });
             }
             if (refTradesBtn) {
-                refTradesBtn.addEventListener('click', () => {
-                    this.fetchTrades();
+                refTradesBtn.addEventListener('click', async () => {
+                    refTradesBtn.disabled = true;
+                    try {
+                        await fetch('/api/orders/reconcile', { method: 'POST', credentials: 'same-origin' });
+                    } catch (e) {}
+                    await this.fetchTrades();
+                    await this.fetchOrders();
+                    refTradesBtn.disabled = false;
                     if (window.terminalShell) window.terminalShell.showToast('Trade book refreshed.');
                 });
             }
@@ -512,6 +524,21 @@
                 if (res.ok) {
                     if (window.terminalShell) window.terminalShell.showToast(`Order ${clientOrderId.substring(0, 8)} modified successfully.`);
                     this.fetchOrders();
+                    // Follow-up reconciliation after 400ms and 1500ms to capture fill from exchange
+                    setTimeout(async () => {
+                        try {
+                            await fetch('/api/orders/reconcile', { method: 'POST', credentials: 'same-origin' });
+                        } catch (e) {}
+                        this.fetchOrders();
+                        this.fetchTrades();
+                    }, 400);
+                    setTimeout(async () => {
+                        try {
+                            await fetch('/api/orders/reconcile', { method: 'POST', credentials: 'same-origin' });
+                        } catch (e) {}
+                        this.fetchOrders();
+                        this.fetchTrades();
+                    }, 1500);
                 } else {
                     if (window.terminalShell) window.terminalShell.showToast(`Modify failed: ${json.message || 'Unknown error'}`);
                 }

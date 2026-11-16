@@ -323,6 +323,9 @@ class OrderExecutionService:
         )
         publish(ORDER_MODIFIED, {"order": order.to_dict(), "modifications": modifications})
 
+        # Spawn background poller to resolve exchange fills on the modified order
+        self.poller.spawn_async_poll(order)
+
         return {"success": True, "order": order.to_dict()}
 
     # 3. Cancel Order

@@ -261,9 +261,9 @@ class OrderPollerService:
         Upholds The Golden Rule of Order Reconciliation.
         """
         with self._lock:
-            reconciling_orders = self.repository.find_orders(status=OrderStatus.RECONCILING, limit=50)
-            submitted_orders = self.repository.find_orders(status=OrderStatus.SUBMITTED, limit=50)
-            candidates = reconciling_orders + submitted_orders
+            # Reconcile all open resting or pending orders with a broker_order_id
+            all_orders = self.repository.find_orders(limit=100)
+            candidates = [o for o in all_orders if o.is_open() and o.broker_order_id]
 
             reconciled_count = 0
             discrepancy_count = 0
