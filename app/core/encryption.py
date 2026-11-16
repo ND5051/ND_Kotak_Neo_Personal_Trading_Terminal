@@ -3,6 +3,10 @@ import hashlib
 import os
 from typing import Optional
 from cryptography.fernet import Fernet, InvalidToken
+from dotenv import load_dotenv
+
+# Ensure environment is loaded even if imported standalone
+load_dotenv()
 
 from app.core.exceptions import ConfigurationException, ValidationException
 

@@ -99,7 +99,15 @@ def create_app(
     except Exception as e:
         logger.debug(f"Streaming price engine wiring skipped: {str(e)}")
 
-    # 9. Initialize Event Bus and Notify Startup
+    # 9. Trigger Background Scrip Master Synchronizer (NSE + BSE Equities)
+    if not app.config.get("TESTING"):
+        try:
+            from app.market_watch.services.instrument_service import instrument_service
+            instrument_service.sync_scrip_master_async(segments=["nse_cm", "bse_cm"])
+        except Exception as e:
+            logger.debug(f"Background scrip master sync initiation skipped: {str(e)}")
+
+    # 10. Initialize Event Bus and Notify Startup
     publish(
         SYSTEM_INITIALIZED,
         {"env": app.config.get("APP_ENV"), "status": "initialized"},

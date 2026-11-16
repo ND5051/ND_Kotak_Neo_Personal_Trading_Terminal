@@ -64,6 +64,30 @@ def search_instruments():
     return api_response(data={"count": len(results), "instruments": results})
 
 
+@market_watch_bp.route("/sync-scrips", methods=["POST"])
+def sync_scrip_master_endpoint():
+    """
+    Trigger download and indexing of official Kotak Neo Scrip Master files.
+    Payload (optional): {"segments": ["nse_cm", "bse_cm"], "async": true}
+    """
+    payload = request.get_json(silent=True) or {}
+    segments = payload.get("segments", ["nse_cm", "bse_cm"])
+    run_async = payload.get("async", True)
+
+    if run_async:
+        instrument_service.sync_scrip_master_async(segments=segments)
+        return api_response(
+            message="Scrip master synchronization started in background.",
+            data={"status": "IN_PROGRESS", "segments": segments},
+        )
+    else:
+        res = instrument_service.download_and_sync_scrip_master(segments=segments)
+        return api_response(
+            message="Scrip master synchronized successfully.",
+            data=res,
+        )
+
+
 @market_watch_bp.route("/watchlists", methods=["GET"])
 @login_required
 def get_user_watchlists():

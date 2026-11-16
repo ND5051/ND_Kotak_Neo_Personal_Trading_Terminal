@@ -1,4 +1,9 @@
 import os
+from dotenv import load_dotenv
+
+# Pre-load environment variables before application factory imports
+load_dotenv()
+
 from app import create_app
 from app.websocket.socket_manager import socket_manager
 from app.logging.logger import get_logger
