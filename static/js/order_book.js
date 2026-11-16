@@ -24,6 +24,7 @@
             this.bindRefreshButtons();
             this.bindBatchCancel();
             this.bindTimelineModal();
+            this.bindModifyModal();
 
             // Initial load
             this.fetchOrders();
@@ -308,16 +309,195 @@
         /* ==========================================================================
            Order Modify, Cancel & Batch Actions
            ========================================================================== */
-        handleOrderModify(order) {
-            const newPriceStr = prompt(`Modify Price for ${order.trading_symbol}:`, (order.price || 0).toFixed(2));
-            if (newPriceStr === null) return;
-            const newPrice = parseFloat(newPriceStr);
-            if (isNaN(newPrice) || newPrice <= 0) {
-                if (window.terminalShell) window.terminalShell.showToast('Invalid price entered.');
-                return;
+        bindModifyModal() {
+            const modal = document.getElementById('modify-order-modal');
+            const closeX = document.getElementById('modify-modal-close');
+            const cancelBtn = document.getElementById('modify-cancel-btn');
+            const submitBtn = document.getElementById('modify-submit-btn');
+
+            const qtyInput = document.getElementById('modify-qty-input');
+            const priceInput = document.getElementById('modify-price-input');
+            const triggerInput = document.getElementById('modify-trigger-input');
+            const triggerGroup = document.getElementById('modify-trigger-group');
+            const typePills = document.querySelectorAll('#modify-type-pills button');
+
+            const closeModal = () => {
+                if (modal) modal.classList.add('hidden');
+                this.currentModifyingOrder = null;
+            };
+
+            if (closeX) closeX.addEventListener('click', closeModal);
+            if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
+
+            // Steppers
+            const qtyMinus = document.getElementById('modify-qty-minus');
+            const qtyPlus = document.getElementById('modify-qty-plus');
+            if (qtyMinus && qtyInput) {
+                qtyMinus.addEventListener('click', () => {
+                    const step = parseInt(qtyInput.step || '1', 10);
+                    const current = parseInt(qtyInput.value || '1', 10);
+                    qtyInput.value = Math.max(step, current - step);
+                });
+            }
+            if (qtyPlus && qtyInput) {
+                qtyPlus.addEventListener('click', () => {
+                    const step = parseInt(qtyInput.step || '1', 10);
+                    const current = parseInt(qtyInput.value || '1', 10);
+                    qtyInput.value = current + step;
+                });
             }
 
-            this.sendOrderModify(order.client_order_id, { price: newPrice });
+            const priceMinus = document.getElementById('modify-price-minus');
+            const pricePlus = document.getElementById('modify-price-plus');
+            if (priceMinus && priceInput) {
+                priceMinus.addEventListener('click', () => {
+                    const current = parseFloat(priceInput.value || '0');
+                    priceInput.value = Math.max(0.05, current - 0.05).toFixed(2);
+                });
+            }
+            if (pricePlus && priceInput) {
+                pricePlus.addEventListener('click', () => {
+                    const current = parseFloat(priceInput.value || '0');
+                    priceInput.value = (current + 0.05).toFixed(2);
+                });
+            }
+
+            const trigMinus = document.getElementById('modify-trigger-minus');
+            const trigPlus = document.getElementById('modify-trigger-plus');
+            if (trigMinus && triggerInput) {
+                trigMinus.addEventListener('click', () => {
+                    const current = parseFloat(triggerInput.value || '0');
+                    triggerInput.value = Math.max(0.05, current - 0.05).toFixed(2);
+                });
+            }
+            if (trigPlus && triggerInput) {
+                trigPlus.addEventListener('click', () => {
+                    const current = parseFloat(triggerInput.value || '0');
+                    triggerInput.value = (current + 0.05).toFixed(2);
+                });
+            }
+
+            // Order type pills
+            typePills.forEach(pill => {
+                pill.addEventListener('click', () => {
+                    typePills.forEach(p => p.classList.remove('active'));
+                    pill.classList.add('active');
+                    const t = pill.getAttribute('data-type');
+                    this.selectedModifyType = t;
+
+                    if (t === 'MARKET') {
+                        if (priceInput) {
+                            priceInput.disabled = true;
+                            priceInput.value = '0.00';
+                        }
+                    } else {
+                        if (priceInput) {
+                            priceInput.disabled = false;
+                            if (parseFloat(priceInput.value) <= 0 && this.currentModifyingOrder) {
+                                priceInput.value = (this.currentModifyingOrder.price || 0).toFixed(2);
+                            }
+                        }
+                    }
+
+                    if (t === 'SL' || t === 'SL_M') {
+                        if (triggerGroup) triggerGroup.classList.remove('hidden');
+                    } else {
+                        if (triggerGroup) triggerGroup.classList.add('hidden');
+                    }
+                });
+            });
+
+            // Submit handler
+            if (submitBtn) {
+                submitBtn.addEventListener('click', async () => {
+                    if (!this.currentModifyingOrder) return;
+                    const orderType = this.selectedModifyType || 'LIMIT';
+                    const qty = parseInt(qtyInput.value || '1', 10);
+                    const price = parseFloat(priceInput.value || '0');
+                    const trigger = parseFloat(triggerInput ? triggerInput.value || '0' : '0');
+
+                    if (isNaN(qty) || qty <= 0) {
+                        if (window.terminalShell) window.terminalShell.showToast('Please enter a valid quantity.');
+                        return;
+                    }
+                    if (orderType !== 'MARKET' && (isNaN(price) || price <= 0)) {
+                        if (window.terminalShell) window.terminalShell.showToast('Please enter a valid limit price.');
+                        return;
+                    }
+                    if ((orderType === 'SL' || orderType === 'SL_M') && (isNaN(trigger) || trigger <= 0)) {
+                        if (window.terminalShell) window.terminalShell.showToast('Please enter a valid trigger price.');
+                        return;
+                    }
+
+                    submitBtn.disabled = true;
+                    submitBtn.textContent = 'Updating...';
+
+                    const payload = {
+                        quantity: qty,
+                        price: orderType === 'MARKET' ? 0 : price,
+                        order_type: orderType,
+                        trigger_price: trigger,
+                    };
+
+                    await this.sendOrderModify(this.currentModifyingOrder.client_order_id, payload);
+
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Update Order';
+                    closeModal();
+                });
+            }
+        }
+
+        handleOrderModify(order) {
+            this.showModifyModal(order);
+        }
+
+        showModifyModal(order) {
+            this.currentModifyingOrder = order;
+            const modal = document.getElementById('modify-order-modal');
+            if (!modal) return;
+
+            const idEl = document.getElementById('modify-client-order-id');
+            const subEl = document.getElementById('modify-symbol-side');
+            const prodBadge = document.getElementById('modify-product-badge');
+            const brokerIdEl = document.getElementById('modify-broker-id');
+            const qtyInput = document.getElementById('modify-qty-input');
+            const priceInput = document.getElementById('modify-price-input');
+            const triggerInput = document.getElementById('modify-trigger-input');
+            const triggerGroup = document.getElementById('modify-trigger-group');
+            const typePills = document.querySelectorAll('#modify-type-pills button');
+
+            if (idEl) idEl.textContent = order.client_order_id;
+            if (subEl) subEl.textContent = `${order.trading_symbol} • ${order.side} (${order.product_type})`;
+            if (prodBadge) prodBadge.textContent = order.product_type;
+            if (brokerIdEl) brokerIdEl.textContent = order.broker_order_id || '--';
+
+            if (qtyInput) qtyInput.value = order.quantity;
+            if (priceInput) {
+                priceInput.value = (order.price || 0).toFixed(2);
+                priceInput.disabled = (order.order_type === 'MARKET');
+            }
+            if (triggerInput) triggerInput.value = (order.trigger_price || 0).toFixed(2);
+
+            const oType = (order.order_type || 'LIMIT').toUpperCase();
+            this.selectedModifyType = oType;
+
+            typePills.forEach(pill => {
+                const pType = pill.getAttribute('data-type');
+                if (pType === oType) {
+                    pill.classList.add('active');
+                } else {
+                    pill.classList.remove('active');
+                }
+            });
+
+            if (oType === 'SL' || oType === 'SL_M') {
+                if (triggerGroup) triggerGroup.classList.remove('hidden');
+            } else {
+                if (triggerGroup) triggerGroup.classList.add('hidden');
+            }
+
+            modal.classList.remove('hidden');
         }
 
         async sendOrderModify(clientOrderId, modifications) {

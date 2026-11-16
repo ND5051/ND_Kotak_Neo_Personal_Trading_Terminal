@@ -277,20 +277,27 @@ class OrderExecutionService:
         if not order.is_open():
             raise OrderValidationException(f"Cannot modify order in terminal state: {order.status.value}")
 
-        new_price = float(modifications.get("price", order.price))
+        new_order_type = str(modifications.get("order_type") or (order.order_type.value if hasattr(order.order_type, "value") else str(order.order_type))).upper()
+        new_price = float(modifications.get("price", 0.0 if new_order_type == "MARKET" else order.price))
         new_quantity = int(modifications.get("quantity", order.quantity))
-        new_trigger = float(modifications.get("trigger_price", order.trigger_price))
+        new_trigger = float(modifications.get("trigger_price", order.trigger_price or 0.0))
 
-        # Validate tick size on new price
-        if not self.validation_service.validate_tick_size(new_price, tick_size=0.05):
-            raise OrderValidationException(f"Modified price {new_price} is not a valid 0.05 tick multiple")
+        # Validate tick size on new price if not MARKET
+        if new_order_type != "MARKET" and new_price > 0:
+            if not self.validation_service.validate_tick_size(new_price, tick_size=0.05):
+                raise OrderValidationException(f"Modified price {new_price} is not a valid 0.05 tick multiple")
 
         active_mode = self.mode_manager.get_mode()
 
         if active_mode == ExecutionMode.LIVE and order.broker_order_id:
             res = self.adapter.modify_order(
                 order=order,
-                modifications={"price": new_price, "quantity": new_quantity, "trigger_price": new_trigger},
+                modifications={
+                    "price": new_price,
+                    "quantity": new_quantity,
+                    "trigger_price": new_trigger,
+                    "order_type": new_order_type,
+                },
             )
             if res.get("stat") != "Ok":
                 raise BrokerException(f"Broker rejected modification: {res.get('rejection_reason')}")
@@ -299,6 +306,8 @@ class OrderExecutionService:
         order.price = new_price
         order.quantity = new_quantity
         order.trigger_price = new_trigger
+        if new_order_type in OrderType.__members__:
+            order.order_type = OrderType[new_order_type]
         order.source_timestamp = datetime.now(timezone.utc).isoformat()
         order.retrieved_timestamp = datetime.now(timezone.utc).isoformat()
         self.repository.save_order(order)

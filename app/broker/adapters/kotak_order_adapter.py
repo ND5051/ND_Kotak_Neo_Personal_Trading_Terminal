@@ -204,8 +204,7 @@ class KotakOrderAdapter(KotakOrderAdapterInterface):
         )
 
         side_val = getattr(order.side, "value", str(order.side)).upper()
-        type_val = getattr(order.order_type, "value", str(order.order_type)).upper()
-        prod_val = getattr(order.product_type, "value", str(order.product_type))
+        type_val = str(modifications.get("order_type") or getattr(order.order_type, "value", str(order.order_type))).upper()
         valid_val = getattr(order.validity, "value", str(order.validity))
 
         order_type_map = {
@@ -216,18 +215,19 @@ class KotakOrderAdapter(KotakOrderAdapterInterface):
             "SL-M": "SL-M",
         }
         neo_order_type = order_type_map.get(type_val, "L")
+        price_val = 0.0 if neo_order_type == "MKT" else float(modifications.get("price", order.price))
+        qty_val = int(modifications.get("quantity", order.quantity))
+        trigger_val = float(modifications.get("trigger_price", order.trigger_price or 0.0))
 
         payload = {
             "order_id": str(order.broker_order_id),
-            "exchange_segment": order.exchange_segment,
-            "product": prod_val,
+            "price": f"{price_val:.2f}",
             "order_type": neo_order_type,
-            "validity": valid_val,
-            "trading_symbol": order.trading_symbol,
-            "transaction_type": "B" if side_val == "BUY" else "S",
-            "price": f"{float(modifications.get('price', order.price)):.2f}",
-            "quantity": str(int(modifications.get("quantity", order.quantity))),
-            "trigger_price": f"{float(modifications.get('trigger_price', order.trigger_price)):.2f}",
+            "quantity": str(qty_val),
+            "validity": valid_val or "DAY",
+            "trigger_price": f"{trigger_val:.2f}",
+            "disclosed_quantity": str(order.disclosed_quantity or 0),
+            "amo": "NO",
         }
 
         if str(order.broker_order_id).startswith("PAPER_") or self._is_mock():
