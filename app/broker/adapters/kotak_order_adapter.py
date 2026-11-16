@@ -284,20 +284,43 @@ class KotakOrderAdapter(KotakOrderAdapterInterface):
             logger.error(f"Error during order cancellation: {str(e)}", exc_info=True, event="WIRE_CANCEL_ERROR")
             raise BrokerException(f"Kotak Neo order cancellation failed: {str(e)}") from e
 
+    @staticmethod
+    def _extract_records(resp: Any, fallback_key: str = "data") -> List[Dict[str, Any]]:
+        """Safely extract list of dictionaries from polymorphic Kotak responses."""
+        if not resp:
+            return []
+        if isinstance(resp, list):
+            return [r for r in resp if isinstance(r, dict)]
+        if isinstance(resp, dict):
+            # Check for error responses
+            if "Error" in resp or "error" in resp or "Error Message" in resp:
+                logger.warning(f"Broker returned error payload: {resp}")
+                return []
+            val = resp.get(fallback_key) or resp.get("result") or resp.get("dataList")
+            if isinstance(val, list):
+                return [r for r in val if isinstance(r, dict)]
+            if isinstance(val, dict):
+                inner = val.get("data") or val.get("result")
+                if isinstance(inner, list):
+                    return [r for r in inner if isinstance(r, dict)]
+                return [val]
+        return []
+
     # 4. Get Order Report
     def get_order_report(
         self, broker_order_id: str, credentials: Optional[Dict[str, Any]] = None
     ) -> List[Dict[str, Any]]:
         """Query execution report for a specific broker order number."""
+        broker_id_str = str(broker_order_id).strip()
         with self._lock:
-            if str(broker_order_id) in self._simulated_orders:
-                return [dict(self._simulated_orders[str(broker_order_id)])]
+            if broker_id_str in self._simulated_orders:
+                return [dict(self._simulated_orders[broker_id_str])]
 
         if self._is_mock():
             # Default simulated report for unregistered mock lookups
             return [
                 {
-                    "nOrdNo": str(broker_order_id),
+                    "nOrdNo": broker_id_str,
                     "ordSt": "complete",
                     "avgPrc": "2450.05",
                     "fldQty": "1",
@@ -305,18 +328,41 @@ class KotakOrderAdapter(KotakOrderAdapterInterface):
                 }
             ]
 
+        # LIVE mode: Multi-tier fallback strategy
+        # Tier 1: Dedicated order history endpoint (POST quick/order/history)
         try:
-            report = self.client.order_report(order_id=str(broker_order_id))
-            records: List[Dict[str, Any]] = []
-            if isinstance(report, list):
-                records = report
-            elif isinstance(report, dict):
-                extracted = report.get("data") or report.get("result") or []
-                records = [extracted] if isinstance(extracted, dict) else extracted
-            return records
+            hist = self.client.order_history(order_id=broker_id_str)
+            records = self._extract_records(hist)
+            if records:
+                logger.info(f"Retrieved {len(records)} history records for broker order {broker_id_str}")
+                return records
         except Exception as e:
-            logger.warning(f"Error fetching order report for {broker_order_id}: {str(e)}")
-            return []
+            logger.debug(f"order_history failed for {broker_id_str}: {e}")
+
+        # Tier 2: Check full daily order book (GET quick/user/orders)
+        try:
+            book_resp = self.client.order_report()
+            all_records = self._extract_records(book_resp)
+            matching = [
+                r for r in all_records
+                if str(r.get("nOrdNo") or r.get("ordNo") or "").strip() == broker_id_str
+            ]
+            if matching:
+                logger.info(f"Matched broker order {broker_id_str} in daily order book")
+                return matching
+        except Exception as e:
+            logger.debug(f"daily order_report search failed for {broker_id_str}: {e}")
+
+        # Tier 3: Direct order_report by id (GET quick/user/orders/<id>)
+        try:
+            report = self.client.order_report(order_id=broker_id_str)
+            records = self._extract_records(report)
+            if records:
+                return records
+        except Exception as e:
+            logger.debug(f"single order_report failed for {broker_id_str}: {e}")
+
+        return []
 
     # 5. Order Book
     def get_order_book(self, credentials: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
@@ -326,12 +372,7 @@ class KotakOrderAdapter(KotakOrderAdapterInterface):
                 return list(self._simulated_orders.values())
         try:
             resp = self.client.order_report()
-            if isinstance(resp, list):
-                return resp
-            if isinstance(resp, dict):
-                extracted = resp.get("data") or resp.get("result") or []
-                return [extracted] if isinstance(extracted, dict) else extracted
-            return []
+            return self._extract_records(resp)
         except Exception as e:
             logger.error(f"Error fetching order book: {str(e)}", exc_info=True)
             raise BrokerException(f"Failed to fetch broker order book: {str(e)}") from e
@@ -354,12 +395,7 @@ class KotakOrderAdapter(KotakOrderAdapterInterface):
                 return simulated_trades
         try:
             resp = self.client.trade_report()
-            if isinstance(resp, list):
-                return resp
-            if isinstance(resp, dict):
-                extracted = resp.get("data") or resp.get("result") or []
-                return [extracted] if isinstance(extracted, dict) else extracted
-            return []
+            return self._extract_records(resp)
         except Exception as e:
             logger.error(f"Error fetching trade book: {str(e)}", exc_info=True)
             raise BrokerException(f"Failed to fetch broker trade book: {str(e)}") from e

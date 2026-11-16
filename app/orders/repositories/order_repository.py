@@ -74,6 +74,16 @@ class OrderRepositoryInterface(ABC):
         pass
 
     @abstractmethod
+    def get_trades(
+        self,
+        user_id: Optional[int] = None,
+        client_order_id: Optional[str] = None,
+        limit: int = 100,
+    ) -> List[TradeExecution]:
+        """Query executed trade fills."""
+        pass
+
+    @abstractmethod
     def record_trade_execution(self, trade: TradeExecution) -> TradeExecutionModel:
         """Persist an atomic trade execution fill."""
         pass
@@ -95,6 +105,12 @@ class OrderRepository(BaseRepository[OrderModel], OrderRepositoryInterface):
 
         if existing:
             # Update fields
+            existing.order_type = (
+                order.order_type.value
+                if isinstance(order.order_type, OrderType)
+                else str(order.order_type)
+            )
+            existing.quantity = order.quantity
             existing.broker_order_id = order.broker_order_id
             existing.exchange_order_id = order.exchange_order_id
             existing.filled_quantity = order.filled_quantity
@@ -275,7 +291,10 @@ class OrderRepository(BaseRepository[OrderModel], OrderRepositoryInterface):
         return list(self.session.execute(stmt).scalars().all())
 
     def get_trades(
-        self, user_id: Optional[int] = None, limit: int = 100
+        self,
+        user_id: Optional[int] = None,
+        client_order_id: Optional[str] = None,
+        limit: int = 100,
     ) -> List[TradeExecution]:
         """Query executed trade fills."""
         stmt = select(TradeExecutionModel)
@@ -283,6 +302,8 @@ class OrderRepository(BaseRepository[OrderModel], OrderRepositoryInterface):
             stmt = stmt.outerjoin(OrderModel, TradeExecutionModel.order_id == OrderModel.id).where(
                 (OrderModel.user_id == user_id) | (TradeExecutionModel.order_id == 0)
             )
+        if client_order_id:
+            stmt = stmt.where(TradeExecutionModel.client_order_id == client_order_id.strip())
         stmt = stmt.order_by(desc(TradeExecutionModel.created_at)).limit(limit)
         models = self.session.execute(stmt).scalars().all()
         return [

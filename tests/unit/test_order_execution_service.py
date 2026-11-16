@@ -32,6 +32,11 @@ class MockOrderRepository(OrderRepository):
         self.events = []
         self.trades = []
 
+    def get_trades(self, user_id=None, client_order_id=None, limit=100):
+        if client_order_id:
+            return [t for t in self.trades if getattr(t, 'client_order_id', None) == client_order_id]
+        return list(self.trades)
+
     def save_order(self, order: Order) -> Order:
         self.orders[order.client_order_id] = order
         return order
