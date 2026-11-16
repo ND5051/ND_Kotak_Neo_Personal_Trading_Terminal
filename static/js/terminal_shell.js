@@ -203,6 +203,7 @@
                     const data = await resp.json();
                     if (data && data.data && data.data.authenticated) {
                         this.updateAuthUI(true, data.data.user);
+                        await this.refreshBrokerSessionStatus();
                         this.refreshHealth();
                         this.refreshFunds();
                         return;
@@ -258,9 +259,9 @@
                     this.updateAuthUI(true, resData.data.user);
                     this.hideLoginModal();
                     this.showToast(`Operator ${resData.data.user.username} authenticated.`);
+                    await this.refreshBrokerSessionStatus();
                     this.refreshHealth();
                     this.refreshFunds();
-                    this.refreshBrokerSessionStatus();
                 } else {
                     const msg = (resData && resData.message) ? resData.message : 'Invalid credentials.';
                     if (errorBox) {

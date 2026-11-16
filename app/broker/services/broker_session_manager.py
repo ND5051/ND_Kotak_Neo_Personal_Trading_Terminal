@@ -119,8 +119,8 @@ class BrokerSessionManager:
 
     def restore_session(
         self,
-        user_id: int,
-        adapter: BrokerInterface,
+        user_id: Optional[int] = None,
+        adapter: Optional[BrokerInterface] = None,
         broker_name: str = "KOTAK_NEO",
         actor: str = "system",
     ) -> bool:
@@ -128,6 +128,8 @@ class BrokerSessionManager:
         Locate active broker session, decrypt credentials, and restore connectivity.
         Marks session inactive without user intervention if decryption or validation fails.
         """
+        from app.broker.adapters.kotak_adapter import kotak_adapter
+        resolved_adapter = adapter or kotak_adapter
         active_sess = self.repo.get_active_session(user_id=user_id, broker_name=broker_name)
         if not active_sess or active_sess.is_expired():
             logger.info("No active unexpired broker session found for recovery", user_id=user_id)
@@ -161,8 +163,14 @@ class BrokerSessionManager:
             "broker_name": broker_name,
         }
 
-        success = adapter.restore_session(session_payload)
+        success = resolved_adapter.restore_session(session_payload)
         if success:
+            try:
+                from app.broker.services.broker_client_sync import sync_shared_broker_client
+                sync_shared_broker_client(resolved_adapter.client)
+            except Exception as sync_err:
+                logger.debug(f"Client sync during restore: {sync_err}")
+
             audit_logger.record(
                 category=AuditCategory.BROKER,
                 action=BROKER_SESSION_RESTORED,
@@ -171,7 +179,7 @@ class BrokerSessionManager:
                 request_id=req_id,
                 details={"broker_session_id": active_sess.id, "broker": broker_name},
             )
-            publish(BROKER_SESSION_RESTORED, {"user_id": user_id, "broker": broker_name})
+            publish(BROKER_SESSION_RESTORED, {"user_id": active_sess.user_id, "broker": broker_name})
             return True
         else:
             self.expire_session(active_sess.id, actor=actor)

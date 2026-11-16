@@ -63,6 +63,15 @@ def login():
             username_or_email=username_or_email,
             password=password,
         )
+
+        # Auto-restore active broker session for operator if available
+        try:
+            from app.broker.services.broker_session_manager import broker_session_manager
+            from app.broker.adapters.kotak_adapter import kotak_adapter
+            if not kotak_adapter.is_connected():
+                broker_session_manager.restore_session(user_id=user.id, adapter=kotak_adapter, actor=user.username)
+        except Exception as e:
+            logger.debug(f"Auto-restore broker session during login: {e}")
         response, code = api_response(
             data={
                 "user": user.to_dict(),
@@ -134,6 +143,15 @@ def auth_status():
     user = UserRepository().get_by_id(session.user_id)
     if not user or not user.is_active:
         return api_response(data={"authenticated": False, "user": None})
+
+    # Auto-restore active broker session if not connected
+    try:
+        from app.broker.services.broker_session_manager import broker_session_manager
+        from app.broker.adapters.kotak_adapter import kotak_adapter
+        if not kotak_adapter.is_connected():
+            broker_session_manager.restore_session(user_id=user.id, adapter=kotak_adapter, actor=user.username)
+    except Exception as e:
+        logger.debug(f"Auto-restore broker session during auth status: {e}")
 
     return api_response(
         data={

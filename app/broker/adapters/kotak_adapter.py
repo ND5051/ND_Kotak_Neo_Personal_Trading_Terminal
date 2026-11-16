@@ -394,8 +394,15 @@ class KotakBrokerAdapter(BrokerInterface):
     def get_margins(self) -> Dict[str, Any]:
         """
         Fetch account margins, available cash, and collateral ledger.
-        Invokes client.margins() or client.limits() on live SDK.
+        Invokes client.limits() on live SDK.
         """
+        if not self.client:
+            try:
+                from app.broker.services.broker_session_manager import broker_session_manager
+                broker_session_manager.restore_session(adapter=self)
+            except Exception as e:
+                logger.debug(f"Auto-restore in get_margins: {e}")
+
         if self.client:
             for method_name in ("limits", "margins", "margin_required"):
                 if hasattr(self.client, method_name):
@@ -405,6 +412,17 @@ class KotakBrokerAdapter(BrokerInterface):
                             return res
                     except Exception as e:
                         logger.warning(f"Error calling {method_name}() on Kotak SDK: {str(e)}")
+
+        from app.orders.models.execution_mode import execution_mode_manager, ExecutionMode
+        if execution_mode_manager.get_mode() == ExecutionMode.LIVE:
+            return {
+                "availableCash": 0.0,
+                "collateral": 0.0,
+                "marginUtilized": 0.0,
+                "netMarginAvailable": 0.0,
+                "spanMargin": 0.0,
+                "exposureMargin": 0.0,
+            }
 
         return {
             "availableCash": 500000.0,

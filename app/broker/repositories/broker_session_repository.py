@@ -17,20 +17,21 @@ class BrokerSessionRepository(BaseRepository[BrokerSession]):
         super().__init__(model_class=BrokerSession, session=session)
 
     def get_active_session(
-        self, user_id: int, broker_name: str = "KOTAK_NEO"
+        self, user_id: Optional[int] = None, broker_name: str = "KOTAK_NEO"
     ) -> Optional[BrokerSession]:
         """Fetch current non-expired active broker session for a specific user and broker."""
         now = datetime.now(timezone.utc)
         stmt = (
             select(BrokerSession)
             .where(
-                BrokerSession.user_id == user_id,
                 BrokerSession.broker_name == broker_name,
                 BrokerSession.is_active == True,
                 BrokerSession.expiry_time > now,
             )
-            .order_by(BrokerSession.id.desc())
         )
+        if user_id is not None:
+            stmt = stmt.where(BrokerSession.user_id == user_id)
+        stmt = stmt.order_by(BrokerSession.id.desc())
         return self.session.execute(stmt).scalars().first()
 
     def save_session(self, session_entity: BrokerSession) -> BrokerSession:
