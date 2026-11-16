@@ -16,8 +16,23 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Pre-Render Theme Initialization (Zero-Flicker Light/Dark Mode) -->
+    <script>
+        (function() {
+            try {
+                var raw = localStorage.getItem('kotak_neo_workspace_v1');
+                var theme = 'light';
+                if (raw) {
+                    var parsed = JSON.parse(raw);
+                    if (parsed && parsed.theme) theme = parsed.theme;
+                }
+                document.documentElement.setAttribute('data-theme', theme);
+            } catch (e) {}
+        })();
+    </script>
 </head>
-<body class="theme-dark" id="app-root">
+<body class="light-theme" id="app-root">
     <!-- Master Terminal Header & Ticker -->
     {% include "components/header.html" %}
 

@@ -18,16 +18,16 @@
     <!-- Live MTM Dashboard Strip -->
     <div class="portfolio-stats-bar card">
         <div class="p-stat">
-            <span class="lbl">Realized P&amp;L</span>
-            <span class="val font-numeric" id="pos-realized-pnl">₹0.00</span>
+            <span class="lbl">Net Day P&amp;L (Total)</span>
+            <span class="val font-numeric text-success" id="pos-net-pnl">+₹0.00</span>
         </div>
         <div class="p-stat">
             <span class="lbl">Unrealized MTM P&amp;L</span>
             <span class="val font-numeric text-success" id="pos-unrealized-mtm">+₹0.00</span>
         </div>
         <div class="p-stat">
-            <span class="lbl">Net Day P&amp;L</span>
-            <span class="val font-numeric text-success" id="pos-net-pnl">+₹0.00</span>
+            <span class="lbl">Realized P&amp;L</span>
+            <span class="val font-numeric" id="pos-realized-pnl">₹0.00</span>
         </div>
         <div class="p-stat">
             <span class="lbl">Exposure Margin</span>
@@ -45,8 +45,9 @@
         <div class="filter-dropdowns">
             <select class="input-select" id="pos-product-filter">
                 <option value="ALL">All Products</option>
+                <option value="CNC">CNC (Cash Delivery)</option>
+                <option value="NRML">NRML (Overnight F&amp;O)</option>
                 <option value="MIS">MIS (Intraday)</option>
-                <option value="NRML">NRML (F&amp;O)</option>
             </select>
         </div>
     </div>

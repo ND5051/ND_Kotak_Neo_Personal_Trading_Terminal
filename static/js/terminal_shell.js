@@ -62,6 +62,7 @@
 
         init() {
             this.bindNavigationTabs();
+            this.bindThemeToggle();
             this.bindCompactModeToggle();
             this.bindWorkspaceReset();
             this.bindExecutionModeModal();
@@ -125,6 +126,28 @@
                     this.ws.set('active_tab', tabKey);
                 }
             }
+        }
+
+        /* ==========================================================================
+           1B. Theme Controller (Light / Dark)
+           ========================================================================== */
+        bindThemeToggle() {
+            const toggleBtn = document.getElementById('theme-toggle');
+            if (!toggleBtn) return;
+
+            toggleBtn.addEventListener('click', () => {
+                this.toggleTheme();
+            });
+        }
+
+        toggleTheme() {
+            const current = this.ws ? this.ws.get('theme', 'light') : 'light';
+            const next = current === 'light' ? 'dark' : 'light';
+            if (this.ws) {
+                this.ws.set('theme', next);
+                this.ws.applyToDOM();
+            }
+            this.showToast(`Theme switched to ${next.toUpperCase()} mode.`);
         }
 
         /* ==========================================================================
@@ -895,6 +918,13 @@
                     if (e.key === 'Escape') {
                         document.activeElement.blur();
                     }
+                    return;
+                }
+
+                // Alt + T : Toggle Theme (Light / Dark)
+                if (e.altKey && (e.key === 't' || e.key === 'T')) {
+                    e.preventDefault();
+                    this.toggleTheme();
                     return;
                 }
 

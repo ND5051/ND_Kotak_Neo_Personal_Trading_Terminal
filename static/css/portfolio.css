@@ -77,30 +77,53 @@
    ========================================================================== */
 .portfolio-stats-bar {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: var(--spacing-md);
-    padding: var(--spacing-sm) var(--spacing-md);
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius-sm);
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    padding: 16px 20px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    box-shadow: var(--card-shadow);
+    align-items: center;
+}
+
+@media (max-width: 900px) {
+    .portfolio-stats-bar {
+        grid-template-columns: repeat(2, 1fr);
+    }
 }
 
 .p-stat {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 4px;
+    position: relative;
+}
+
+.p-stat:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    right: -8px;
+    top: 15%;
+    height: 70%;
+    width: 1px;
+    background-color: var(--border-subtle);
 }
 
 .p-stat .lbl {
-    font-size: 0.75rem;
-    color: var(--text-muted);
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
 
 .p-stat .val {
-    font-size: 1.1rem;
+    font-size: 22px;
     font-weight: 700;
+    letter-spacing: -0.3px;
+    font-family: var(--font-numeric);
+    font-variant-numeric: tabular-nums;
 }
 
 /* ==========================================================================
@@ -111,16 +134,17 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: var(--spacing-xs) var(--spacing-md);
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius-sm);
+    padding: 10px 16px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    box-shadow: var(--card-shadow);
 }
 
 .orders-subtabs-bar {
     display: flex;
-    gap: 4px;
-    border-bottom: 1px solid var(--border-color);
+    gap: 6px;
+    border-bottom: 1px solid var(--border-subtle);
     margin-bottom: var(--spacing-xs);
 }
 
@@ -143,24 +167,24 @@
 .orders-subtab.active {
     color: var(--accent-primary);
     border-bottom-color: var(--accent-primary);
-    background: rgba(27, 115, 232, 0.08);
+    background: rgba(2, 132, 199, 0.08);
 }
 
 .filter-tabs {
     display: flex;
-    gap: 4px;
+    gap: 8px;
 }
 
 .filter-tab {
-    background: transparent;
-    border: 1px solid transparent;
-    color: var(--text-muted);
-    font-size: 0.75rem;
+    background: var(--bg-surface-elevated);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+    font-size: 12px;
     font-weight: 600;
-    padding: 4px 10px;
-    border-radius: 4px;
+    padding: 6px 14px;
+    border-radius: 20px;
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: all var(--transition-fast);
 }
 
 .filter-tab:hover {
@@ -169,9 +193,10 @@
 }
 
 .filter-tab.active {
-    background: var(--bg-secondary);
-    color: var(--accent-primary);
-    border-color: var(--border-color);
+    background: var(--accent-blue);
+    color: #ffffff;
+    border-color: var(--accent-blue);
+    box-shadow: 0 1px 3px rgba(2, 132, 199, 0.3);
 }
 
 .filter-dropdowns {
@@ -181,11 +206,12 @@
 
 .input-select {
     background: var(--bg-input);
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--border-subtle);
     color: var(--text-primary);
-    padding: 4px 8px;
-    font-size: 0.8rem;
-    border-radius: 4px;
+    padding: 6px 12px;
+    font-size: 0.82rem;
+    font-weight: 500;
+    border-radius: var(--radius-sm);
     cursor: pointer;
 }
 
@@ -238,69 +264,69 @@
 }
 
 .btn-xs {
-    padding: 2px 6px;
-    font-size: 0.7rem;
-    border-radius: 3px;
+    padding: 3px 8px;
+    font-size: 11px;
+    border-radius: 4px;
     cursor: pointer;
-    border: none;
+    border: 1px solid transparent;
     font-weight: 600;
-    transition: all 0.15s ease;
+    transition: all var(--transition-fast);
 }
 
 .btn-action-add {
-    background: rgba(0, 208, 156, 0.15);
-    color: var(--accent-green);
-    border: 1px solid rgba(0, 208, 156, 0.3);
+    background: var(--market-green-bg);
+    color: var(--market-green);
+    border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
 .btn-action-add:hover {
-    background: var(--accent-green);
-    color: #000;
+    background: var(--market-green);
+    color: #ffffff;
 }
 
 .btn-action-exit {
-    background: rgba(235, 87, 87, 0.15);
-    color: var(--accent-red);
-    border: 1px solid rgba(235, 87, 87, 0.3);
+    background: var(--market-red-bg);
+    color: var(--market-red);
+    border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
 .btn-action-exit:hover {
-    background: var(--accent-red);
-    color: #fff;
+    background: var(--market-red);
+    color: #ffffff;
 }
 
 .btn-action-reverse {
-    background: rgba(242, 153, 74, 0.15);
-    color: var(--accent-warning);
-    border: 1px solid rgba(242, 153, 74, 0.3);
+    background: var(--accent-amber-bg);
+    color: var(--accent-amber);
+    border: 1px solid rgba(217, 119, 6, 0.3);
 }
 
 .btn-action-reverse:hover {
-    background: var(--accent-warning);
-    color: #000;
+    background: var(--accent-amber);
+    color: #ffffff;
 }
 
 .btn-action-modify {
-    background: rgba(27, 115, 232, 0.15);
-    color: var(--accent-primary);
-    border: 1px solid rgba(27, 115, 232, 0.3);
+    background: rgba(2, 132, 199, 0.12);
+    color: var(--accent-blue);
+    border: 1px solid rgba(2, 132, 199, 0.3);
 }
 
 .btn-action-modify:hover {
-    background: var(--accent-primary);
-    color: #fff;
+    background: var(--accent-blue);
+    color: #ffffff;
 }
 
 .btn-action-cancel {
-    background: rgba(139, 148, 158, 0.15);
-    color: var(--text-muted);
-    border: 1px solid rgba(139, 148, 158, 0.3);
+    background: var(--bg-surface-active);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-subtle);
 }
 
 .btn-action-cancel:hover {
-    background: var(--accent-red);
-    color: #fff;
-    border-color: var(--accent-red);
+    background: var(--market-red);
+    color: #ffffff;
+    border-color: var(--market-red);
 }
 
 .btn-action-timeline {

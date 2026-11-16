@@ -10,6 +10,7 @@
 
     const DEFAULT_WORKSPACE_STATE = {
         version: 1,
+        theme: 'light',
         active_tab: 'market_watch',
         compact_mode: false,
         sidebar_collapsed: false,
@@ -90,8 +91,24 @@
          * Apply saved state directly to DOM classes and active tabs.
          */
         applyToDOM() {
-            // 1. Compact Mode
             const body = document.getElementById('app-root') || document.body;
+
+            // 0. Theme Application (Light / Dark)
+            const currentTheme = this.state.theme || 'light';
+            document.documentElement.setAttribute('data-theme', currentTheme);
+            if (currentTheme === 'light') {
+                body.classList.add('light-theme');
+                body.classList.remove('theme-dark', 'dark-theme');
+            } else {
+                body.classList.add('theme-dark', 'dark-theme');
+                body.classList.remove('light-theme');
+            }
+            const themeIcon = document.getElementById('theme-icon');
+            const themeLabel = document.getElementById('theme-label');
+            if (themeIcon) themeIcon.textContent = currentTheme === 'light' ? '☀️' : '🌙';
+            if (themeLabel) themeLabel.textContent = `Theme: ${currentTheme === 'light' ? 'Light' : 'Dark'}`;
+
+            // 1. Compact Mode
             const compactLabel = document.getElementById('compact-label');
             const heroDensity = document.getElementById('hero-density-state');
             
