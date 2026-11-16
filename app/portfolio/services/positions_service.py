@@ -127,6 +127,8 @@ class PositionsService:
             if net_qty is None:
                 net_qty = buy_qty - sell_qty
 
+            is_open = net_qty != 0
+
             # Amounts & Execution Prices
             # Kotak Neo reports total traded amounts in 'buyAmt' and 'sellAmt'
             try:
