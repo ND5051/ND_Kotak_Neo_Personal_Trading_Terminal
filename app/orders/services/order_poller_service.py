@@ -110,11 +110,102 @@ class OrderPollerService:
         if avg_prc > 0 and (order.price == 0.0 or order.order_type == OrderType.MARKET):
             order.price = avg_prc
 
-        # 1. Partial execution check
-        is_partial_status = any(s in raw_st for s in ["partial", "partially"])
-        is_partial_qty = (0 < fld_qty < order.quantity) and (not any(s in raw_st for s in ["reject", "rej", "failed", "cancel", "canc"]))
+        # Extract broker total quantity if present
+        broker_qty = self._safe_int(
+            record.get("qty") or record.get("orderQuantity") or record.get("quantity") or 0
+        )
+        if broker_qty > 0 and broker_qty != order.quantity:
+            logger.info(
+                f"Syncing order quantity with broker authoritative quantity: "
+                f"local={order.quantity} -> broker={broker_qty} for {order.client_order_id}"
+            )
+            order.quantity = broker_qty
 
-        if is_partial_status or is_partial_qty:
+        # Extract order type from broker if present
+        broker_type_raw = str(record.get("prcTp") or record.get("orderType") or "").upper().strip()
+        if broker_type_raw in ["MKT", "MARKET"]:
+            order.order_type = OrderType.MARKET
+        elif broker_type_raw in ["L", "LMT", "LIMIT"]:
+            order.order_type = OrderType.LIMIT
+
+        # Status checks
+        is_filled_status = any(s in raw_st for s in ["complete", "traded", "filled", "executed"])
+        is_cancelled_status = any(s in raw_st for s in ["cancel", "canc"])
+        is_rejected_status = any(s in raw_st for s in ["reject", "rej", "failed"])
+        is_partial_status = any(s in raw_st for s in ["partial", "partially"])
+
+        # 1. Complete / Traded / Filled Status:
+        # If exchange says COMPLETE or TRADED, or if filled quantity equals/exceeds total quantity:
+        if is_filled_status or (fld_qty >= order.quantity and fld_qty > 0):
+            # If broker marked complete and fld_qty > 0, align order.quantity to fld_qty
+            if fld_qty > 0:
+                order.quantity = fld_qty
+
+            incremental_fill = max(0, order.quantity - order.filled_quantity)
+            order.filled_quantity = order.quantity
+            order.pending_quantity = 0
+            order.average_price = avg_prc or order.price
+            order.source_timestamp = datetime.now(timezone.utc).isoformat()
+            order.retrieved_timestamp = datetime.now(timezone.utc).isoformat()
+            order.assert_quantity_invariants()
+
+            trade = None
+            existing_trades = self.repository.get_trades(client_order_id=order.client_order_id)
+            if incremental_fill > 0 or not existing_trades:
+                trade_fill_qty = incremental_fill if incremental_fill > 0 else order.filled_quantity
+                trade = TradeExecution(
+                    trade_id=str(uuid.uuid4()),
+                    client_order_id=order.client_order_id,
+                    broker_order_id=order.broker_order_id,
+                    trading_symbol=order.trading_symbol,
+                    exchange_segment=order.exchange_segment,
+                    fill_quantity=trade_fill_qty,
+                    fill_price=order.average_price,
+                    exchange_timestamp=datetime.now(timezone.utc).isoformat(),
+                    retrieved_timestamp=order.retrieved_timestamp,
+                )
+                self.repository.record_trade_execution(trade)
+
+            self.state_machine.transition_to(order, OrderStatus.FILLED, reason="Exchange Execution Complete")
+            self.repository.save_order(order)
+
+            audit_logger.record(
+                category=AuditCategory.ORDER,
+                action=AUDIT_ORDER_EXECUTION_FILL,
+                actor="order_poller",
+                correlation_id=get_correlation_id(),
+                request_id=get_request_id(),
+                details={
+                    "client_order_id": order.client_order_id,
+                    "broker_order_id": order.broker_order_id,
+                    "fill_quantity": order.filled_quantity,
+                    "fill_price": order.average_price,
+                },
+            )
+            publish(ORDER_FILLED, {"order": order.to_dict(), "trade": trade.to_dict() if trade else {}})
+            return True
+
+        # 2. Rejected Status
+        elif is_rejected_status:
+            order.rejection_reason = rej_rsn or "Exchange / Broker RMS Rejection"
+            self.state_machine.transition_to(
+                order, OrderStatus.REJECTED, reason=order.rejection_reason
+            )
+            self.repository.save_order(order)
+            publish(ORDER_REJECTED, {"order": order.to_dict(), "reason": order.rejection_reason})
+            return True
+
+        # 3. Cancelled Status
+        elif is_cancelled_status:
+            self.state_machine.transition_to(
+                order, OrderStatus.CANCELLED, reason=rej_rsn or "Order Cancelled on Exchange"
+            )
+            self.repository.save_order(order)
+            publish(ORDER_CANCELLED, {"order": order.to_dict()})
+            return True
+
+        # 4. Partial Execution Status (Only when resting and genuinely partially filled)
+        elif is_partial_status or (0 < fld_qty < order.quantity):
             target_fld_qty = min(fld_qty, order.quantity)
             if fld_qty > order.quantity:
                 logger.warning(
@@ -164,96 +255,6 @@ class OrderPollerService:
             self.repository.save_order(order)
             publish(ORDER_PARTIALLY_FILLED, {"order": order.to_dict()})
             return False
-
-        # 2. Complete / Filled Status
-        # Either status contains filled keywords OR filled quantity meets/exceeds requested quantity
-        is_filled_status = any(s in raw_st for s in ["complete", "traded", "filled", "executed"])
-        is_full_qty = (fld_qty >= order.quantity and fld_qty > 0)
-
-        if is_filled_status or is_full_qty:
-            target_fld_qty = order.quantity if fld_qty == 0 else min(fld_qty, order.quantity)
-            if fld_qty > order.quantity:
-                logger.warning(
-                    f"Broker reported fldQty {fld_qty} exceeds order.quantity {order.quantity} "
-                    f"for {order.client_order_id}. Clamping to {order.quantity}."
-                )
-                audit_logger.record(
-                    category=AuditCategory.ORDER,
-                    action=AUDIT_ORDER_DISCREPANCY,
-                    actor="order_poller",
-                    correlation_id=get_correlation_id(),
-                    request_id=get_request_id(),
-                    details={
-                        "client_order_id": order.client_order_id,
-                        "broker_order_id": order.broker_order_id,
-                        "reported_fld_qty": fld_qty,
-                        "requested_quantity": order.quantity,
-                        "action": "clamped_to_requested_quantity",
-                    },
-                )
-
-            incremental_fill = max(0, target_fld_qty - order.filled_quantity)
-            order.filled_quantity = target_fld_qty
-            order.pending_quantity = max(0, order.quantity - order.filled_quantity)
-            order.average_price = avg_prc or order.price
-            order.source_timestamp = datetime.now(timezone.utc).isoformat()
-            order.retrieved_timestamp = datetime.now(timezone.utc).isoformat()
-            order.assert_quantity_invariants()
-
-            trade = None
-            existing_trades = self.repository.get_trades(client_order_id=order.client_order_id)
-            if incremental_fill > 0 or not existing_trades:
-                trade_fill_qty = incremental_fill if incremental_fill > 0 else order.filled_quantity
-                trade = TradeExecution(
-                    trade_id=str(uuid.uuid4()),
-                    client_order_id=order.client_order_id,
-                    broker_order_id=order.broker_order_id,
-                    trading_symbol=order.trading_symbol,
-                    exchange_segment=order.exchange_segment,
-                    fill_quantity=trade_fill_qty,
-                    fill_price=order.average_price,
-                    exchange_timestamp=datetime.now(timezone.utc).isoformat(),
-                    retrieved_timestamp=order.retrieved_timestamp,
-                )
-                self.repository.record_trade_execution(trade)
-
-            self.state_machine.transition_to(order, OrderStatus.FILLED, reason="Exchange Execution Complete")
-            self.repository.save_order(order)
-
-            audit_logger.record(
-                category=AuditCategory.ORDER,
-                action=AUDIT_ORDER_EXECUTION_FILL,
-                actor="order_poller",
-                correlation_id=get_correlation_id(),
-                request_id=get_request_id(),
-                details={
-                    "client_order_id": order.client_order_id,
-                    "broker_order_id": order.broker_order_id,
-                    "fill_quantity": order.filled_quantity,
-                    "fill_price": order.average_price,
-                },
-            )
-            publish(ORDER_FILLED, {"order": order.to_dict(), "trade": trade.to_dict() if trade else {}})
-            return True
-
-        # 3. Rejected Status
-        elif any(s in raw_st for s in ["reject", "rej", "failed"]):
-            order.rejection_reason = rej_rsn or "Exchange / Broker RMS Rejection"
-            self.state_machine.transition_to(
-                order, OrderStatus.REJECTED, reason=order.rejection_reason
-            )
-            self.repository.save_order(order)
-            publish(ORDER_REJECTED, {"order": order.to_dict(), "reason": order.rejection_reason})
-            return True
-
-        # 4. Cancelled Status
-        elif any(s in raw_st for s in ["cancel", "canc"]):
-            self.state_machine.transition_to(
-                order, OrderStatus.CANCELLED, reason=rej_rsn or "Order Cancelled on Exchange"
-            )
-            self.repository.save_order(order)
-            publish(ORDER_CANCELLED, {"order": order.to_dict()})
-            return True
 
         return False
 
