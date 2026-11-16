@@ -77,36 +77,37 @@
 }
 
 .control-group label {
-    color: #e2e8f0;
+    color: var(--text-secondary);
     font-weight: 600;
     font-size: 0.82rem;
     letter-spacing: 0.02em;
 }
 
 .oc-header-controls .input-select {
-    background-color: #1e293b;
-    color: #f8fafc;
-    border: 1px solid #475569;
+    background-color: var(--bg-card);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
     padding: 6px 12px;
     font-size: 0.82rem;
-    font-weight: 500;
-    border-radius: 4px;
+    font-weight: 600;
+    border-radius: 6px;
     cursor: pointer;
     outline: none;
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .oc-header-controls .input-select:hover {
-    border-color: #64748b;
+    border-color: var(--border-hover, var(--text-muted));
 }
 
 .oc-header-controls .input-select:focus {
-    border-color: var(--color-primary, #3b82f6);
-    box-shadow: 0 0 0 1px var(--color-primary, #3b82f6);
+    border-color: var(--accent-primary, #0284c7);
+    box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.15);
 }
 
 .oc-header-controls .input-select option {
-    background-color: #0f172a;
-    color: #f8fafc;
+    background-color: var(--bg-card);
+    color: var(--text-primary);
     padding: 8px 12px;
     font-size: 0.82rem;
 }
@@ -129,8 +130,9 @@
 }
 
 .sentiment-item .lbl {
-    font-size: 0.7rem;
-    color: var(--text-muted);
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
@@ -153,9 +155,9 @@
 }
 
 .shortcuts-lbl {
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: var(--text-muted);
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text-secondary);
     margin-right: 4px;
 }
 
@@ -178,31 +180,34 @@
     top: 0;
     z-index: 5;
     background: var(--bg-secondary);
+    color: var(--text-secondary);
+    font-weight: 700;
 }
 
 .super-header th {
-    font-size: 0.75rem;
+    font-size: 0.8rem;
+    font-weight: 800;
     letter-spacing: 1px;
-    padding: 4px 8px;
+    padding: 6px 8px;
     border-bottom: 1px solid var(--border-color);
 }
 
 .call-super-header {
-    background: rgba(0, 208, 156, 0.08) !important;
-    color: var(--accent-green);
+    background: rgba(5, 150, 105, 0.08) !important;
+    color: var(--market-green, var(--accent-green));
     border-right: 2px solid var(--border-color);
 }
 
 .strike-super-header {
     background: var(--bg-card) !important;
-    color: var(--accent-warning);
+    color: var(--accent-amber, var(--accent-warning));
     font-weight: 800;
     border-right: 2px solid var(--border-color);
 }
 
 .put-super-header {
-    background: rgba(235, 87, 87, 0.08) !important;
-    color: var(--accent-red);
+    background: rgba(220, 38, 38, 0.08) !important;
+    color: var(--market-red, var(--accent-red));
     border-right: 2px solid var(--border-color);
 }
 

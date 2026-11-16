@@ -97,8 +97,8 @@ body.light-theme {
 
     /* Text & Labels: Crystal Clear Readability */
     --text-primary: #0f172a;      /* Deep slate-black */
-    --text-secondary: #475569;    /* Refined charcoal for secondary labels */
-    --text-muted: #94a3b8;        /* Soft gray for metadata */
+    --text-secondary: #334155;    /* Crisp slate for secondary labels */
+    --text-muted: #64748b;        /* Readable medium slate for metadata */
 
     /* Market Semantics: Rich High-Contrast on White */
     --market-green: #059669;      /* Emerald Green */
