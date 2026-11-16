@@ -123,6 +123,38 @@ class PortfolioService:
                 positions = self.positions_service.parse_positions(
                     raw, position_type=position_type
                 )
+
+                # Enrich any positions missing live quotes
+                missing_tokens = [
+                    {"exchange_segment": p.exchange_segment, "instrument_token": p.instrument_token}
+                    for p in positions
+                    if p.current_price <= 0 and p.instrument_token and p.exchange_segment
+                ]
+                if missing_tokens and hasattr(self.adapter, "get_quotes"):
+                    try:
+                        quotes_res = self.adapter.get_quotes(missing_tokens)
+                        q_map = {}
+                        for q in quotes_res:
+                            if isinstance(q, dict):
+                                tok = str(q.get("instrument_token") or q.get("tok") or q.get("token") or "")
+                                seg = str(q.get("exchange_segment") or q.get("segment") or q.get("exSeg") or "").lower()
+                                ltp_f = float(q.get("last_price") or q.get("ltp") or q.get("close") or 0.0)
+                                if tok and ltp_f > 0:
+                                    q_map[(tok, seg)] = ltp_f
+
+                        for p in positions:
+                            if p.current_price <= 0:
+                                key = (p.instrument_token, p.exchange_segment.lower())
+                                if key in q_map:
+                                    p.current_price = q_map[key]
+                                    if p.is_open:
+                                        if p.net_quantity > 0:
+                                            p.unrealized_pnl = p.net_quantity * (p.current_price - p.average_buy_price)
+                                        elif p.net_quantity < 0:
+                                            p.unrealized_pnl = abs(p.net_quantity) * (p.average_sell_price - p.current_price)
+                                    p.total_pnl = p.realized_pnl + p.unrealized_pnl
+                    except Exception as e:
+                        logger.warning(f"Failed to enrich positions with quotes: {str(e)}")
             # Register in MTMEngine for live tick tracking
             self.mtm_engine.set_positions(positions)
             self.cache.set(cache_key, positions, ttl_seconds=self.TTL_POSITIONS)

@@ -461,6 +461,26 @@ class KotakBrokerAdapter(BrokerInterface):
                 logger.warning(f"Error querying client.positions() on Kotak SDK: {str(e)}")
         return []
 
+    def get_quotes(self, instrument_tokens: List[Dict[str, str]]) -> List[Dict[str, Any]]:
+        """
+        Fetch batch touchline / quotes from Kotak Neo REST API.
+        Args:
+            instrument_tokens: List of dicts with 'exchange_segment' and 'instrument_token'.
+        """
+        if self.client and hasattr(self.client, "quotes") and instrument_tokens:
+            try:
+                res = self.client.quotes(instrument_tokens=instrument_tokens)
+                if isinstance(res, list):
+                    return res
+                if isinstance(res, dict):
+                    for k in ["data", "result", "quotes", "message"]:
+                        val = res.get(k)
+                        if isinstance(val, list):
+                            return val
+            except Exception as e:
+                logger.warning(f"Error querying client.quotes on Kotak SDK: {str(e)}")
+        return []
+
 
 
 # Global shared broker adapter singleton

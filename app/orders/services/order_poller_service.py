@@ -129,17 +129,37 @@ class OrderPollerService:
             order.order_type = OrderType.LIMIT
 
         # Status checks
-        is_filled_status = any(s in raw_st for s in ["complete", "traded", "filled", "executed"])
+        is_partial_status = any(s in raw_st for s in ["partial", "partially"])
         is_cancelled_status = any(s in raw_st for s in ["cancel", "canc"])
         is_rejected_status = any(s in raw_st for s in ["reject", "rej", "failed"])
-        is_partial_status = any(s in raw_st for s in ["partial", "partially"])
+        is_filled_status = not is_partial_status and any(s in raw_st for s in ["complete", "traded", "filled", "executed"])
 
         # 1. Complete / Traded / Filled Status:
         # If exchange says COMPLETE or TRADED, or if filled quantity equals/exceeds total quantity:
-        if is_filled_status or (fld_qty >= order.quantity and fld_qty > 0):
-            # If broker marked complete and fld_qty > 0, align order.quantity to fld_qty
-            if fld_qty > 0:
-                order.quantity = fld_qty
+        if is_filled_status or (not is_partial_status and fld_qty >= order.quantity and fld_qty > 0):
+            # If broker quantity was modified / reduced at broker level (e.g. 5 -> 1)
+            if 0 < broker_qty < order.quantity:
+                order.quantity = broker_qty
+            elif fld_qty > order.quantity:
+                # Clamp excess overfill anomaly
+                logger.warning(
+                    f"Broker reported fill {fld_qty} exceeds order.quantity {order.quantity} "
+                    f"for {order.client_order_id}. Clamping to {order.quantity}."
+                )
+                audit_logger.record(
+                    category=AuditCategory.ORDER,
+                    action=AUDIT_ORDER_DISCREPANCY,
+                    actor="order_poller",
+                    correlation_id=get_correlation_id(),
+                    request_id=get_request_id(),
+                    details={
+                        "client_order_id": order.client_order_id,
+                        "broker_order_id": order.broker_order_id,
+                        "reported_fld_qty": fld_qty,
+                        "requested_quantity": order.quantity,
+                        "action": "clamped_to_requested_quantity",
+                    },
+                )
 
             incremental_fill = max(0, order.quantity - order.filled_quantity)
             order.filled_quantity = order.quantity

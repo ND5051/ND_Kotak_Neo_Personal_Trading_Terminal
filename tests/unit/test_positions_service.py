@@ -115,3 +115,112 @@ def test_the_golden_rule_absence_of_data_is_none():
     assert svc.get_net_position_for_symbol([], "NIFTY24DEC24500CE") is None
     assert svc.get_net_position_for_symbol({"error": "Service Unavailable"}, "NIFTY24DEC24500CE") is None
     assert svc.get_net_position_for_symbol(None, "NIFTY24DEC24500CE") is None
+
+
+def test_kotak_neo_live_wire_positions_parsing():
+    """
+    Verify exact Kotak Neo wire positions schema matching real broker terminal:
+    - CNC Equity cash delivery (NIFTYBEES)
+    - Closed F&O options positions with buyAmt / sellAmt and zero net qty
+    """
+    svc = PositionsService()
+
+    kotak_wire_payload = {
+        "stat": "Ok",
+        "stCode": 200,
+        "data": [
+            {
+                "actId": "12345",
+                "prod": "CNC",
+                "exSeg": "nse_cm",
+                "trdSym": "NIFTYBEES-EQ",
+                "sym": "NIFTYBEES",
+                "tok": "10599",
+                "qty": "1",
+                "buyAmt": "287.43",
+                "sellAmt": "0.00",
+                "flBuyQty": "1",
+                "flSellQty": "0",
+                "posFlg": "true",
+                "sqrFlg": "Y",
+                "lotSz": "1",
+                "lp": "287.61",
+            },
+            {
+                "actId": "12345",
+                "prod": "NRML",
+                "exSeg": "nse_fo",
+                "trdSym": "NIFTY26NOV24400PE",
+                "sym": "NIFTY",
+                "tok": "55123",
+                "qty": "0",
+                "buyAmt": "796.25",
+                "sellAmt": "1040.00",
+                "flBuyQty": "65",
+                "flSellQty": "65",
+                "posFlg": "false",
+                "sqrFlg": "N",
+                "lotSz": "65",
+                "lp": "16.00",
+            },
+            {
+                "actId": "12345",
+                "prod": "NRML",
+                "exSeg": "nse_fo",
+                "trdSym": "NIFTY26NOV26150CE",
+                "sym": "NIFTY",
+                "tok": "55124",
+                "qty": "0",
+                "buyAmt": "765.25",
+                "sellAmt": "1087.00",
+                "flBuyQty": "65",
+                "flSellQty": "65",
+                "posFlg": "false",
+                "sqrFlg": "N",
+                "lotSz": "65",
+                "lp": "16.70",
+            },
+        ],
+    }
+
+    positions = svc.parse_positions(kotak_wire_payload, position_type=PositionType.NET)
+    assert len(positions) == 3
+
+    # 1. NIFTYBEES (Cash Delivery CNC)
+    bees = positions[0]
+    assert bees.trading_symbol == "NIFTYBEES-EQ"
+    assert bees.product == ProductCode.CNC
+    assert bees.exchange_segment == "nse_cm"
+    assert bees.instrument_token == "10599"
+    assert bees.net_quantity == 1
+    assert bees.is_open is True
+    assert round(bees.average_buy_price, 2) == 287.43
+    assert bees.realized_pnl == 0.0
+    assert round(bees.unrealized_pnl, 2) == 0.18
+    assert round(bees.total_pnl, 2) == 0.18
+
+    # 2. Closed NIFTY 24400 PE
+    pe = positions[1]
+    assert pe.trading_symbol == "NIFTY26NOV24400PE"
+    assert pe.product == ProductCode.NRML
+    assert pe.exchange_segment == "nse_fo"
+    assert pe.net_quantity == 0
+    assert pe.is_open is False
+    assert round(pe.average_buy_price, 2) == 12.25
+    assert round(pe.average_sell_price, 2) == 16.00
+    assert round(pe.realized_pnl, 2) == 243.75
+    assert pe.unrealized_pnl == 0.0
+    assert round(pe.total_pnl, 2) == 243.75
+
+    # 3. Closed NIFTY 26150 CE
+    ce = positions[2]
+    assert ce.trading_symbol == "NIFTY26NOV26150CE"
+    assert ce.net_quantity == 0
+    assert ce.is_open is False
+    assert round(ce.realized_pnl, 2) == 321.75
+    assert ce.unrealized_pnl == 0.0
+
+    # Total Realized PnL: 243.75 + 321.75 = 565.50
+    total_realized = sum(p.realized_pnl for p in positions)
+    assert round(total_realized, 2) == 565.50
+

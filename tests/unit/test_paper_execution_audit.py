@@ -29,6 +29,11 @@ class MockAuditOrderRepository:
         self.trades.append(trade)
         return trade
 
+    def get_trades(self, client_order_id=None, **kwargs):
+        if client_order_id:
+            return [t for t in self.trades if getattr(t, "client_order_id", None) == client_order_id]
+        return list(self.trades)
+
     def find_orders(self, **kwargs):
         return list(self.orders.values())
 

@@ -54,17 +54,18 @@ class PositionsService:
                 continue
 
             token = str(
-                row.get("instrumentToken")
+                row.get("tok")
                 or row.get("token")
+                or row.get("instrumentToken")
                 or row.get("pSymbol")
                 or row.get("scripToken")
                 or ""
             ).strip()
 
             symbol_raw = (
-                row.get("tradingSymbol")
-                or row.get("trdSym")
-                or row.get("symbol")
+                row.get("trdSym")
+                or row.get("tradingSymbol")
+                or row.get("sym")
                 or row.get("pTrdSymbol")
                 or row.get("dispSym")
                 or token
@@ -72,41 +73,50 @@ class PositionsService:
             symbol = str(symbol_raw).strip()
 
             segment = str(
-                row.get("exchangeSegment")
+                row.get("exSeg")
+                or row.get("exchangeSegment")
                 or row.get("segment")
                 or row.get("pSegment")
                 or "nse_fo"
             ).strip().lower()
 
-            # Product Code Resolution
+            # Product Code Resolution (Kotak Neo uses 'prod', 'type', 'prodType')
             prod_str = str(
-                row.get("product")
+                row.get("prod")
+                or row.get("product")
                 or row.get("prodType")
+                or row.get("type")
                 or row.get("pProduct")
                 or "NRML"
             ).strip().upper()
 
             if prod_str in ("MIS", "INTRADAY"):
                 product = ProductCode.MIS
-            elif prod_str in ("CNC", "DELIVERY"):
+            elif prod_str in ("CNC", "DELIVERY", "CASH"):
                 product = ProductCode.CNC
             else:
                 product = ProductCode.NRML
 
-            # Quantity Resolution
+            # Quantity Resolution (Kotak Neo uses 'flBuyQty', 'buyQty', 'cfBuyQty')
             try:
-                buy_qty = int(float(row.get("flBuyQty") or row.get("buyQty") or row.get("buyQuantity") or 0))
+                b_raw = row.get("flBuyQty")
+                if b_raw is None or (isinstance(b_raw, (int, float, str)) and float(b_raw or 0) == 0):
+                    b_raw = row.get("buyQty") or row.get("cfBuyQty") or row.get("buyQuantity") or 0
+                buy_qty = int(float(b_raw or 0))
             except (ValueError, TypeError):
                 buy_qty = 0
 
             try:
-                sell_qty = int(float(row.get("flSellQty") or row.get("sellQty") or row.get("sellQuantity") or 0))
+                s_raw = row.get("flSellQty")
+                if s_raw is None or (isinstance(s_raw, (int, float, str)) and float(s_raw or 0) == 0):
+                    s_raw = row.get("sellQty") or row.get("cfSellQty") or row.get("sellQuantity") or 0
+                sell_qty = int(float(s_raw or 0))
             except (ValueError, TypeError):
                 sell_qty = 0
 
             # Direct Net Quantity check with fallback to buy_qty - sell_qty
             net_qty = None
-            for q_key in ["netQty", "netQuantity", "flNetQty", "net_qty", "qty"]:
+            for q_key in ["qty", "netQty", "netQuantity", "flNetQty", "net_qty"]:
                 val = row.get(q_key)
                 if val is not None:
                     try:
@@ -117,48 +127,84 @@ class PositionsService:
             if net_qty is None:
                 net_qty = buy_qty - sell_qty
 
-            # Prices
+            # Amounts & Execution Prices
+            # Kotak Neo reports total traded amounts in 'buyAmt' and 'sellAmt'
             try:
-                avg_buy_px = float(
-                    row.get("buyAvgPrc")
-                    or row.get("buyPrice")
-                    or row.get("avgBuyPrice")
-                    or 0.0
-                )
+                b_amt_raw = row.get("buyAmt")
+                if b_amt_raw is None or (isinstance(b_amt_raw, (int, float, str)) and float(b_amt_raw or 0) == 0):
+                    b_amt_raw = row.get("buyAmount") or row.get("cfBuyAmt") or 0.0
+                buy_amount = float(b_amt_raw or 0.0)
             except (ValueError, TypeError):
-                avg_buy_px = 0.0
+                buy_amount = 0.0
 
             try:
-                avg_sell_px = float(
-                    row.get("sellAvgPrc")
-                    or row.get("sellPrice")
-                    or row.get("avgSellPrice")
-                    or 0.0
-                )
+                s_amt_raw = row.get("sellAmt")
+                if s_amt_raw is None or (isinstance(s_amt_raw, (int, float, str)) and float(s_amt_raw or 0) == 0):
+                    s_amt_raw = row.get("sellAmount") or row.get("cfSellAmt") or 0.0
+                sell_amount = float(s_amt_raw or 0.0)
             except (ValueError, TypeError):
-                avg_sell_px = 0.0
+                sell_amount = 0.0
+
+            # Compute or extract average buy price
+            if buy_qty > 0 and buy_amount > 0:
+                avg_buy_px = buy_amount / buy_qty
+            else:
+                try:
+                    avg_buy_px = float(
+                        row.get("buyAvgPrc")
+                        or row.get("buyPrice")
+                        or row.get("avgBuyPrice")
+                        or 0.0
+                    )
+                except (ValueError, TypeError):
+                    avg_buy_px = 0.0
+
+            if buy_amount == 0.0 and buy_qty > 0 and avg_buy_px > 0:
+                buy_amount = buy_qty * avg_buy_px
+
+            # Compute or extract average sell price
+            if sell_qty > 0 and sell_amount > 0:
+                avg_sell_px = sell_amount / sell_qty
+            else:
+                try:
+                    avg_sell_px = float(
+                        row.get("sellAvgPrc")
+                        or row.get("sellPrice")
+                        or row.get("avgSellPrice")
+                        or 0.0
+                    )
+                except (ValueError, TypeError):
+                    avg_sell_px = 0.0
+
+            if sell_amount == 0.0 and sell_qty > 0 and avg_sell_px > 0:
+                sell_amount = sell_qty * avg_sell_px
 
             try:
                 close_px = float(
                     row.get("closePrice")
                     or row.get("prevClose")
                     or row.get("closingPrice")
+                    or row.get("clsPrc")
                     or 0.0
                 )
             except (ValueError, TypeError):
                 close_px = 0.0
 
             try:
-                multiplier = int(row.get("multiplier") or 1)
+                multiplier = int(row.get("multiplier") or row.get("lotSz") or 1)
             except (ValueError, TypeError):
                 multiplier = 1
 
-            buy_amount = buy_qty * avg_buy_px
-            sell_amount = sell_qty * avg_sell_px
-
             # Closed quantity and Realized PnL
+            # For completely closed positions, sell_amount - buy_amount equals closed PnL exactly
             closed_qty = min(buy_qty, sell_qty)
-            realized_pnl = closed_qty * (avg_sell_px - avg_buy_px)
+            if closed_qty > 0:
+                if buy_qty == sell_qty and buy_amount > 0 and sell_amount > 0:
+                    realized_pnl = sell_amount - buy_amount
+                else:
+                    realized_pnl = closed_qty * (avg_sell_px - avg_buy_px)
+            else:
+                realized_pnl = 0.0
 
             # Live current price from PriceEngine or broker payload
             quote = self.price_engine.get_quote(token, segment)
@@ -167,20 +213,31 @@ class PositionsService:
             else:
                 try:
                     current_price = float(
-                        row.get("lastPrice")
+                        row.get("lp")
+                        or row.get("lastPrice")
                         or row.get("ltp")
                         or row.get("actPrc")
+                        or row.get("stkPrc")
                         or close_px
                     )
                 except (ValueError, TypeError):
                     current_price = close_px
 
+            if current_price == 0.0:
+                if net_qty > 0 and avg_buy_px > 0:
+                    current_price = avg_buy_px
+                elif net_qty < 0 and avg_sell_px > 0:
+                    current_price = avg_sell_px
+
             # Calculate Unrealized MTM
             is_open = net_qty != 0
-            if net_qty > 0:
-                unrealized_pnl = net_qty * (current_price - avg_buy_px)
-            elif net_qty < 0:
-                unrealized_pnl = abs(net_qty) * (avg_sell_px - current_price)
+            if is_open:
+                if net_qty > 0:
+                    unrealized_pnl = net_qty * (current_price - avg_buy_px)
+                elif net_qty < 0:
+                    unrealized_pnl = abs(net_qty) * (avg_sell_px - current_price)
+                else:
+                    unrealized_pnl = 0.0
             else:
                 unrealized_pnl = 0.0
 
