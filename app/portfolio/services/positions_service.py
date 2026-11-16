@@ -217,13 +217,12 @@ class PositionsService:
                         or row.get("lastPrice")
                         or row.get("ltp")
                         or row.get("actPrc")
-                        or row.get("stkPrc")
                         or close_px
                     )
                 except (ValueError, TypeError):
                     current_price = close_px
 
-            if current_price == 0.0:
+            if current_price == 0.0 and is_open:
                 if net_qty > 0 and avg_buy_px > 0:
                     current_price = avg_buy_px
                 elif net_qty < 0 and avg_sell_px > 0:
