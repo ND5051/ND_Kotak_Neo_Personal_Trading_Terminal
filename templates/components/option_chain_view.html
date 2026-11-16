@@ -15,19 +15,37 @@
         </div>
 
         <div class="oc-header-controls">
-            <!-- Underlying Selector -->
-            <div class="control-group">
-                <label for="oc-underlying-select">Underlying:</label>
-                <select class="input-select" id="oc-underlying-select">
-                    <option value="NIFTY">NIFTY 50</option>
+            <!-- 3 Core Liquid Index Quick Chips -->
+            <div class="oc-index-chips" title="Quick Switch Core Liquid Indices">
+                <button type="button" class="btn btn-xs oc-index-chip active" data-symbol="NIFTY">NIFTY</button>
+                <button type="button" class="btn btn-xs oc-index-chip" data-symbol="BANKNIFTY">BANKNIFTY</button>
+                <button type="button" class="btn btn-xs oc-index-chip" data-symbol="SENSEX">SENSEX</button>
+            </div>
+
+            <!-- Searchable Underlying Combobox (220+ F&O Stocks) -->
+            <div class="control-group oc-combobox-group">
+                <label for="oc-underlying-search">Underlying:</label>
+                <div class="oc-combobox-wrapper">
+                    <input type="text" 
+                           id="oc-underlying-search" 
+                           class="input-text oc-search-input" 
+                           placeholder="Search F&O (e.g. IDEA, SBIN)..." 
+                           autocomplete="off" 
+                           value="NIFTY (Nifty 50 Index)" />
+                    <span class="oc-search-icon">🔍</span>
+                    <div class="oc-dropdown-menu hidden" id="oc-underlying-dropdown"></div>
+                </div>
+                <!-- Native select preserved for test compatibility -->
+                <select class="input-select hidden" id="oc-underlying-select">
+                    <option value="NIFTY" selected>NIFTY 50</option>
                     <option value="BANKNIFTY">BANKNIFTY</option>
-                    <option value="FINNIFTY">FINNIFTY</option>
-                    <option value="MIDCPNIFTY">MIDCPNIFTY</option>
                     <option value="SENSEX">SENSEX</option>
                     <option value="RELIANCE">RELIANCE</option>
-                    <option value="HDFCBANK">HDFCBANK</option>
                     <option value="TCS">TCS</option>
                     <option value="INFY">INFY</option>
+                    <option value="HDFCBANK">HDFCBANK</option>
+                    <option value="IDEA">IDEA</option>
+                    <option value="SBIN">SBIN</option>
                 </select>
             </div>
 

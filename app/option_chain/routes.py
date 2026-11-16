@@ -26,8 +26,23 @@ option_chain_bp = Blueprint("option_chain", __name__, url_prefix="/api/option-ch
 def list_underlyings():
     """Retrieve catalog of F&O underlyings with live Spot LTP and favourite flags."""
     user_id = getattr(g.current_user, "id", 1)
-    underlyings = underlying_service.list_underlyings(user_id=user_id)
+    q = request.args.get("q")
+    if q is not None:
+        underlyings = underlying_service.search_underlyings(query=q, user_id=user_id)
+    else:
+        underlyings = underlying_service.list_underlyings(user_id=user_id)
     return api_response(data={"underlyings": underlyings, "total": len(underlyings)})
+
+
+@option_chain_bp.route("/search", methods=["GET"])
+@login_required
+def search_underlyings():
+    """Search all 220+ F&O underlyings by symbol or company name."""
+    user_id = getattr(g.current_user, "id", 1)
+    q = request.args.get("q", "")
+    limit = int(request.args.get("limit", 25))
+    results = underlying_service.search_underlyings(query=q, user_id=user_id, limit=limit)
+    return api_response(data={"underlyings": results, "total": len(results)})
 
 
 # 2. Contract Expiries

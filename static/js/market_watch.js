@@ -663,9 +663,33 @@
            5. Option Chain Bridge
            ========================================================================== */
         openOptionChain(item) {
+            if (!item) return;
+            let rawSym = (item.trading_symbol || item.symbol || '').trim().toUpperCase();
+
+            // Extract root underlying symbol
+            if (rawSym.endsWith('-EQ') || rawSym.endsWith('-BE')) {
+                rawSym = rawSym.split('-')[0];
+            }
+
+            let rootSymbol = rawSym;
+            if (rawSym.startsWith('NIFTY') && !rawSym.startsWith('NIFTYBEES')) {
+                rootSymbol = 'NIFTY';
+            } else if (rawSym.startsWith('BANKNIFTY')) {
+                rootSymbol = 'BANKNIFTY';
+            } else if (rawSym.startsWith('SENSEX')) {
+                rootSymbol = 'SENSEX';
+            }
+
             if (window.terminalShell) {
                 window.terminalShell.switchTab('option_chain');
-                window.terminalShell.showToast(`Switched to Option Chain for ${item.trading_symbol}`);
+            }
+
+            if (window.optionChainController) {
+                window.optionChainController.selectUnderlying(rootSymbol);
+            }
+
+            if (window.terminalShell) {
+                window.terminalShell.showToast(`Loaded Option Chain for ${rootSymbol}`);
             }
         }
 

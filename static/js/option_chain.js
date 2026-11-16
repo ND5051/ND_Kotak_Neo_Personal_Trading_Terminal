@@ -31,16 +31,64 @@
 
         bindControls() {
             const underlyingSel = document.getElementById('oc-underlying-select');
+            const searchInput = document.getElementById('oc-underlying-search');
+            const dropdown = document.getElementById('oc-underlying-dropdown');
             const expirySel = document.getElementById('oc-expiry-select');
             const presetSel = document.getElementById('oc-preset-select');
             const refreshBtn = document.getElementById('oc-refresh-btn');
             const favBtn = document.getElementById('oc-fav-btn');
             const openBasketBtn = document.getElementById('oc-open-basket-btn');
 
+            // 1. Index Quick Chips (NIFTY, BANKNIFTY, SENSEX)
+            document.querySelectorAll('.oc-index-chip').forEach(chip => {
+                chip.addEventListener('click', (e) => {
+                    const sym = e.currentTarget.getAttribute('data-symbol');
+                    if (sym) this.selectUnderlying(sym);
+                });
+            });
+
+            // 2. Searchable Combobox Controls
+            if (searchInput) {
+                searchInput.addEventListener('focus', () => {
+                    this.openSearchDropdown();
+                });
+
+                searchInput.addEventListener('click', () => {
+                    this.openSearchDropdown();
+                });
+
+                let searchTimer = null;
+                searchInput.addEventListener('input', (e) => {
+                    clearTimeout(searchTimer);
+                    searchTimer = setTimeout(() => {
+                        this.searchUnderlyings(e.target.value);
+                    }, 200);
+                });
+
+                searchInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') {
+                        this.closeSearchDropdown();
+                    } else if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const firstItem = dropdown ? dropdown.querySelector('.oc-dropdown-item') : null;
+                        if (firstItem) {
+                            const sym = firstItem.getAttribute('data-symbol');
+                            if (sym) this.selectUnderlying(sym);
+                        }
+                    }
+                });
+            }
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.oc-combobox-wrapper')) {
+                    this.closeSearchDropdown();
+                }
+            });
+
             if (underlyingSel) {
                 underlyingSel.addEventListener('change', (e) => {
-                    this.symbol = e.target.value;
-                    this.loadExpiries();
+                    this.selectUnderlying(e.target.value);
                 });
             }
 
@@ -78,6 +126,122 @@
             }
         }
 
+        openSearchDropdown() {
+            const dropdown = document.getElementById('oc-underlying-dropdown');
+            if (!dropdown) return;
+            dropdown.classList.remove('hidden');
+            const searchInput = document.getElementById('oc-underlying-search');
+            const query = searchInput ? searchInput.value : '';
+            this.searchUnderlyings(query);
+        }
+
+        closeSearchDropdown() {
+            const dropdown = document.getElementById('oc-underlying-dropdown');
+            if (dropdown) dropdown.classList.add('hidden');
+        }
+
+        async searchUnderlyings(query = '') {
+            const dropdown = document.getElementById('oc-underlying-dropdown');
+            if (!dropdown) return;
+
+            try {
+                const res = await fetch(`/api/option-chain/underlyings?q=${encodeURIComponent(query.trim())}`, { credentials: 'same-origin' });
+                if (!res.ok) return;
+                const json = await res.json();
+                const list = (json.data && json.data.underlyings) || [];
+                this.renderDropdownResults(list);
+            } catch (err) {
+                console.error('[OptionChain] Search error:', err);
+            }
+        }
+
+        renderDropdownResults(results) {
+            const dropdown = document.getElementById('oc-underlying-dropdown');
+            if (!dropdown) return;
+
+            if (!results || results.length === 0) {
+                dropdown.innerHTML = `<div style="padding: 10px 14px; font-size: 0.8rem; color: var(--text-muted); text-align: center;">No matching F&O instruments</div>`;
+                return;
+            }
+
+            let html = '';
+            const coreSymbols = ['NIFTY', 'BANKNIFTY', 'SENSEX'];
+            const coreItems = results.filter(r => coreSymbols.includes(r.symbol));
+            const favItems = results.filter(r => r.is_favourite && !coreSymbols.includes(r.symbol));
+            const stockItems = results.filter(r => !coreSymbols.includes(r.symbol) && !r.is_favourite);
+
+            const renderItem = (u) => `
+                <div class="oc-dropdown-item" data-symbol="${u.symbol}">
+                    <div style="display:flex; align-items:center;">
+                        <span class="item-sym">${u.is_favourite ? '★ ' : ''}${u.symbol}</span>
+                        <span class="item-desc">${u.display_name || ''}</span>
+                    </div>
+                    <span class="item-lot">${u.is_index ? 'Index' : 'Lot: ' + (u.lot_size || 1)}</span>
+                </div>
+            `;
+
+            if (coreItems.length > 0) {
+                html += `<div class="oc-dropdown-group-header">Core Benchmark Indices</div>`;
+                coreItems.forEach(u => { html += renderItem(u); });
+            }
+
+            if (favItems.length > 0) {
+                html += `<div class="oc-dropdown-group-header">⭐ Favourite Underlyings</div>`;
+                favItems.forEach(u => { html += renderItem(u); });
+            }
+
+            if (stockItems.length > 0) {
+                html += `<div class="oc-dropdown-group-header">F&O Equities & Underlyings (${results.length})</div>`;
+                stockItems.forEach(u => { html += renderItem(u); });
+            }
+
+            dropdown.innerHTML = html;
+
+            dropdown.querySelectorAll('.oc-dropdown-item').forEach(item => {
+                item.addEventListener('click', (e) => {
+                    const sym = e.currentTarget.getAttribute('data-symbol');
+                    if (sym) {
+                        this.selectUnderlying(sym);
+                        this.closeSearchDropdown();
+                    }
+                });
+            });
+        }
+
+        selectUnderlying(symbol) {
+            if (!symbol) return;
+            const sym = symbol.trim().toUpperCase();
+            this.symbol = sym;
+
+            // 1. Update Core Index Chips
+            document.querySelectorAll('.oc-index-chip').forEach(chip => {
+                chip.classList.toggle('active', chip.getAttribute('data-symbol') === sym);
+            });
+
+            // 2. Update Search Input Display
+            const searchInput = document.getElementById('oc-underlying-search');
+            if (searchInput) {
+                const match = this.underlyings.find(u => (u.symbol || u) === sym);
+                searchInput.value = match ? `${match.symbol} (${match.display_name || match.symbol})` : sym;
+            }
+
+            // 3. Keep Hidden Select Synchronized
+            const sel = document.getElementById('oc-underlying-select');
+            if (sel) {
+                let opt = Array.from(sel.options).find(o => o.value === sym);
+                if (!opt) {
+                    opt = document.createElement('option');
+                    opt.value = sym;
+                    opt.textContent = sym;
+                    sel.appendChild(opt);
+                }
+                sel.value = sym;
+            }
+
+            this.closeSearchDropdown();
+            this.loadExpiries();
+        }
+
         bindStrategyShortcuts() {
             const buttons = document.querySelectorAll('[data-oc-strat]');
             buttons.forEach(btn => {
@@ -107,6 +271,7 @@
 
         renderUnderlyings() {
             const sel = document.getElementById('oc-underlying-select');
+            const searchInput = document.getElementById('oc-underlying-search');
             if (!sel || this.underlyings.length === 0) return;
 
             sel.innerHTML = '';
@@ -118,6 +283,13 @@
                 if ((u.symbol || u) === this.symbol) opt.selected = true;
                 sel.appendChild(opt);
             });
+
+            if (searchInput && (!searchInput.value || searchInput.value.includes('NIFTY'))) {
+                const current = this.underlyings.find(u => (u.symbol || u) === this.symbol);
+                if (current) {
+                    searchInput.value = `${current.symbol} (${current.display_name || current.symbol})`;
+                }
+            }
         }
 
         async loadExpiries() {

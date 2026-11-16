@@ -496,13 +496,14 @@
                             ${netPnl >= 0 ? '+' : ''}₹${netPnl.toFixed(2)}
                         </td>
                         <td class="text-center">
-                            ${isOpen ? `
-                                <div class="table-actions">
+                            <div class="table-actions">
+                                ${isOpen ? `
                                     <button class="btn btn-xs btn-action-add" data-action="pos-add" title="Add / Scale position">Add</button>
                                     <button class="btn btn-xs btn-action-exit" data-action="pos-exit" title="Square off this open position">Exit</button>
                                     <button class="btn btn-xs btn-action-reverse" data-action="pos-reverse" title="Flip position 180° with 2x size">Reverse</button>
-                                </div>
-                            ` : `<span class="badge badge-neutral">CLOSED</span>`}
+                                ` : `<span class="badge badge-neutral">CLOSED</span>`}
+                                <button class="btn btn-xs btn-action-chain" data-action="pos-chain" title="View Option Chain for ${pos.instrument}">⛓️</button>
+                            </div>
                         </td>
                     `;
 
@@ -514,6 +515,11 @@
                         if (addBtn) addBtn.addEventListener('click', () => this.handlePositionAdd(pos));
                         if (exitBtn) exitBtn.addEventListener('click', () => this.handlePositionExit(pos));
                         if (revBtn) revBtn.addEventListener('click', () => this.promptPositionReverse(pos));
+                    }
+
+                    const chainBtn = tr.querySelector('[data-action="pos-chain"]');
+                    if (chainBtn) {
+                        chainBtn.addEventListener('click', () => this.openOptionChainForPosition(pos));
                     }
 
                     tbody.appendChild(tr);
@@ -553,6 +559,33 @@
             const sqAllBtn = document.getElementById('btn-square-off-all');
             if (sqAllBtn) {
                 sqAllBtn.disabled = openCount === 0;
+            }
+        }
+
+        openOptionChainForPosition(pos) {
+            if (!pos) return;
+            let raw = (pos.instrument || pos.trading_symbol || '').trim().split(' ')[0].toUpperCase();
+            if (raw.endsWith('-EQ') || raw.endsWith('-BE')) {
+                raw = raw.split('-')[0];
+            }
+
+            let root = raw;
+            if (raw.startsWith('NIFTY') && !raw.startsWith('NIFTYBEES')) {
+                root = 'NIFTY';
+            } else if (raw.startsWith('BANKNIFTY')) {
+                root = 'BANKNIFTY';
+            } else if (raw.startsWith('SENSEX')) {
+                root = 'SENSEX';
+            }
+
+            if (window.terminalShell) {
+                window.terminalShell.switchTab('option_chain');
+            }
+            if (window.optionChainController) {
+                window.optionChainController.selectUnderlying(root);
+            }
+            if (window.terminalShell) {
+                window.terminalShell.showToast(`Switched to Option Chain for ${root}`);
             }
         }
 
