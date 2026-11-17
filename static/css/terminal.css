@@ -507,13 +507,7 @@ html, body {
 }
 
 .tab-shortcut {
-    font-size: 9.5px;
-    color: var(--text-muted);
-    background-color: var(--bg-surface);
-    border: 1px solid var(--border-subtle);
-    padding: 1px 4px;
-    border-radius: 2px;
-    font-family: var(--font-numeric);
+    display: none !important;
 }
 
 .nav-actions {
