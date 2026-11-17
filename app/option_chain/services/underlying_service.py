@@ -5,6 +5,7 @@ Enhanced with dynamic F&O universe indexing from Scrip Master (220+ instruments)
 """
 
 import glob
+import json
 import os
 import threading
 from typing import Dict, List, Optional, Set
@@ -142,13 +143,38 @@ class UnderlyingService:
         self._lock = threading.RLock()
 
     def _ensure_fno_catalog(self) -> None:
-        """Lazily index all 220+ F&O underlyings from nse_fo.csv and nse_cm.csv."""
+        """Lazily index all 220+ F&O underlyings from static json fallback and nse_fo.csv."""
         if self._fno_catalog is not None:
             return
         with self._lock:
             if self._fno_catalog is not None:
                 return
             catalog: Dict[str, UnderlyingSpecification] = {}
+
+            # 1. Preload bundled static catalog fallback (instant zero-delay availability)
+            try:
+                base_dir = os.path.dirname(os.path.dirname(__file__))
+                json_path = os.path.join(base_dir, "data", "fno_underlyings.json")
+                if os.path.exists(json_path):
+                    with open(json_path, "r", encoding="utf-8") as f:
+                        raw_data = json.load(f)
+                    for sym, item in raw_data.items():
+                        catalog[sym] = UnderlyingSpecification(
+                            symbol=item["symbol"],
+                            display_name=item.get("display_name", sym),
+                            exchange_segment=item.get("exchange_segment", "nse_cm"),
+                            derivatives_segment=item.get("derivatives_segment", "nse_fo"),
+                            spot_instrument_token=item.get("spot_instrument_token", ""),
+                            spot_index_name=item.get("spot_index_name"),
+                            strike_step=float(item.get("strike_step", 1.0)),
+                            lot_size=int(item.get("lot_size", 1)),
+                            tick_size=float(item.get("tick_size", 0.05)),
+                            is_index=bool(item.get("is_index", False)),
+                        )
+            except Exception:
+                pass
+
+            # 2. Overlay live scrip master if available
             try:
                 fo_files = sorted(glob.glob("data/scrip_master/**/nse_fo.csv", recursive=True))
                 cm_files = sorted(glob.glob("data/scrip_master/**/nse_cm.csv", recursive=True))

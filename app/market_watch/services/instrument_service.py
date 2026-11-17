@@ -257,9 +257,9 @@ class InstrumentService:
     ) -> Dict[str, Any]:
         """
         Download and index Kotak Neo official daily Scrip Master files.
-        Default segments: ['nse_cm', 'bse_cm'] (Equities/Cash segments).
+        Default segments: ['nse_cm', 'bse_cm', 'nse_fo'].
         """
-        target_segments = segments or ["nse_cm", "bse_cm"]
+        target_segments = segments or ["nse_cm", "bse_cm", "nse_fo"]
         today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
         # Base data storage directory

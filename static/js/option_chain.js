@@ -74,6 +74,9 @@
                         if (firstItem) {
                             const sym = firstItem.getAttribute('data-symbol');
                             if (sym) this.selectUnderlying(sym);
+                        } else if (searchInput.value.trim()) {
+                            let typed = searchInput.value.trim().split(' ')[0].split('(')[0].toUpperCase();
+                            this.selectUnderlying(typed);
                         }
                     }
                 });
@@ -131,8 +134,10 @@
             if (!dropdown) return;
             dropdown.classList.remove('hidden');
             const searchInput = document.getElementById('oc-underlying-search');
-            const query = searchInput ? searchInput.value : '';
-            this.searchUnderlyings(query);
+            if (searchInput) {
+                searchInput.select();
+            }
+            this.searchUnderlyings('');
         }
 
         closeSearchDropdown() {
@@ -144,8 +149,13 @@
             const dropdown = document.getElementById('oc-underlying-dropdown');
             if (!dropdown) return;
 
+            let cleanQuery = (query || '').trim();
+            if (cleanQuery.includes('(')) {
+                cleanQuery = cleanQuery.split('(')[0].trim();
+            }
+
             try {
-                const res = await fetch(`/api/option-chain/underlyings?q=${encodeURIComponent(query.trim())}`, { credentials: 'same-origin' });
+                const res = await fetch(`/api/option-chain/underlyings?q=${encodeURIComponent(cleanQuery)}`, { credentials: 'same-origin' });
                 if (!res.ok) return;
                 const json = await res.json();
                 const list = (json.data && json.data.underlyings) || [];
