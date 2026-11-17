@@ -199,7 +199,12 @@
                 if (json.data && json.data.summary) {
                     this.updateTimestamp(json.data.summary.retrieved_timestamp || new Date().toISOString());
                 }
-                await this.loadAll();
+                await Promise.all([
+                    this.fetchHoldings(true),
+                    this.fetchPositions(),
+                    this.fetchMargins(),
+                    this.fetchPnl()
+                ]);
                 if (window.terminalShell) {
                     window.terminalShell.showToast('Portfolio & Margin balances refreshed from broker.');
                 }
@@ -238,12 +243,16 @@
         /* ==========================================================================
            Holdings Screen
            ========================================================================== */
-        async fetchHoldings() {
+        async fetchHoldings(force = false) {
             try {
-                const res = await fetch('/api/portfolio/holdings', { credentials: 'same-origin' });
+                const url = force ? '/api/portfolio/holdings?force_refresh=true' : '/api/portfolio/holdings';
+                const res = await fetch(url, { credentials: 'same-origin' });
                 if (!res.ok) return;
                 const json = await res.json();
                 this.holdings = (json.data && json.data.holdings) || [];
+                if (json.data && json.data.summary && json.data.summary.retrieved_timestamp) {
+                    this.updateTimestamp(json.data.summary.retrieved_timestamp);
+                }
                 this.renderHoldings();
             } catch (e) {
                 console.error('[PortfolioController] Fetch holdings error:', e);
@@ -251,7 +260,7 @@
         }
 
         renderHoldings() {
-            const tbody = document.getElementById('holdings-tbody');
+            const tbody = document.getElementById('holdings-table-body') || document.getElementById('holdings-tbody');
             const empty = document.getElementById('holdings-empty-state');
             if (!tbody) return;
 
@@ -267,13 +276,15 @@
                 if (empty) empty.classList.add('hidden');
 
                 this.holdings.forEach(item => {
-                    const totalQty = (item.quantity || 0) + (item.t1_quantity || 0);
+                    const availQty = item.settled_quantity !== undefined ? item.settled_quantity : (item.quantity || 0);
+                    const t1Qty = item.t1_quantity || 0;
+                    const totalQty = item.total_quantity !== undefined ? item.total_quantity : (availQty + t1Qty);
                     const avgPrice = item.average_price || 0;
-                    const ltp = item.last_price || item.close_price || 0;
-                    const invested = totalQty * avgPrice;
-                    const curVal = totalQty * ltp;
-                    const pnl = curVal - invested;
-                    const pnlPct = invested > 0 ? (pnl / invested) * 100 : 0;
+                    const ltp = item.current_price || item.last_price || item.close_price || 0;
+                    const invested = item.invested_value !== undefined ? item.invested_value : (totalQty * avgPrice);
+                    const curVal = item.current_value !== undefined ? item.current_value : (totalQty * ltp);
+                    const pnl = item.unrealized_pnl !== undefined ? item.unrealized_pnl : (curVal - invested);
+                    const pnlPct = item.unrealized_pnl_percent !== undefined ? item.unrealized_pnl_percent : (invested > 0 ? (pnl / invested) * 100 : 0);
                     const dPnl = item.day_pnl || 0;
 
                     totalInvested += invested;
@@ -284,17 +295,17 @@
                     tr.innerHTML = `
                         <td>
                             <div class="scrip-symbol-block">
-                                <span class="font-bold">${item.trading_symbol}</span>
-                                <span class="badge-segment">${(item.exchange_segment || 'NSE').toUpperCase()}</span>
+                                <span class="font-bold">${item.trading_symbol || item.symbol}</span>
+                                <span class="badge-segment">${(item.exchange_segment || 'NSE_CM').replace('_', ' ').toUpperCase()}</span>
                             </div>
                         </td>
-                        <td class="text-right font-numeric">${item.quantity || 0}</td>
-                        <td class="text-right font-numeric text-muted">${item.t1_quantity || 0}</td>
+                        <td class="text-right font-numeric">${availQty}</td>
+                        <td class="text-right font-numeric text-muted">${t1Qty}</td>
                         <td class="text-right font-numeric">₹${avgPrice.toFixed(2)}</td>
                         <td class="text-right font-numeric font-bold">₹${ltp > 0 ? ltp.toFixed(2) : '—'}</td>
                         <td class="text-right font-numeric">₹${curVal.toFixed(2)}</td>
                         <td class="text-right font-numeric ${pnl >= 0 ? 'text-success' : 'text-danger'}">
-                            ${pnl >= 0 ? '+' : ''}₹${pnl.toFixed(2)} (${pnlPct.toFixed(2)}%)
+                            ${pnl >= 0 ? '+' : ''}₹${pnl.toFixed(2)} (${pnlPct >= 0 ? '+' : ''}${pnlPct.toFixed(2)}%)
                         </td>
                         <td class="text-right font-numeric ${dPnl >= 0 ? 'text-success' : 'text-danger'}">
                             ${dPnl >= 0 ? '+' : ''}₹${dPnl.toFixed(2)}
@@ -325,46 +336,49 @@
             // Summary metrics strip
             const totalPnl = currentVal - totalInvested;
             const totalPnlPct = totalInvested > 0 ? (totalPnl / totalInvested) * 100 : 0;
+            const dayPnlPct = totalInvested > 0 ? (dayPnl / totalInvested) * 100 : 0;
 
             const invEl = document.getElementById('holdings-total-invested');
             const curEl = document.getElementById('holdings-current-val');
             const pnlEl = document.getElementById('holdings-total-pnl');
             const dayEl = document.getElementById('holdings-day-pnl');
 
-            if (invEl) invEl.textContent = `₹${totalInvested.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
-            if (curEl) curEl.textContent = `₹${currentVal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+            if (invEl) invEl.textContent = `₹${totalInvested.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            if (curEl) curEl.textContent = `₹${currentVal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
             if (pnlEl) {
-                pnlEl.textContent = `${totalPnl >= 0 ? '+' : ''}₹${totalPnl.toFixed(2)} (${totalPnlPct.toFixed(2)}%)`;
+                pnlEl.textContent = `${totalPnl >= 0 ? '+' : ''}₹${totalPnl.toFixed(2)} (${totalPnlPct >= 0 ? '+' : ''}${totalPnlPct.toFixed(2)}%)`;
                 pnlEl.className = `val font-numeric ${totalPnl >= 0 ? 'text-success' : 'text-danger'}`;
             }
             if (dayEl) {
-                dayEl.textContent = `${dayPnl >= 0 ? '+' : ''}₹${dayPnl.toFixed(2)}`;
+                dayEl.textContent = `${dayPnl >= 0 ? '+' : ''}₹${dayPnl.toFixed(2)} (${dayPnlPct >= 0 ? '+' : ''}${dayPnlPct.toFixed(2)}%)`;
                 dayEl.className = `val font-numeric ${dayPnl >= 0 ? 'text-success' : 'text-danger'}`;
             }
         }
 
         handleHoldingAdd(item) {
             if (!window.orderTicketController) return;
+            const ltp = item.current_price || item.last_price || item.close_price;
             window.orderTicketController.openTicket(item, 'BUY', {
                 product: 'CNC',
                 quantity: 1,
-                price: item.last_price || item.close_price,
-                notice: `Add to Holdings: BUY 1 ${item.trading_symbol} CNC`
+                price: ltp,
+                notice: `Add to Holdings: BUY 1 ${item.trading_symbol || item.symbol} CNC`
             });
         }
 
         handleHoldingExit(item) {
             if (!window.orderTicketController) return;
-            const availQty = item.quantity || 0;
+            const availQty = item.settled_quantity !== undefined ? item.settled_quantity : (item.quantity || 0);
             if (availQty <= 0) {
-                if (window.terminalShell) window.terminalShell.showToast(`Cannot exit ${item.trading_symbol}: 0 settled shares available (T1 cannot be sold).`);
+                if (window.terminalShell) window.terminalShell.showToast(`Cannot exit ${item.trading_symbol || item.symbol}: 0 settled shares available (T1 cannot be sold).`);
                 return;
             }
+            const ltp = item.current_price || item.last_price || item.close_price;
             window.orderTicketController.openTicket(item, 'SELL', {
                 product: 'CNC',
                 quantity: availQty,
-                price: item.last_price || item.close_price,
-                notice: `Exit Holdings: SELL ${availQty} ${item.trading_symbol} CNC`
+                price: ltp,
+                notice: `Exit Holdings: SELL ${availQty} ${item.trading_symbol || item.symbol} CNC`
             });
         }
 

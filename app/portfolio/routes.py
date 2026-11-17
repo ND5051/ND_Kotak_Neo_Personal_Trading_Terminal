@@ -47,7 +47,8 @@ def get_portfolio_holdings():
     """
     Retrieve Demat equity holdings with custody details, acquisition cost, and day PnL.
     """
-    holdings = portfolio_service.get_holdings()
+    force = request.args.get("force_refresh", "false").lower() in ("true", "1")
+    holdings = portfolio_service.get_holdings(force_refresh=force)
     return api_response(
         data={
             "count": len(holdings),
