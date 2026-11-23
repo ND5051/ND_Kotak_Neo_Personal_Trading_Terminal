@@ -388,8 +388,17 @@
     color: var(--text-muted);
     background-color: var(--bg-surface);
     border: 1px solid var(--border-subtle);
-    padding: 1px 5px;
+    padding: 2px 6px;
     border-radius: 3px;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.search-esc-hint:hover {
+    background-color: var(--bg-surface-hover);
+    color: var(--text-primary);
+    border-color: var(--border-strong);
 }
 
 .segment-filter-bar {

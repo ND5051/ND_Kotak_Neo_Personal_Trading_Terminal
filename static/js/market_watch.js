@@ -372,6 +372,41 @@
                         this.executeSearch(query);
                     }, 150);
                 });
+
+                // Direct Escape key listener on input
+                input.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        this.closeSearchModal();
+                    }
+                });
+            }
+
+            // Click backdrop outside modal card to close
+            if (modal) {
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        this.closeSearchModal();
+                    }
+                });
+            }
+
+            // Click on Esc hint badge / button to close
+            const closeBtn = document.getElementById('scrip-search-close-btn');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this.closeSearchModal();
+                });
+            }
+            if (modal) {
+                modal.querySelectorAll('.search-esc-hint').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        this.closeSearchModal();
+                    });
+                });
             }
 
             segPills.forEach(pill => {
@@ -412,7 +447,12 @@
 
         closeSearchModal() {
             const modal = document.getElementById('scrip-search-modal');
+            const input = document.getElementById('scrip-search-input');
             if (modal) modal.classList.add('hidden');
+            if (input) {
+                input.value = '';
+                input.blur();
+            }
         }
 
         async executeSearch(query) {
@@ -707,11 +747,18 @@
            ========================================================================== */
         bindKeyboardShortcuts() {
             window.addEventListener('keydown', (e) => {
-                if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
-                    if (e.key === 'Escape') {
+                if (e.key === 'Escape') {
+                    const searchModal = document.getElementById('scrip-search-modal');
+                    if (searchModal && !searchModal.classList.contains('hidden')) {
+                        e.preventDefault();
                         this.closeSearchModal();
-                        this.closeMarketDepth();
+                        return;
                     }
+                    this.closeMarketDepth();
+                    return;
+                }
+
+                if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
                     return;
                 }
 

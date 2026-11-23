@@ -913,11 +913,75 @@
            ========================================================================== */
         bindKeyboardShortcuts() {
             window.addEventListener('keydown', (e) => {
-                // Ignore shortcuts if user is typing in an input
-                if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) {
-                    if (e.key === 'Escape') {
+                // Priority: Escape closes active modals regardless of focused element
+                if (e.key === 'Escape') {
+                    // 1. Scrip Search Modal
+                    const searchModal = document.getElementById('scrip-search-modal');
+                    if (searchModal && !searchModal.classList.contains('hidden')) {
+                        e.preventDefault();
+                        if (window.marketWatchController) {
+                            window.marketWatchController.closeSearchModal();
+                        } else {
+                            searchModal.classList.add('hidden');
+                        }
+                        if (document.activeElement && typeof document.activeElement.blur === 'function') {
+                            document.activeElement.blur();
+                        }
+                        return;
+                    }
+
+                    // 2. Market Depth Modal
+                    const depthModal = document.getElementById('market-depth-modal');
+                    if (depthModal && !depthModal.classList.contains('hidden')) {
+                        e.preventDefault();
+                        if (window.marketWatchController) {
+                            window.marketWatchController.closeMarketDepth();
+                        } else {
+                            depthModal.classList.add('hidden');
+                        }
+                        return;
+                    }
+
+                    // 3. Order Ticket Modal
+                    const ticketModal = document.getElementById('order-ticket-container');
+                    if (ticketModal && !ticketModal.classList.contains('hidden')) {
+                        e.preventDefault();
+                        if (window.orderTicketController) {
+                            window.orderTicketController.closeTicket();
+                        } else {
+                            ticketModal.classList.add('hidden');
+                        }
+                        return;
+                    }
+
+                    // 4. Execution Mode Modal
+                    const modal = document.getElementById('execution-mode-modal');
+                    if (modal && !modal.classList.contains('hidden')) {
+                        e.preventDefault();
+                        modal.classList.add('hidden');
+                        return;
+                    }
+
+                    // 5. Other Modals (Timeline, Modify Order, Login)
+                    const otherModalIds = ['order-timeline-modal', 'modify-order-modal', 'login-modal', 'broker-login-modal'];
+                    for (const id of otherModalIds) {
+                        const m = document.getElementById(id);
+                        if (m && !m.classList.contains('hidden')) {
+                            e.preventDefault();
+                            m.classList.add('hidden');
+                            return;
+                        }
+                    }
+
+                    // If activeElement is an input, blur it
+                    if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) {
                         document.activeElement.blur();
                     }
+                    return;
+                }
+
+                // Ignore other shortcuts if user is typing in an input
+                if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) {
                     return;
                 }
 
@@ -940,15 +1004,6 @@
                     e.preventDefault();
                     const searchInput = document.getElementById('global-scrip-search');
                     if (searchInput) searchInput.focus();
-                    return;
-                }
-
-                // Escape : Close modals
-                if (e.key === 'Escape') {
-                    const modal = document.getElementById('execution-mode-modal');
-                    if (modal && !modal.classList.contains('hidden')) {
-                        modal.classList.add('hidden');
-                    }
                     return;
                 }
 
