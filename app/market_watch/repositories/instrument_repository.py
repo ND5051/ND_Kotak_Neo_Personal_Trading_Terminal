@@ -78,6 +78,8 @@ class InstrumentRepository:
     ) -> List[Instrument]:
         """
         Fast prefix and keyword search across trading symbols, tokens, and names.
+        Supports multi-word queries (e.g. 'nifty dec 2027', 'nifty 24500 ce', 'tcs fut')
+        with intelligent year/expiry normalization and relevance ranking.
         Returns ranked matching instruments up to the specified limit.
         """
         q = str(query).strip().upper()
@@ -88,7 +90,78 @@ class InstrumentRepository:
         results: List[Instrument] = []
         seen_keys: Set[Tuple[str, str]] = set()
 
+        terms = [t for t in q.replace("-", " ").replace("/", " ").split() if t]
+        is_multi_term = len(terms) > 1
+
         with self._lock:
+            # Multi-term query path (e.g. 'NIFTY DEC 2027', 'NIFTY 24500 CE')
+            if is_multi_term:
+                months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"]
+                month_found = None
+                year_found = None
+                for t in terms:
+                    if t in months:
+                        month_found = t
+                    elif len(t) == 4 and t.startswith("20") and t[2:].isdigit():
+                        year_found = t[2:]
+                    elif len(t) == 2 and t.isdigit() and 24 <= int(t) <= 35:
+                        year_found = t
+
+                expiry_combo = f"{year_found}{month_found}" if (month_found and year_found) else None
+
+                term_groups: List[List[str]] = []
+                for t in terms:
+                    variants = [t]
+                    if len(t) == 4 and t.startswith("20") and t[2:].isdigit():
+                        variants.append(t[2:])
+                    elif t in ("CALL", "CE"):
+                        variants = ["CE"]
+                    elif t in ("PUT", "PE"):
+                        variants = ["PE"]
+                    elif t in ("FUT", "FUTURE", "FUTURES"):
+                        variants = ["FUT"]
+                    term_groups.append(variants)
+
+                first_term = terms[0] if terms else ""
+
+                tier_exact_expiry: List[Instrument] = []
+                tier_root_match: List[Instrument] = []
+                tier_other_match: List[Instrument] = []
+
+                for inst in self._by_token.values():
+                    if seg_filter and inst.exchange_segment != seg_filter:
+                        continue
+
+                    sym_u = inst.trading_symbol.upper()
+                    disp_u = inst.display_name.upper()
+                    name_u = inst.symbol_name.upper()
+                    full_text = f"{sym_u} {disp_u} {name_u}"
+
+                    # Verify every term group has at least one variant matched
+                    if not all(any(v in full_text for v in variants) for variants in term_groups):
+                        continue
+
+                    k = (inst.instrument_token, inst.exchange_segment)
+                    if k in seen_keys:
+                        continue
+
+                    is_root = sym_u.startswith(first_term)
+                    has_combo = (expiry_combo in sym_u) if expiry_combo else False
+
+                    if is_root and has_combo:
+                        tier_exact_expiry.append(inst)
+                    elif is_root:
+                        tier_root_match.append(inst)
+                    else:
+                        tier_other_match.append(inst)
+
+                    seen_keys.add(k)
+                    if len(tier_exact_expiry) >= limit:
+                        break
+
+                return (tier_exact_expiry + tier_root_match + tier_other_match)[:limit]
+
+            # Single-term fast path
             # 1. Exact token match check
             for (t, s), inst in self._by_token.items():
                 if t == q:

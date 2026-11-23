@@ -71,7 +71,7 @@ def sync_scrip_master_endpoint():
     Payload (optional): {"segments": ["nse_cm", "bse_cm"], "async": true}
     """
     payload = request.get_json(silent=True) or {}
-    segments = payload.get("segments", ["nse_cm", "bse_cm"])
+    segments = payload.get("segments", ["nse_cm", "bse_cm", "nse_fo"])
     run_async = payload.get("async", True)
 
     if run_async:
