@@ -1059,3 +1059,388 @@
     background-color: var(--accent-orange);
 }
 
+
+
+/* ==========================================================================
+   5. Zerodha Kite Inline Market Depth Workbench & Scrip Overview
+   ========================================================================== */
+.mw-depth-content-pane {
+    height: 100%;
+    overflow-y: auto;
+    padding: 0;
+}
+
+.mw-depth-workbench {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 8px;
+    box-sizing: border-box;
+}
+
+.mw-depth-card {
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.mw-depth-empty {
+    padding: 48px 24px;
+    text-align: center;
+    background-color: var(--bg-surface);
+    border: 1px dashed var(--border-subtle);
+    border-radius: var(--radius-md);
+    margin-top: 24px;
+}
+
+.mw-depth-empty .empty-graphic {
+    font-size: 40px;
+    margin-bottom: 12px;
+}
+
+.mw-depth-empty h3 {
+    margin: 0 0 8px;
+    font-size: 16px;
+    color: var(--text-primary);
+}
+
+.mw-depth-empty p {
+    color: var(--text-secondary);
+    font-size: 13px;
+    max-width: 420px;
+    margin: 0 auto 16px;
+    line-height: 1.5;
+}
+
+.mw-depth-empty .empty-quick-hint {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.mw-depth-empty kbd {
+    background-color: var(--bg-surface-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: 3px;
+    padding: 2px 6px;
+    font-size: 11px;
+    font-family: var(--font-numeric);
+}
+
+/* Top Action Bar */
+.mw-depth-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background-color: var(--bg-surface-elevated);
+    border-bottom: 1px solid var(--border-subtle);
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.mw-depth-title-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.mw-depth-grip {
+    color: var(--text-muted);
+    font-size: 14px;
+    cursor: grab;
+    user-select: none;
+}
+
+.mw-depth-symbol {
+    font-size: 14.5px;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: 0.3px;
+}
+
+.mw-depth-seg-badge {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 3px;
+    background-color: var(--bg-surface-active);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-subtle);
+}
+
+.mw-depth-price-group {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    margin-left: 4px;
+}
+
+.mw-depth-ltp {
+    font-size: 14.5px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.mw-depth-chg {
+    font-size: 12px;
+}
+
+.mw-depth-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-depth-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 28px;
+    min-width: 28px;
+    padding: 0 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all var(--transition-fast);
+}
+
+.btn-depth-action.btn-buy {
+    background-color: #2680eb;
+    color: #ffffff;
+}
+
+.btn-depth-action.btn-buy:hover {
+    background-color: #1a6fd8;
+}
+
+.btn-depth-action.btn-sell {
+    background-color: #ff5722;
+    color: #ffffff;
+}
+
+.btn-depth-action.btn-sell:hover {
+    background-color: #e64a19;
+}
+
+.btn-depth-action.btn-depth-active {
+    background-color: var(--bg-surface-elevated);
+    color: var(--accent-blue);
+    border-color: var(--border-prominent);
+}
+
+.btn-depth-action.btn-chain,
+.btn-depth-action.btn-del {
+    background-color: var(--bg-surface-elevated);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-subtle);
+}
+
+.btn-depth-action.btn-chain:hover,
+.btn-depth-action.btn-del:hover {
+    background-color: var(--bg-surface-active);
+    color: var(--text-primary);
+}
+
+.mw-depth-scrollable {
+    padding: 14px 16px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+/* 5-Level Table */
+.mw-depth-ladder-container {
+    width: 100%;
+}
+
+.mw-depth-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+.mw-depth-table-header th {
+    padding: 4px 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.mw-depth-table-header .th-bid {
+    color: #2680eb;
+    text-align: left;
+    border-bottom: 2px solid #2680eb;
+}
+
+.mw-depth-table-header .th-offer {
+    color: #ff5722;
+    text-align: right;
+    border-bottom: 2px solid #ff5722;
+}
+
+.mw-depth-subheaders th {
+    font-size: 10.5px;
+    font-weight: 500;
+    color: var(--text-muted);
+    padding: 4px 6px;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.mw-depth-subheaders .th-bid-price { text-align: left; }
+.mw-depth-subheaders .th-bid-orders { text-align: right; }
+.mw-depth-subheaders .th-bid-qty { text-align: right; color: #2680eb; }
+.mw-depth-subheaders .th-offer-price { text-align: right; }
+.mw-depth-subheaders .th-offer-orders { text-align: right; }
+.mw-depth-subheaders .th-offer-qty { text-align: right; color: #ff5722; }
+
+.mw-depth-table tbody td {
+    padding: 4px 6px;
+    font-size: 12px;
+}
+
+.val-bid-price { text-align: left; color: #2680eb; font-weight: 600; }
+.val-bid-orders { text-align: right; color: #2680eb; }
+.val-bid-qty { text-align: right; color: #2680eb; }
+
+.val-offer-price { text-align: right; color: #ff5722; font-weight: 600; }
+.val-offer-orders { text-align: right; color: #ff5722; }
+.val-offer-qty { text-align: right; color: #ff5722; }
+
+.mw-depth-totals td {
+    padding: 6px;
+    font-weight: 700;
+    border-top: 1px solid var(--border-subtle);
+    border-bottom: 1px solid var(--border-subtle);
+    background-color: var(--bg-surface-elevated);
+}
+
+.tot-label-bid { color: #2680eb; text-align: left; }
+.tot-val-bid { color: #2680eb; text-align: right; }
+.tot-label-offer { color: #ff5722; text-align: right; }
+.tot-val-offer { color: #ff5722; text-align: right; }
+
+.mw-depth-ratio-bar {
+    display: flex;
+    width: 100%;
+    height: 4px;
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 6px;
+}
+
+.mw-depth-ratio-bar .ratio-fill.buy {
+    background-color: #2680eb;
+    transition: width 300ms ease;
+}
+
+.mw-depth-ratio-bar .ratio-fill.sell {
+    background-color: #ff5722;
+    transition: width 300ms ease;
+}
+
+/* OHLC & Day Range Section */
+.mw-depth-range-box {
+    background-color: var(--bg-surface-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+}
+
+.range-stat-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 6px;
+}
+
+.range-lh-row {
+    margin-bottom: 8px;
+}
+
+.range-cell {
+    display: flex;
+    gap: 8px;
+    align-items: baseline;
+}
+
+.range-cell.text-right {
+    justify-content: flex-end;
+}
+
+.range-lbl {
+    font-size: 11.5px;
+    color: var(--text-muted);
+}
+
+.range-val {
+    font-size: 12.5px;
+    color: var(--text-primary);
+}
+
+.range-track-container {
+    position: relative;
+    padding: 6px 0 10px;
+}
+
+.range-track-line {
+    position: relative;
+    height: 3px;
+    width: 100%;
+    background: linear-gradient(90deg, #ff5722 0%, #ffc107 50%, #26a69a 100%);
+    border-radius: 2px;
+}
+
+.range-marker {
+    position: absolute;
+    top: -5px;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: left 300ms ease;
+}
+
+.marker-triangle {
+    font-size: 9px;
+    color: var(--text-primary);
+    line-height: 1;
+}
+
+/* Statistics Grid */
+.mw-depth-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px 18px;
+    font-size: 12px;
+    border-top: 1px solid var(--border-subtle);
+    padding-top: 12px;
+}
+
+.stat-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 3px 0;
+    border-bottom: 1px dashed rgba(128, 128, 128, 0.15);
+}
+
+.stat-k {
+    color: var(--text-muted);
+    font-size: 11.5px;
+}
+
+.stat-v {
+    color: var(--text-primary);
+    font-size: 12px;
+    font-weight: 600;
+}

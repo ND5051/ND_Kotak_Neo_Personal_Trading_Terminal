@@ -6,39 +6,8 @@
                 {% include "components/market_watch_grid.html" %}
             </aside>
 
-            <main class="primary-content-pane">
-                <div class="welcome-hero card">
-                    <div class="hero-header">
-                        <h2>Kotak Neo Personal Trading Terminal</h2>
-                        <span class="version-tag">Phase 11A Architecture</span>
-                    </div>
-                    <p class="hero-desc">
-                        Professional, low-latency, institutional-grade desktop trading cockpit inspired by Zerodha Kite ergonomics.
-                    </p>
-                    <div class="hero-stats-grid">
-                        <div class="stat-box">
-                            <span class="stat-label">Execution Mode</span>
-                            <span class="stat-val font-numeric mode-text" id="hero-execution-mode">{{ execution_mode }}</span>
-                        </div>
-                        <div class="stat-box">
-                            <span class="stat-label">Workspace State</span>
-                            <span class="stat-val font-numeric" id="hero-ws-state">SAVED (v1)</span>
-                        </div>
-                        <div class="stat-box">
-                            <span class="stat-label">UI Density</span>
-                            <span class="stat-val font-numeric" id="hero-density-state">STANDARD</span>
-                        </div>
-                        <div class="stat-box">
-                            <span class="stat-label">SFeed Stream</span>
-                            <span class="stat-val font-numeric text-success">CONNECTED</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="grid-2">
-                    {% include "components/funds_widget.html" %}
-                    {% include "components/health_widget.html" %}
-                </div>
+            <main class="primary-content-pane mw-depth-content-pane">
+                {% include "components/market_watch_depth_pane.html" %}
             </main>
         </div>
     </section>

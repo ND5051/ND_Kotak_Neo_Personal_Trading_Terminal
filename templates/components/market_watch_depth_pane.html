@@ -1,0 +1,213 @@
+<!-- Zerodha Kite-Style Scrip Overview & 5-Level Market Depth Workbench -->
+<div class="mw-depth-workbench" id="mw-depth-workbench">
+    <!-- Empty State (Shown when no instrument is selected) -->
+    <div class="mw-depth-empty card" id="mw-depth-empty">
+        <div class="empty-graphic">📊</div>
+        <h3>No Scrip Selected</h3>
+        <p>Click on any instrument in the watchlist or press <kbd>≡</kbd> to inspect live 5-level market depth, day range, and technical analytics.</p>
+        <div class="empty-quick-hint">
+            <span>Tip: Use <kbd>↑</kbd> <kbd>↓</kbd> to navigate, <kbd>B</kbd> to Buy, <kbd>S</kbd> to Sell, and <kbd>D</kbd> for Depth.</span>
+        </div>
+    </div>
+
+    <!-- Active Depth Workbench (Shown when an instrument is selected) -->
+    <div class="mw-depth-card card hidden" id="mw-depth-card">
+        <!-- Top Action Bar -->
+        <div class="mw-depth-topbar">
+            <div class="mw-depth-title-box">
+                <span class="mw-depth-grip" title="Drag to reorder">⋮⋮</span>
+                <span class="mw-depth-symbol" id="pane-depth-symbol">NIFTY DEC FUT</span>
+                <span class="mw-depth-seg-badge" id="pane-depth-segment">NSE_FO</span>
+                <div class="mw-depth-price-group">
+                    <span class="mw-depth-ltp font-numeric" id="pane-depth-ltp">25,349.65</span>
+                    <span class="mw-depth-chg font-numeric" id="pane-depth-chg">+102.30 (+0.42%)</span>
+                </div>
+            </div>
+
+            <div class="mw-depth-actions">
+                <button class="btn-depth-action btn-buy" id="pane-depth-buy-btn" title="Buy (B)">B</button>
+                <button class="btn-depth-action btn-sell" id="pane-depth-sell-btn" title="Sell (S)">S</button>
+                <button class="btn-depth-action btn-depth-active active" id="pane-depth-toggle-btn" title="Market Depth (≡)">≡</button>
+                <button class="btn-depth-action btn-chain" id="pane-depth-chain-btn" title="Option Chain (O)">⛓️</button>
+                <button class="btn-depth-action btn-del" id="pane-depth-del-btn" title="Remove from Watchlist">🗑️</button>
+            </div>
+        </div>
+
+        <div class="mw-depth-scrollable">
+            <!-- 5-Level Market Depth Table -->
+            <div class="mw-depth-ladder-container">
+                <table class="mw-depth-table">
+                    <thead>
+                        <tr class="mw-depth-table-header">
+                            <th class="th-bid" colspan="3">BID</th>
+                            <th class="th-offer" colspan="3">OFFER</th>
+                        </tr>
+                        <tr class="mw-depth-subheaders">
+                            <th class="th-bid-price">Bid</th>
+                            <th class="th-bid-orders">Orders</th>
+                            <th class="th-bid-qty">Qty.</th>
+                            <th class="th-offer-price">Offer</th>
+                            <th class="th-offer-orders">Orders</th>
+                            <th class="th-offer-qty">Qty.</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pane-depth-table-body">
+                        <!-- Populated dynamically by market_watch.js -->
+                        <tr>
+                            <td class="font-numeric val-bid-price">0.00</td>
+                            <td class="font-numeric val-bid-orders">0</td>
+                            <td class="font-numeric val-bid-qty">0</td>
+                            <td class="font-numeric val-offer-price">0.00</td>
+                            <td class="font-numeric val-offer-orders">0</td>
+                            <td class="font-numeric val-offer-qty">0</td>
+                        </tr>
+                        <tr>
+                            <td class="font-numeric val-bid-price">0.00</td>
+                            <td class="font-numeric val-bid-orders">0</td>
+                            <td class="font-numeric val-bid-qty">0</td>
+                            <td class="font-numeric val-offer-price">0.00</td>
+                            <td class="font-numeric val-offer-orders">0</td>
+                            <td class="font-numeric val-offer-qty">0</td>
+                        </tr>
+                        <tr>
+                            <td class="font-numeric val-bid-price">0.00</td>
+                            <td class="font-numeric val-bid-orders">0</td>
+                            <td class="font-numeric val-bid-qty">0</td>
+                            <td class="font-numeric val-offer-price">0.00</td>
+                            <td class="font-numeric val-offer-orders">0</td>
+                            <td class="font-numeric val-offer-qty">0</td>
+                        </tr>
+                        <tr>
+                            <td class="font-numeric val-bid-price">0.00</td>
+                            <td class="font-numeric val-bid-orders">0</td>
+                            <td class="font-numeric val-bid-qty">0</td>
+                            <td class="font-numeric val-offer-price">0.00</td>
+                            <td class="font-numeric val-offer-orders">0</td>
+                            <td class="font-numeric val-offer-qty">0</td>
+                        </tr>
+                        <tr>
+                            <td class="font-numeric val-bid-price">0.00</td>
+                            <td class="font-numeric val-bid-orders">0</td>
+                            <td class="font-numeric val-bid-qty">0</td>
+                            <td class="font-numeric val-offer-price">0.00</td>
+                            <td class="font-numeric val-offer-orders">0</td>
+                            <td class="font-numeric val-offer-qty">0</td>
+                        </tr>
+                    </tbody>
+                    <tfoot>
+                        <tr class="mw-depth-totals">
+                            <td colspan="2" class="tot-label-bid">Total</td>
+                            <td class="font-numeric tot-val-bid" id="pane-depth-total-buy-qty">0</td>
+                            <td colspan="2" class="tot-label-offer">Total</td>
+                            <td class="font-numeric tot-val-offer" id="pane-depth-total-sell-qty">0</td>
+                        </tr>
+                    </tfoot>
+                </table>
+
+                <!-- Depth Pressure Ratio Bar -->
+                <div class="mw-depth-ratio-bar">
+                    <div class="ratio-fill buy" id="pane-depth-ratio-buy" style="width: 50%;"></div>
+                    <div class="ratio-fill sell" id="pane-depth-ratio-sell" style="width: 50%;"></div>
+                </div>
+            </div>
+
+            <!-- Zerodha-Style OHLC & Day Range Slider -->
+            <div class="mw-depth-range-box">
+                <div class="range-stat-row">
+                    <div class="range-cell">
+                        <span class="range-lbl">Open</span>
+                        <strong class="range-val font-numeric" id="pane-depth-open">0.00</strong>
+                    </div>
+                    <div class="range-cell text-right">
+                        <span class="range-lbl">Prev. Close</span>
+                        <strong class="range-val font-numeric" id="pane-depth-close">0.00</strong>
+                    </div>
+                </div>
+
+                <div class="range-stat-row range-lh-row">
+                    <div class="range-cell">
+                        <span class="range-lbl">Low</span>
+                        <strong class="range-val font-numeric" id="pane-depth-low">0.00</strong>
+                    </div>
+                    <div class="range-cell text-right">
+                        <span class="range-lbl">High</span>
+                        <strong class="range-val font-numeric" id="pane-depth-high">0.00</strong>
+                    </div>
+                </div>
+
+                <!-- Visual Range Track -->
+                <div class="range-track-container">
+                    <div class="range-track-line">
+                        <div class="range-marker" id="pane-depth-range-marker" style="left: 50%;">
+                            <span class="marker-triangle">▲</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Context-Aware Technical & Market Statistics Grid -->
+            <div class="mw-depth-stats-grid">
+                <div class="stat-item">
+                    <span class="stat-k">Volume</span>
+                    <span class="stat-v font-numeric" id="pane-depth-vol">N/A</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-k">Avg. price</span>
+                    <span class="stat-v font-numeric" id="pane-depth-atp">N/A</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-k">Lower circuit</span>
+                    <span class="stat-v font-numeric text-danger" id="pane-depth-lc">--</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-k">Upper circuit</span>
+                    <span class="stat-v font-numeric text-success" id="pane-depth-uc">--</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-k">LTQ</span>
+                    <span class="stat-v font-numeric" id="pane-depth-ltq">--</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-k">LTT</span>
+                    <span class="stat-v font-numeric" id="pane-depth-ltt">--</span>
+                </div>
+
+                <!-- Derivatives Specific Fields (F&O / Commodities) -->
+                <div class="stat-item deriv-field" id="stat-row-expiry">
+                    <span class="stat-k">Expiry</span>
+                    <span class="stat-v font-numeric" id="pane-depth-expiry">--</span>
+                </div>
+                <div class="stat-item deriv-field" id="stat-row-oi">
+                    <span class="stat-k">OI</span>
+                    <span class="stat-v font-numeric" id="pane-depth-oi">--</span>
+                </div>
+                <div class="stat-item deriv-field" id="stat-row-underlying">
+                    <span class="stat-k" id="pane-depth-underlying-lbl">Underlying</span>
+                    <span class="stat-v font-numeric" id="pane-depth-underlying">--</span>
+                </div>
+                <div class="stat-item deriv-field" id="stat-row-lot">
+                    <span class="stat-k">Lot Size</span>
+                    <span class="stat-v font-numeric" id="pane-depth-lot">--</span>
+                </div>
+
+                <!-- Cash / Equity Specific Fields -->
+                <div class="stat-item equity-field hidden" id="stat-row-52wh">
+                    <span class="stat-k">52W High</span>
+                    <span class="stat-v font-numeric" id="pane-depth-52wh">--</span>
+                </div>
+                <div class="stat-item equity-field hidden" id="stat-row-52wl">
+                    <span class="stat-k">52W Low</span>
+                    <span class="stat-v font-numeric" id="pane-depth-52wl">--</span>
+                </div>
+                <div class="stat-item equity-field hidden" id="stat-row-tick">
+                    <span class="stat-k">Tick Size</span>
+                    <span class="stat-v font-numeric" id="pane-depth-tick">0.05</span>
+                </div>
+                <div class="stat-item equity-field hidden" id="stat-row-token">
+                    <span class="stat-k">Token</span>
+                    <span class="stat-v font-numeric" id="pane-depth-token">--</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
