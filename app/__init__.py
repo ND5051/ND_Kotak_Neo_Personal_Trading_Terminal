@@ -99,11 +99,11 @@ def create_app(
     except Exception as e:
         logger.debug(f"Streaming price engine wiring skipped: {str(e)}")
 
-    # 9. Trigger Background Scrip Master Synchronizer (NSE + BSE Equities & NSE F&O)
+    # 9. Trigger Background Scrip Master Synchronizer (NSE + BSE Equities & NSE/MCX F&O)
     if not app.config.get("TESTING"):
         try:
             from app.market_watch.services.instrument_service import instrument_service
-            instrument_service.sync_scrip_master_async(segments=["nse_cm", "bse_cm", "nse_fo"])
+            instrument_service.sync_scrip_master_async(segments=["nse_cm", "bse_cm", "nse_fo", "mcx_fo"])
         except Exception as e:
             logger.debug(f"Background scrip master sync initiation skipped: {str(e)}")
 

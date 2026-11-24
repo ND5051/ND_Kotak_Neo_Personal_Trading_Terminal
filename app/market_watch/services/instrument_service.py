@@ -257,9 +257,9 @@ class InstrumentService:
     ) -> Dict[str, Any]:
         """
         Download and index Kotak Neo official daily Scrip Master files.
-        Default segments: ['nse_cm', 'bse_cm', 'nse_fo'].
+        Default segments: ['nse_cm', 'bse_cm', 'nse_fo', 'mcx_fo'].
         """
-        target_segments = segments or ["nse_cm", "bse_cm", "nse_fo"]
+        target_segments = segments or ["nse_cm", "bse_cm", "nse_fo", "mcx_fo"]
         today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
         # Base data storage directory
@@ -272,6 +272,7 @@ class InstrumentService:
             "bse_cm": f"https://lapi.kotaksecurities.com/wso2-scripmaster/v1/prod/{today_str}/transformed-v1/bse_cm-v1.csv",
             "nse_fo": f"https://lapi.kotaksecurities.com/wso2-scripmaster/v1/prod/{today_str}/transformed/nse_fo.csv",
             "bse_fo": f"https://lapi.kotaksecurities.com/wso2-scripmaster/v1/prod/{today_str}/transformed/bse_fo.csv",
+            "mcx_fo": f"https://lapi.kotaksecurities.com/wso2-scripmaster/v1/prod/{today_str}/transformed/mcx_fo.csv",
         }
 
         results: Dict[str, Any] = {"synced_at": datetime.now(timezone.utc).isoformat(), "segments": {}}

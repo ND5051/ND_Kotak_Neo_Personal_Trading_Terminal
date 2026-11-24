@@ -520,7 +520,7 @@
 
             // Margin Estimation
             const notional = this.quantity * (this.price || 142.50);
-            const isOptionBuy = this.side === 'BUY' && (this.item && this.item.exchange_segment === 'nse_fo');
+            const isOptionBuy = this.side === 'BUY' && (this.item && ['nse_fo', 'bse_fo', 'mcx_fo'].includes(this.item.exchange_segment));
             const estMargin = isOptionBuy ? notional : (this.product === 'CNC' ? notional : notional * 0.20);
             const availCash = 245000.00; // Synced with portfolio margins
 

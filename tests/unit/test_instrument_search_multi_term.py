@@ -56,6 +56,26 @@ def repo():
             tick_size=0.05,
             instrument_type="FUTSTK",
         ),
+        Instrument(
+            instrument_token="588364",
+            exchange_segment="mcx_fo",
+            trading_symbol="GOLD31AUG27149500PE",
+            symbol_name="GOLD",
+            display_name="GOLD 31-AUG-27 149500 PE",
+            lot_size=1,
+            tick_size=1.0,
+            instrument_type="OPTFUT",
+        ),
+        Instrument(
+            instrument_token="590789",
+            exchange_segment="mcx_fo",
+            trading_symbol="SILVERM23APR27167000CE",
+            symbol_name="SILVERM",
+            display_name="SILVERM 23-APR-27 167000 CE",
+            lot_size=5,
+            tick_size=1.0,
+            instrument_type="OPTFUT",
+        ),
     ]
     r.load_instruments(test_instruments)
     return r
@@ -83,3 +103,13 @@ def test_segment_filter(repo):
     results_fo = repo.search("tcs", segment="nse_fo")
     assert len(results_fo) == 1
     assert results_fo[0].trading_symbol == "TCS26DECFUT"
+
+def test_mcx_commodity_search(repo):
+    results_gold = repo.search("gold")
+    assert len(results_gold) == 1
+    assert results_gold[0].trading_symbol == "GOLD31AUG27149500PE"
+    assert results_gold[0].exchange_segment == "mcx_fo"
+
+    results_mcx = repo.search("silver", segment="mcx_fo")
+    assert len(results_mcx) == 1
+    assert results_mcx[0].trading_symbol == "SILVERM23APR27167000CE"

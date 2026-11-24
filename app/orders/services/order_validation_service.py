@@ -28,7 +28,7 @@ class OrderValidationService:
     prior to state advancement. Zero execution logic.
     """
 
-    SUPPORTED_SEGMENTS = {"nse_cm", "bse_cm", "nse_fo", "bse_fo", "cde_fo"}
+    SUPPORTED_SEGMENTS = {"nse_cm", "bse_cm", "nse_fo", "bse_fo", "cde_fo", "mcx_fo"}
 
     def __init__(
         self, instruments: Optional[InstrumentService] = None
@@ -69,7 +69,7 @@ class OrderValidationService:
             errors.append(f"Invalid product type '{order.product_type}'. Must be CNC, MIS, or NRML.")
 
         # CNC restriction for derivatives
-        if order.product_type == ProductType.CNC and seg in ("nse_fo", "bse_fo", "cde_fo"):
+        if order.product_type == ProductType.CNC and seg in ("nse_fo", "bse_fo", "cde_fo", "mcx_fo"):
             errors.append("Product code CNC (Cash and Carry) is not permitted for derivative segments.")
 
         # 2. Tick Size Verification
