@@ -467,6 +467,10 @@
 
                 const cLtp = c.ltp !== undefined ? c.ltp : (c.last_price || 0);
                 const pLtp = p.ltp !== undefined ? p.ltp : (p.last_price || 0);
+                const cBid = Number(c.bid_price !== undefined ? c.bid_price : (c.bid !== undefined ? c.bid : (cLtp > 0 ? Math.max(0.05, cLtp - 0.20) : 0)));
+                const cAsk = Number(c.ask_price !== undefined ? c.ask_price : (c.ask !== undefined ? c.ask : (cLtp > 0 ? cLtp + 0.20 : 0)));
+                const pBid = Number(p.bid_price !== undefined ? p.bid_price : (p.bid !== undefined ? p.bid : (pLtp > 0 ? Math.max(0.05, pLtp - 0.20) : 0)));
+                const pAsk = Number(p.ask_price !== undefined ? p.ask_price : (p.ask !== undefined ? p.ask : (pLtp > 0 ? pLtp + 0.20 : 0)));
                 const cOi = c.open_interest || 0;
                 const pOi = p.open_interest || 0;
                 const cChgOi = c.change_in_oi !== undefined ? c.change_in_oi : (c.change_oi || 0);
@@ -496,6 +500,12 @@
                     <td class="text-right font-numeric ${isCallItm ? 'itm-call' : ''}">
                         ${cVol ? (cVol / 1000).toFixed(1) + 'k' : '—'}
                     </td>
+                    <td class="text-right font-numeric bid-cell ${isCallItm ? 'itm-call' : ''}" style="cursor: pointer;" data-action="click-call-bid" title="Sell Call @ Best Bid ₹${cBid.toFixed(2)}">
+                        ₹${cBid > 0 ? cBid.toFixed(2) : '—'}
+                    </td>
+                    <td class="text-right font-numeric ask-cell ${isCallItm ? 'itm-call' : ''}" style="cursor: pointer;" data-action="click-call-ask" title="Buy Call @ Best Ask ₹${cAsk.toFixed(2)}">
+                        ₹${cAsk > 0 ? cAsk.toFixed(2) : '—'}
+                    </td>
                     <td class="text-right font-numeric font-bold ${isCallItm ? 'itm-call' : ''}" style="cursor: pointer;" data-action="click-call-ltp" title="Click to Buy Call @ ₹${cLtp.toFixed(2)}">
                         ₹${cLtp > 0 ? cLtp.toFixed(2) : '—'}
                     </td>
@@ -524,6 +534,12 @@
                     <td class="text-right font-numeric font-bold ${isPutItm ? 'itm-put' : ''}" style="cursor: pointer;" data-action="click-put-ltp" title="Click to Buy Put @ ₹${pLtp.toFixed(2)}">
                         ₹${pLtp > 0 ? pLtp.toFixed(2) : '—'}
                     </td>
+                    <td class="text-right font-numeric bid-cell ${isPutItm ? 'itm-put' : ''}" style="cursor: pointer;" data-action="click-put-bid" title="Sell Put @ Best Bid ₹${pBid.toFixed(2)}">
+                        ₹${pBid > 0 ? pBid.toFixed(2) : '—'}
+                    </td>
+                    <td class="text-right font-numeric ask-cell ${isPutItm ? 'itm-put' : ''}" style="cursor: pointer;" data-action="click-put-ask" title="Buy Put @ Best Ask ₹${pAsk.toFixed(2)}">
+                        ₹${pAsk > 0 ? pAsk.toFixed(2) : '—'}
+                    </td>
                     <td class="text-right font-numeric ${isPutItm ? 'itm-put' : ''}">
                         ${pVol ? (pVol / 1000).toFixed(1) + 'k' : '—'}
                     </td>
@@ -547,22 +563,30 @@
                 const btnSellCall = tr.querySelector('[data-action="sell-call"]');
                 const btnBasketCall = tr.querySelector('[data-action="basket-call"]');
                 const clickCallLtp = tr.querySelector('[data-action="click-call-ltp"]');
+                const clickCallBid = tr.querySelector('[data-action="click-call-bid"]');
+                const clickCallAsk = tr.querySelector('[data-action="click-call-ask"]');
 
                 const btnBuyPut = tr.querySelector('[data-action="buy-put"]');
                 const btnSellPut = tr.querySelector('[data-action="sell-put"]');
                 const btnBasketPut = tr.querySelector('[data-action="basket-put"]');
                 const clickPutLtp = tr.querySelector('[data-action="click-put-ltp"]');
+                const clickPutBid = tr.querySelector('[data-action="click-put-bid"]');
+                const clickPutAsk = tr.querySelector('[data-action="click-put-ask"]');
                 const btnPin = tr.querySelector('[data-action="pin-strike"]');
 
                 if (btnBuyCall) btnBuyCall.addEventListener('click', () => this.tradeContract(c, 'BUY'));
                 if (btnSellCall) btnSellCall.addEventListener('click', () => this.tradeContract(c, 'SELL'));
                 if (btnBasketCall) btnBasketCall.addEventListener('click', () => this.addContractToBasket(c, 'BUY'));
                 if (clickCallLtp) clickCallLtp.addEventListener('click', () => this.tradeContract(c, 'BUY'));
+                if (clickCallBid) clickCallBid.addEventListener('click', () => this.tradeContract(c, 'SELL'));
+                if (clickCallAsk) clickCallAsk.addEventListener('click', () => this.tradeContract(c, 'BUY'));
 
                 if (btnBuyPut) btnBuyPut.addEventListener('click', () => this.tradeContract(p, 'BUY'));
                 if (btnSellPut) btnSellPut.addEventListener('click', () => this.tradeContract(p, 'SELL'));
                 if (btnBasketPut) btnBasketPut.addEventListener('click', () => this.addContractToBasket(p, 'BUY'));
                 if (clickPutLtp) clickPutLtp.addEventListener('click', () => this.tradeContract(p, 'BUY'));
+                if (clickPutBid) clickPutBid.addEventListener('click', () => this.tradeContract(p, 'SELL'));
+                if (clickPutAsk) clickPutAsk.addEventListener('click', () => this.tradeContract(p, 'BUY'));
 
                 if (btnPin) btnPin.addEventListener('click', () => this.pinToWatchlist(c, p, k));
 

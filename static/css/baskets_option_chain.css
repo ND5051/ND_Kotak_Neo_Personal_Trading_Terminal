@@ -356,6 +356,24 @@
     border-right: 2px solid var(--border-color);
 }
 
+.bid-col-header,
+.oc-matrix-table td.bid-cell {
+    color: var(--accent-blue, #2680eb) !important;
+    font-size: 0.82rem;
+}
+
+.ask-col-header,
+.oc-matrix-table td.ask-cell {
+    color: var(--accent-orange, #ff5722) !important;
+    font-size: 0.82rem;
+}
+
+.oc-matrix-table td.bid-cell:hover,
+.oc-matrix-table td.ask-cell:hover {
+    filter: brightness(1.2);
+    text-decoration: underline;
+}
+
 /* ITM Shading */
 .oc-matrix-table td.itm-call {
     background: rgba(255, 193, 7, 0.06);
