@@ -58,16 +58,26 @@ class OptionChainService:
         self._neo_client: Optional[Any] = None
 
     def _get_neo_client(self) -> Optional[Any]:
-        """Lazy initializer for native Kotak Neo market data client."""
-        if self._neo_client is None:
-            ck = os.getenv("NEO_CONSUMER_KEY")
-            if ck and hasattr(neo_api_client, "NeoAPI"):
-                try:
-                    os.environ.setdefault("NEO_LOG_FILE_ENABLED", "false")
-                    self._neo_client = neo_api_client.NeoAPI(consumer_key=ck)
-                except Exception as e:
-                    logger.warning(f"Failed to initialize NeoAPI client: {e}")
-                    self._neo_client = None
+        """Lazy initializer for native Kotak Neo market data client, prioritizing authenticated session."""
+        if self._neo_client is not None:
+            return self._neo_client
+
+        try:
+            from app.broker.adapters.kotak_adapter import kotak_adapter
+            if kotak_adapter.client is not None:
+                self._neo_client = kotak_adapter.client
+                return self._neo_client
+        except Exception:
+            pass
+
+        ck = os.getenv("NEO_CONSUMER_KEY")
+        if ck and hasattr(neo_api_client, "NeoAPI"):
+            try:
+                os.environ.setdefault("NEO_LOG_FILE_ENABLED", "false")
+                self._neo_client = neo_api_client.NeoAPI(consumer_key=ck)
+            except Exception as e:
+                logger.warning(f"Failed to initialize NeoAPI client: {e}")
+                self._neo_client = None
         return self._neo_client
 
     # 1. Expiries Pipeline
@@ -642,8 +652,16 @@ class OptionChainService:
             else:
                 moneyness = "OTM"
 
-        # Check PriceEngine for active stream
+        # Check InstrumentRepository for actual broker token
         token = str(abs(hash(trading_symbol)) % 90000 + 10000)
+        try:
+            from app.market_watch.repositories.instrument_repository import instrument_repository
+            inst = instrument_repository.get_by_symbol(trading_symbol, spec.derivatives_segment)
+            if inst:
+                token = inst.instrument_token
+        except Exception:
+            pass
+
         touchline = None
         try:
             touchline = self.price_engine.get_touchline(spec.derivatives_segment, token)
@@ -652,8 +670,8 @@ class OptionChainService:
 
         if touchline and touchline.ltp > 0:
             ltp = touchline.ltp
-            bid = touchline.bid
-            ask = touchline.ask
+            bid = touchline.bid if touchline.bid > 0 else max(0.05, round((ltp - 0.20) * 20.0) / 20.0)
+            ask = touchline.ask if touchline.ask > 0 else round((ltp + 0.20) * 20.0) / 20.0
             volume = touchline.volume
         else:
             # High-fidelity option pricing model for simulated/offline pricing

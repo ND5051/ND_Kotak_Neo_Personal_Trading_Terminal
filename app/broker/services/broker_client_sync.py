@@ -19,4 +19,9 @@ def sync_shared_broker_client(client: Optional[Any]) -> None:
     ws_supervisor.adapter.client = client
     if portfolio_service.adapter is not kotak_adapter:
         portfolio_service.adapter.client = client
+    try:
+        from app.option_chain.services.option_chain_service import option_chain_service
+        option_chain_service._neo_client = client
+    except Exception:
+        pass
 

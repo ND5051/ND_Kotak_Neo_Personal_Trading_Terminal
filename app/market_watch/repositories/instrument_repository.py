@@ -70,6 +70,20 @@ class InstrumentRepository:
         with self._lock:
             return self._by_token.get(key)
 
+    def get_by_symbol(self, symbol: str, segment: Optional[str] = None) -> Optional[Instrument]:
+        """Fetch instrument by trading symbol, optionally filtered by segment."""
+        sym = symbol.strip().upper()
+        with self._lock:
+            items = self._by_symbol.get(sym, [])
+            if not items:
+                return None
+            if segment:
+                seg = segment.strip().lower()
+                for it in items:
+                    if it.exchange_segment.strip().lower() == seg:
+                        return it
+            return items[0]
+
     def search(
         self,
         query: str,

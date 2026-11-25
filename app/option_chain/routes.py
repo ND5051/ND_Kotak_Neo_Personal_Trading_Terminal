@@ -85,6 +85,10 @@ def get_option_chain():
             expiry=expiry,
             preset=preset,
         )
+        try:
+            option_chain_service.subscribe_chain_tokens(snapshot)
+        except Exception:
+            pass
         return api_response(data=snapshot.to_dict())
     except ApplicationException as e:
         return api_error(error_code=e.error_code, message=e.message, status_code=e.status_code)

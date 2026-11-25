@@ -984,3 +984,23 @@
     bottom: 24px;
 }
 
+
+
+/* Price Change Flash Animations for Real-Time Streaming */
+@keyframes flashGreenAnim {
+    0% { background-color: rgba(38, 166, 154, 0.35); }
+    100% { background-color: transparent; }
+}
+
+@keyframes flashRedAnim {
+    0% { background-color: rgba(239, 83, 80, 0.35); }
+    100% { background-color: transparent; }
+}
+
+.flash-green {
+    animation: flashGreenAnim 400ms ease;
+}
+
+.flash-red {
+    animation: flashRedAnim 400ms ease;
+}

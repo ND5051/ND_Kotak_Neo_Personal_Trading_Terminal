@@ -119,6 +119,9 @@
                     window.orderBookController.fetchTrades();
                 } else if (tabKey === 'funds' && window.portfolioController) {
                     window.portfolioController.fetchMargins();
+                } else if (tabKey === 'option_chain' && window.optionChainController) {
+                    window.optionChainController.fetchMatrix();
+                    window.optionChainController.startPolling();
                 }
 
                 // Persist to workspace state
